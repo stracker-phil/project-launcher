@@ -1,9 +1,10 @@
-import { useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type RefObject } from "react";
 import { LoaderCircle, Play, Plus, X } from "lucide-react";
 import type { Action, Project, ProjectConfig, ProjectStatus, RunsAs } from "../../api";
 import { openContextMenu, openMenu, type MenuEntry } from "../../components/menu";
 import { bindingLabel } from "../../commands/registry";
 import { colorVar, iconFor } from "../../lib/icons";
+import { useLibrary } from "../../state/library";
 import { sourceKey, useRuns } from "../../state/runs";
 import { launchAction } from "../launch";
 import { ActionEditor, type EditorTarget } from "./ActionEditor";
@@ -112,7 +113,7 @@ function ActionTile({ action, running, onContextMenu, onClick }: {
   );
 }
 
-function OpenGrid({ project, config, apps, running, editable, edit, menuFor }: {
+function OpenGrid({ project, config, apps, running, editable, edit, menuFor, addButton }: {
   project: Project;
   config: ProjectConfig;
   apps: Action[];
@@ -120,8 +121,8 @@ function OpenGrid({ project, config, apps, running, editable, edit, menuFor }: {
   editable: boolean;
   edit: Edit;
   menuFor: MenuFor;
+  addButton: RefObject<HTMLButtonElement | null>;
 }) {
-  const addButton = useRef<HTMLButtonElement>(null);
   const openAddMenu = () => {
     const at = addButton.current;
     if (at) openMenu(addMenuEntries(project, config, (runsAs) => edit(newTarget(runsAs), at)), at, "Add Action");
@@ -222,10 +223,20 @@ function ScriptsSection({ project, scripts, menuFor }: { project: Project; scrip
 export function ActionsSection({ project, config, status, editable }: Props) {
   const [editing, setEditing] = useState<EditorTarget | null>(null);
   const anchor = useRef<HTMLElement | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
   const edit: Edit = (target, at) => {
     anchor.current = at;
     setEditing(target);
   };
+  const newAction = useLibrary((s) => s.newAction);
+  // Only a new request opens the editor; `editable` and the button are read as they are then.
+  useEffect(() => {
+    if (!newAction || !editable || !addButton.current) return;
+    anchor.current = addButton.current;
+    setEditing({ source: null, draft: newAction.draft, preset: null, defaults: null });
+    useLibrary.getState().takeNewAction();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newAction?.nonce]);
   const menuFor: MenuFor = (action, list) =>
     editable
       ? (e) => {
@@ -243,6 +254,7 @@ export function ActionsSection({ project, config, status, editable }: Props) {
         editable={editable}
         edit={edit}
         menuFor={menuFor}
+        addButton={addButton}
       />
       <ScriptsSection project={project} scripts={shownActions(config.scripts, status)} menuFor={menuFor} />
       <ActionEditor project={project} target={editing} anchor={anchor} onClose={() => setEditing(null)} />

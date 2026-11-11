@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Api, DevStatus, EventName, EventPayloads, Library, ProjectConfig, ProjectStatus, Settings } from "../api";
+import type { Api, DevStatus, EventName, EventPayloads, FileStats, Library, ProjectConfig, ProjectStatus, QuickStats, Settings } from "../api";
 
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +35,21 @@ export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
 
 /** The status of a project without states, hidden actions or running terminals. */
 export const EMPTY_STATUS: ProjectStatus = { states: [], hidden: [], running: [] };
+
+/** The quick stats of a folder with no manifest and no git. */
+export const EMPTY_QUICK_STATS: QuickStats = { kind: null, requirements: [], scripts: [], git: null, computedAtMs: 0 };
+
+/** The file stats of an empty folder. */
+export const EMPTY_FILE_STATS: FileStats = {
+  files: 0,
+  truncated: false,
+  sourceBytes: 0,
+  diskBytes: 0,
+  lines: 0,
+  languages: [],
+  recent: [],
+  computedAtMs: 0,
+};
 
 /** The library of an empty install under the "All Projects" filter. */
 export const EMPTY_LIBRARY: Library = {
@@ -96,6 +111,10 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     revealProject: vi.fn().mockResolvedValue(undefined),
     copyProjectPath: vi.fn().mockResolvedValue(undefined),
     editProjectFile: vi.fn().mockResolvedValue(undefined),
+    quickStats: vi.fn().mockResolvedValue(EMPTY_QUICK_STATS),
+    fileStats: vi.fn().mockResolvedValue(EMPTY_FILE_STATS),
+    runPackageScript: vi.fn().mockResolvedValue("launched"),
+    openProjectFile: vi.fn().mockResolvedValue(undefined),
     projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
     devStatus: vi.fn().mockResolvedValue(EMPTY_DEV_STATUS),
     devAction: vi.fn().mockResolvedValue(undefined),

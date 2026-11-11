@@ -164,3 +164,14 @@ Everything but copying the path records the project as opened (`lastOpenedAt`) a
 
 Launching an action or a terminal starts the project's environment first, once per session (`DevEnv::prepare`), so
 an environment stopped by hand stays stopped.
+
+## Inspector
+
+| Tauri command | Does |
+|---|---|
+| `quick_stats(id, refresh)` | `QuickStats`: the kind line ("WordPress plugin · v3.1.2"), requirements, package scripts and git (`None` outside a repository) |
+| `file_stats(id, refresh)` | `FileStats`: files (`truncated` past 50 000), source size, size on disk, lines, languages (the six largest, the rest as Other) and the five files edited last |
+| `run_package_script(id, manager, name)` | Runs `npm run <name>` (or pnpm, yarn, bun, `composer run-script`) in a terminal; one still running there comes to the front |
+| `open_project_file(id, path)` | Opens a file of the project (a relative path inside its folder) in its editor, else the default editor, else its default app |
+
+Both stats stay cached for five minutes; `refresh` reads again (the inspector's Refresh button).

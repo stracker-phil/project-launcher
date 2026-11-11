@@ -3,6 +3,7 @@
 
 use std::fs;
 use std::path::Path;
+use std::time::{Duration, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
@@ -15,6 +16,7 @@ use crate::store::{Settings, create_private_dir};
 pub const DEMO_FOLDER: &str = "demo-projects";
 
 const MINUTE: i64 = 60_000;
+const HOUR: i64 = 60 * MINUTE;
 const DAY: i64 = 24 * 60 * MINUTE;
 
 pub struct Seed {
@@ -30,6 +32,8 @@ struct DemoProject {
     manifest: Option<(&'static str, Value)>,
     /// More files, by path inside the folder.
     files: &'static [(&'static str, &'static str)],
+    /// A git history: each commit's subject and how many days ago it was made, oldest first.
+    history: &'static [(&'static str, i64)],
     added_days_ago: i64,
     opened_minutes_ago: Option<i64>,
 }
@@ -65,12 +69,62 @@ fn projects() -> Vec<DemoProject> {
             })),
             manifest: Some((
                 "package.json",
-                json!({ "name": "acme-website", "version": "2.4.0", "private": true }),
+                json!({
+                    "name": "acme-website",
+                    "version": "2.4.0",
+                    "private": true,
+                    "scripts": { "dev": "vite", "build": "vite build", "lint": "eslint src" },
+                    "engines": { "node": ">=20" }
+                }),
             )),
-            files: &[(
-                ".ddev/config.yaml",
-                "name: acme-website\ntype: php\ndatabase:\n  type: mariadb\n  version: \"10.11\"\n",
-            )],
+            files: &[
+                (
+                    ".ddev/config.yaml",
+                    "name: acme-website\ntype: php\ndatabase:\n  type: mariadb\n  version: \"10.11\"\n",
+                ),
+                (
+                    "index.html",
+                    "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <title>Acme</title>\n  </head>\n  <body>\n    <div id=\"app\"></div>\n    <script type=\"module\" src=\"/src/main.js\"></script>\n  </body>\n</html>\n",
+                ),
+                (
+                    "src/main.js",
+                    "import { header } from \"./components/header.js\";\nimport { pricing } from \"./components/pricing.js\";\nimport \"./style.css\";\n\nconst app = document.querySelector(\"#app\");\napp.append(header(), pricing());\n",
+                ),
+                (
+                    "src/components/header.js",
+                    "export function header() {\n  const element = document.createElement(\"header\");\n  element.textContent = \"Acme: tools for the busy workshop\";\n  return element;\n}\n",
+                ),
+                (
+                    "src/components/pricing.js",
+                    "const plans = [\n  { name: \"Starter\", price: 9 },\n  { name: \"Team\", price: 29 },\n];\n\nexport function pricing() {\n  const list = document.createElement(\"ul\");\n  for (const plan of plans) {\n    const item = document.createElement(\"li\");\n    item.textContent = plan.name + \": \" + plan.price;\n    list.append(item);\n  }\n  return list;\n}\n",
+                ),
+                (
+                    "src/style.css",
+                    "body {\n  margin: 0;\n  font-family: system-ui, sans-serif;\n}\n\nheader {\n  padding: 24px;\n  font-weight: 600;\n}\n",
+                ),
+                (
+                    "web/theme/functions.php",
+                    "<?php\n\nadd_action('wp_enqueue_scripts', function () {\n    wp_enqueue_style('acme', get_stylesheet_uri());\n});\n",
+                ),
+                (
+                    "README.md",
+                    "# Acme Website\n\nThe marketing site. `npm run dev` starts it, `ddev start` the WordPress backend.\n",
+                ),
+            ],
+            history: &[
+                ("Start the relaunch", 80),
+                ("Add the header", 74),
+                ("Add the pricing table", 66),
+                ("Set up DDEV", 58),
+                ("Style the header", 45),
+                ("Add the theme functions", 33),
+                ("Fix the pricing currency", 26),
+                ("Tidy the README", 19),
+                ("Add the Team plan", 12),
+                ("Update the plans", 8),
+                ("Polish the styles", 5),
+                ("Prepare the March launch", 2),
+            ],
             added_days_ago: 120,
             opened_minutes_ago: Some(12),
         },
@@ -110,9 +164,38 @@ fn projects() -> Vec<DemoProject> {
             })),
             manifest: Some((
                 "composer.json",
-                json!({ "name": "orbit/api", "require": { "php": ">=8.2" } }),
+                json!({
+                    "name": "orbit/api",
+                    "type": "project",
+                    "require": { "php": ">=8.2" },
+                    "scripts": { "test": "phpunit", "serve": "php -S localhost:8000 -t public" }
+                }),
             )),
-            files: &[],
+            files: &[
+                (
+                    "public/index.php",
+                    "<?php\n\nrequire __DIR__ . '/../vendor/autoload.php';\n\n(new Orbit\\Router())->dispatch($_SERVER['REQUEST_URI']);\n",
+                ),
+                (
+                    "src/Router.php",
+                    "<?php\n\nnamespace Orbit;\n\nfinal class Router\n{\n    public function dispatch(string $path): void\n    {\n        match ($path) {\n            '/orders' => (new Controller\\OrderController())->index(),\n            default => http_response_code(404),\n        };\n    }\n}\n",
+                ),
+                (
+                    "src/Controller/OrderController.php",
+                    "<?php\n\nnamespace Orbit\\Controller;\n\nfinal class OrderController\n{\n    public function index(): void\n    {\n        header('Content-Type: application/json');\n        echo json_encode(['orders' => []]);\n    }\n}\n",
+                ),
+                (
+                    "tests/RouterTest.php",
+                    "<?php\n\nuse PHPUnit\\Framework\\TestCase;\n\nfinal class RouterTest extends TestCase\n{\n    public function testUnknownPathsAreNotFound(): void\n    {\n        $this->assertTrue(true);\n    }\n}\n",
+                ),
+            ],
+            history: &[
+                ("Set up the API", 40),
+                ("Add the order list", 31),
+                ("Route unknown paths to 404", 22),
+                ("Add the router test", 15),
+                ("Deploy on Tuesdays", 6),
+            ],
             added_days_ago: 90,
             opened_minutes_ago: Some(2 * 24 * 60),
         },
@@ -129,6 +212,7 @@ fn projects() -> Vec<DemoProject> {
                 json!({ "name": "pixel-notes", "version": "0.3.1" }),
             )),
             files: &[],
+            history: &[],
             added_days_ago: 45,
             opened_minutes_ago: Some(3 * 60),
         },
@@ -142,6 +226,7 @@ fn projects() -> Vec<DemoProject> {
             })),
             manifest: None,
             files: &[],
+            history: &[],
             added_days_ago: 30,
             opened_minutes_ago: None,
         },
@@ -153,6 +238,7 @@ fn projects() -> Vec<DemoProject> {
             })),
             manifest: None,
             files: &[],
+            history: &[],
             added_days_ago: 14,
             opened_minutes_ago: Some(8 * 24 * 60),
         },
@@ -165,6 +251,7 @@ fn projects() -> Vec<DemoProject> {
             })),
             manifest: None,
             files: &[],
+            history: &[],
             added_days_ago: 400,
             opened_minutes_ago: None,
         },
@@ -173,10 +260,49 @@ fn projects() -> Vec<DemoProject> {
             file: None,
             manifest: None,
             files: &[],
+            history: &[],
             added_days_ago: 3,
             opened_minutes_ago: None,
         },
     ]
+}
+
+/// Makes `dir` a git repository with `history`: the files in the first commit, then empty ones, each dated that
+/// many days back. The owner's git config, hooks and signing stay out; without git it does nothing.
+fn commit_history(dir: &Path, history: &[(&str, i64)], now_ms: i64) {
+    let git = |args: &[&str], days_ago: i64| {
+        let at = format!("@{} +0000", now_ms / 1000 - days_ago * 24 * 60 * 60);
+        std::process::Command::new("git")
+            .args([
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "core.hooksPath=/dev/null",
+            ])
+            .args(args)
+            .current_dir(dir)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_AUTHOR_NAME", "Demo Developer")
+            .env("GIT_AUTHOR_EMAIL", "demo@example.com")
+            .env("GIT_COMMITTER_NAME", "Demo Developer")
+            .env("GIT_COMMITTER_EMAIL", "demo@example.com")
+            .env("GIT_AUTHOR_DATE", &at)
+            .env("GIT_COMMITTER_DATE", &at)
+            .output()
+            .is_ok_and(|o| o.status.success())
+    };
+    if !git(&["init", "-q", "-b", "main"], 0) || !git(&["add", "-A"], 0) {
+        return;
+    }
+    for (n, (subject, days_ago)) in history.iter().enumerate() {
+        let empty = if n == 0 { None } else { Some("--allow-empty") };
+        let args: Vec<&str> = ["commit", "-q", "-m", subject]
+            .into_iter()
+            .chain(empty)
+            .collect();
+        git(&args, *days_ago);
+    }
 }
 
 /// Writes the demo folders into `<config_dir>/demo-projects/`, replacing what was there, and returns the
@@ -197,12 +323,22 @@ pub fn write(config_dir: &Path, now_ms: i64) -> AppResult<Seed> {
         if let Some((name, manifest)) = demo.manifest {
             fs::write(dir.join(name), serde_json::to_vec_pretty(&manifest)?)?;
         }
-        for (path, text) in demo.files {
+        for (n, (path, text)) in demo.files.iter().enumerate() {
             let file = dir.join(path);
             if let Some(folder) = file.parent() {
                 fs::create_dir_all(folder)?;
             }
-            fs::write(file, text)?;
+            fs::write(&file, text)?;
+            // Edited one after another over the last days, the last file first.
+            let edited =
+                UNIX_EPOCH + Duration::from_millis((now_ms - (n as i64 + 1) * 7 * HOUR) as u64);
+            fs::File::options()
+                .write(true)
+                .open(&file)?
+                .set_modified(edited)?;
+        }
+        if !demo.history.is_empty() {
+            commit_history(&dir, demo.history, now_ms);
         }
         known.push(KnownProject {
             id: format!("demo{:08}", n + 1),
@@ -355,6 +491,68 @@ mod tests {
             panic!("the acme project file is back");
         };
         assert_eq!(acme.get("name"), Some(&json!("Acme Website")));
+    }
+
+    fn git_available() -> bool {
+        std::process::Command::new("git")
+            .arg("--version")
+            .output()
+            .is_ok_and(|o| o.status.success())
+    }
+
+    fn commit_count(dir: &Path) -> String {
+        let output = std::process::Command::new("git")
+            .args(["rev-list", "--count", "HEAD"])
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    }
+
+    #[test]
+    fn the_acme_website_and_orbit_api_are_git_repositories_with_their_history() {
+        if !git_available() {
+            return;
+        }
+        let config = temp_config_dir();
+        write(config.path(), NOW).unwrap();
+        let root = config.path().join(DEMO_FOLDER);
+
+        for (slug, commits) in [("acme-website", "12"), ("orbit-api", "5")] {
+            assert!(root.join(slug).join(".git").exists(), "{slug}");
+            assert_eq!(commit_count(&root.join(slug)), commits, "{slug}");
+        }
+    }
+
+    #[test]
+    fn the_projects_without_a_history_are_not_repositories() {
+        let config = temp_config_dir();
+        write(config.path(), NOW).unwrap();
+        let root = config.path().join(DEMO_FOLDER);
+
+        for slug in [
+            "pixel-notes",
+            "garden-planner",
+            "weather-widget",
+            "scratchpad",
+        ] {
+            assert!(!root.join(slug).join(".git").exists(), "{slug}");
+        }
+    }
+
+    #[test]
+    fn the_acme_website_has_sources_to_count() {
+        let config = temp_config_dir();
+        write(config.path(), NOW).unwrap();
+        let acme = config.path().join(DEMO_FOLDER).join("acme-website");
+
+        assert!(
+            fs::read_to_string(acme.join("src/main.js"))
+                .unwrap()
+                .starts_with("import { header }")
+        );
+        assert!(acme.join("src/components/pricing.js").is_file());
+        assert!(acme.join("web/theme/functions.php").is_file());
     }
 
     #[test]

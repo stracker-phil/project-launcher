@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Filter, Project } from "../api";
+import type { ActionDraft, Filter, Project } from "../api";
 
 /** The detail field being edited in place, from a menu or a command. */
 export type EditField = "name" | "notes" | "tag" | "icon";
@@ -19,6 +19,9 @@ export interface LibraryState {
   searchFocus: number;
   /** The project the detail shows, for menu commands; set by the list. */
   current: Project | null;
+  /** A new action for the Open grid's editor to start from (the inspector's "Add as Action…"); `nonce` tells
+   *  two requests for the same draft apart. */
+  newAction: { draft: ActionDraft; nonce: number } | null;
 
   /** Clears the search and selects the project last selected there. */
   setFilter: (filter: Filter) => void;
@@ -29,6 +32,9 @@ export interface LibraryState {
   setTagEdit: (edit: TagEdit | null) => void;
   focusSearch: () => void;
   setCurrent: (project: Project | null) => void;
+  requestNewAction: (draft: ActionDraft) => void;
+  /** The editor took the request. */
+  takeNewAction: () => void;
 }
 
 export const ALL: Filter = { kind: "all" };
@@ -48,6 +54,7 @@ export const useLibrary = create<LibraryState>()((set, get) => ({
   tagEdit: null,
   searchFocus: 0,
   current: null,
+  newAction: null,
 
   setFilter: (filter) => set({ filter, search: "", selectedId: get().lastSelected[filterKey(filter)] ?? null }),
   setSearch: (search) => set({ search }),
@@ -62,6 +69,8 @@ export const useLibrary = create<LibraryState>()((set, get) => ({
   setTagEdit: (tagEdit) => set({ tagEdit }),
   focusSearch: () => set((s) => ({ searchFocus: s.searchFocus + 1 })),
   setCurrent: (current) => set({ current }),
+  requestNewAction: (draft) => set((s) => ({ newAction: { draft, nonce: (s.newAction?.nonce ?? 0) + 1 } })),
+  takeNewAction: () => set({ newAction: null }),
 }));
 
 const initialState = useLibrary.getState();

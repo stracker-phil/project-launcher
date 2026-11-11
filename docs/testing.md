@@ -55,7 +55,9 @@ The debug app, the tests and the README screenshots share one made-up data set i
 The debug app seeds it on its first launch with an empty data folder; `launcher dev seed --yes` (the debug
 binary) starts over. Every outside source has a fake by default: git, Docker/DDEV/wp-env, the editor, terminal and app
 launchers and DataBee (recorded, not opened; `run/system.rs` `Recorder`), Docker, DDEV and wp-env (an in-memory stand-in that
-starts and stops after a moment; `devenv/tools.rs` `StandIn`). `LAUNCHER_REAL_LAUNCH` and `LAUNCHER_REAL_DOCKER` (`=1`)
+starts and stops after a moment; `devenv/tools.rs` `StandIn`). The read-only `git` and `du` run for real: the seed makes two demo
+folders git repositories with a made-up history (author `Demo Developer <demo@example.com>`, the owner's git config shut out),
+so the inspector has something to show. `LAUNCHER_REAL_LAUNCH` and `LAUNCHER_REAL_DOCKER` (`=1`)
 switches one back to the real source for checking that code path.
 
 ## Driving the app
@@ -67,7 +69,7 @@ The dev scripts work without stealing focus. They are macOS-only (zsh, Swift, `s
 | `bun run build:app` | builds `src-tauri/target/debug/bundle/macos/Launcher (Debug).app` (`tauri.debug.conf.json`, `VITE_DEV_HOOKS=1`) |
 | `scripts/dev/launch.sh [args]` | signs and restarts the debug app next to the terminal without focus; refuses a bundle older than the code |
 | `scripts/dev/js.sh '<js>'` | runs JavaScript in the debug app over its socket (`@<label>` on the first line targets another window) |
-| `scripts/dev/screenshot.sh <png> [--overlay]` | captures the debug window, also on another Space; never the release app. `--overlay` captures the open palette panel; with `LAUNCHER_BACKGROUND=1` (as `launch.sh` starts it) the palette never takes the keys from the app in front and stays open when it loses the focus, so a check neither types into it nor closes it |
+| `scripts/dev/screenshot.sh <png> [--overlay]` | captures the debug window, also on another Space; never the release app. `--overlay` captures the open palette panel; with `LAUNCHER_PALETTE_PASSIVE=1` in the environment of `launch.sh` the palette never takes the keys from the app in front and stays open when it loses the focus, so a check neither types into it nor closes it; without it the palette behaves as in the release app |
 | `scripts/dev/e2e.sh` | clicks controls twice and fails when the panel, toolbar, first row or the control moved |
 
 ## Signing

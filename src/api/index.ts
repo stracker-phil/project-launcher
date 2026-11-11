@@ -28,10 +28,22 @@ import type {
   DevAction,
   OpenedDatabase,
   DockerManager,
+  QuickStats,
+  FileStats,
+  Manager,
+  Launched,
 } from "./types.gen";
 
 export type {
   AddedProjects,
+  Commit,
+  Edited,
+  FileStats,
+  GitStats,
+  LanguageShare,
+  Manager,
+  PackageScript,
+  QuickStats,
   AppSetting,
   Activity,
   DatabaseInfo,
@@ -189,6 +201,13 @@ export const api = {
   devAction: (id: string, action: DevAction) => invoke<void>("dev_action", { id, action }),
   openDatabase: (id: string) => invoke<OpenedDatabase>("open_database", { id }),
   setDockerManager: (manager: DockerManager) => invoke<void>("set_docker_manager", { manager }),
+  /** Manifests and git; cached a few minutes unless `refresh`. */
+  quickStats: (id: string, refresh: boolean) => invoke<QuickStats>("quick_stats", { id, refresh }),
+  /** Files, languages, lines and disk usage; cached a few minutes unless `refresh`. */
+  fileStats: (id: string, refresh: boolean) => invoke<FileStats>("file_stats", { id, refresh }),
+  runPackageScript: (id: string, manager: Manager, name: string) => invoke<Launched>("run_package_script", { id, manager, name }),
+  /** `path` relative to the project folder. */
+  openProjectFile: (id: string, path: string) => invoke<void>("open_project_file", { id, path }),
   undo: () => invoke<string | null>("undo_change"),
   redo: () => invoke<string | null>("redo_change"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>

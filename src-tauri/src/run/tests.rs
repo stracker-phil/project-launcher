@@ -586,6 +586,158 @@ fn a_script_without_a_reply_in_the_recorder_reports_that_it_did_not_run() {
 }
 
 #[test]
+fn a_terminal_command_runs_in_the_terminal_app_and_records_the_project_as_opened() {
+    let fx = Fx::with(Some(project_file()), settings_with("Ghostty", "", ""));
+
+    let launched = fx
+        .runner()
+        .terminal_command("p", "npm run lint", NOW)
+        .unwrap();
+
+    assert_eq!(launched, Launched::Launched);
+    let files = fx.scripts();
+    assert_eq!(files.len(), 1);
+    assert_eq!(
+        fx.system.calls(),
+        [format!("open: -a Ghostty {}", files[0].display())]
+    );
+    let script = fs::read_to_string(&files[0]).unwrap();
+    assert!(script.contains(&format!("cd '{}'", fx.dir_text())));
+    assert!(script.contains("export STAGE='demo'"));
+    assert!(script.lines().any(|l| l == "npm run lint"));
+    assert_eq!(fx.last_opened_at(), Some(NOW));
+}
+
+#[test]
+fn a_terminal_command_that_still_runs_brings_its_tab_forward() {
+    let fx = Fx::with(Some(project_file()), settings_with("Ghostty", "", ""));
+    fx.runner()
+        .terminal_command("p", "npm run dev", NOW)
+        .unwrap();
+    fx.record_session();
+    fx.system.reply("ps -o tty= -p 4242", "ttys004\n");
+
+    let launched = fx
+        .runner()
+        .terminal_command("p", "npm run dev", NOW)
+        .unwrap();
+
+    assert_eq!(launched, Launched::Activated);
+    assert_eq!(fx.scripts().len(), 1);
+}
+
+#[test]
+fn a_terminal_command_for_an_unknown_project_is_not_found() {
+    let fx = Fx::new();
+
+    let err = fx.runner().terminal_command("nope", "ls", NOW).unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::NotFound);
+    assert!(fx.system.calls().is_empty());
+}
+
+fn project_with_files(settings: Settings, editor: Option<&str>) -> Fx {
+    let mut file = project_file();
+    if let Some(editor) = editor {
+        file["meta"] = json!({ "editor": editor });
+    }
+    let fx = Fx::with(Some(file), settings);
+    fs::create_dir(fx.dir().join("src")).unwrap();
+    fs::write(fx.dir().join("src/main.js"), "let a;\n").unwrap();
+    fx
+}
+
+fn nested_file_text(fx: &Fx) -> String {
+    fx.dir().join("src/main.js").to_string_lossy().into_owned()
+}
+
+#[test]
+fn a_file_opens_in_the_first_editor_that_is_set() {
+    let cases = [
+        ("project editor", Some("Fork"), "Zed", Some("Fork")),
+        ("default editor", None, "Zed", Some("Zed")),
+        ("blank default editor", None, "  ", None),
+        ("no editor", None, "", None),
+    ];
+    for (name, project_editor, default_editor, expected) in cases {
+        let fx = project_with_files(settings_with("", "", default_editor), project_editor);
+        let file = nested_file_text(&fx);
+
+        fx.runner().open_file("p", "src/main.js", NOW).unwrap();
+
+        let call = match expected {
+            Some(editor) => format!("spawn: {}", open_with(editor, &file)),
+            None => format!("open: {file}"),
+        };
+        assert_eq!(fx.system.calls(), [call], "{name}");
+    }
+}
+
+#[test]
+fn opening_a_file_records_the_project_as_opened() {
+    let fx = project_with_files(Settings::default(), None);
+
+    fx.runner().open_file("p", "src/main.js", NOW).unwrap();
+
+    assert_eq!(fx.last_opened_at(), Some(NOW));
+}
+
+#[test]
+fn a_file_path_may_start_with_the_current_folder() {
+    let fx = project_with_files(settings_with("", "", ""), None);
+
+    fx.runner().open_file("p", "./src/main.js", NOW).unwrap();
+
+    let calls = fx.system.calls();
+    assert_eq!(calls.len(), 1);
+    assert!(
+        calls[0].starts_with("open: ") && calls[0].ends_with("src/main.js"),
+        "{calls:?}"
+    );
+}
+
+#[test]
+fn a_file_outside_the_project_folder_is_refused() {
+    let fx = project_with_files(Settings::default(), None);
+    fs::write(fx.root.path().join("outside.txt"), "x").unwrap();
+
+    for path in ["/etc/hosts", "../outside.txt", "src/../../outside.txt"] {
+        let err = fx.runner().open_file("p", path, NOW).unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidInput, "{path}");
+    }
+
+    assert_eq!(fx.last_opened_at(), None);
+    assert!(fx.system.calls().is_empty());
+}
+
+#[test]
+fn a_file_that_is_gone_or_a_folder_is_not_found_and_records_nothing() {
+    let fx = project_with_files(Settings::default(), None);
+
+    for path in ["src/missing.js", "src"] {
+        let err = fx.runner().open_file("p", path, NOW).unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::NotFound, "{path}");
+    }
+
+    assert_eq!(fx.last_opened_at(), None);
+    assert!(fx.system.calls().is_empty());
+}
+
+#[test]
+fn opening_a_file_of_an_unknown_project_is_not_found() {
+    let fx = project_with_files(Settings::default(), None);
+
+    let err = fx
+        .runner()
+        .open_file("nope", "src/main.js", NOW)
+        .unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::NotFound);
+}
+
+#[test]
 fn outcomes_and_results_serialize_for_the_page() {
     let result = ScriptResult {
         ok: false,

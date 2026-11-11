@@ -10,6 +10,7 @@ import { resetLibrary } from "../state/library";
 import { resetStore, useStore } from "../state/store";
 import { EMPTY_LIBRARY } from "../test/apiMock";
 import { library, project, section } from "../test/library";
+import { quickStats } from "../test/stats";
 import { Shell } from "./Shell";
 
 const mocked = vi.mocked(api, true);
@@ -54,6 +55,23 @@ describe("Shell", () => {
 
     act(() => useStore.getState().toggleInspector());
     expect(inspector()).not.toBeInTheDocument();
+  });
+
+  it("says in the inspector that no project is selected when the library is empty", async () => {
+    resetStore({ inspectorOpen: { withSidebar: true, withoutSidebar: true } });
+    await renderShell();
+
+    expect(within(inspector()!).getByText("No Project Selected")).toBeInTheDocument();
+  });
+
+  it("shows the selected project's details in the inspector", async () => {
+    mocked.library.mockResolvedValue(library([section(null, project({ name: "Alpha" }))]));
+    mocked.quickStats.mockResolvedValue(quickStats({ kind: "Node project" }));
+    resetStore({ inspectorOpen: { withSidebar: true, withoutSidebar: true } });
+    await renderShell();
+
+    expect(await within(inspector()!).findByText("Node project")).toBeInTheDocument();
+    expect(within(inspector()!).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
   });
 
   it("shows only the detail and the inspector when the sidebar is hidden", async () => {

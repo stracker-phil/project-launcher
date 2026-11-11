@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,7 @@ vi.mock("../../api", async (orig) => ({ ...(await orig<object>()), api: (await i
 import { api, type ActionSource, type BuiltinApp, type ProjectConfig, type ProjectStatus, type ScriptResult } from "../../api";
 import { MenuHost } from "../../components/menu";
 import { Toasts } from "../../components/Toasts";
+import { resetLibrary, useLibrary } from "../../state/library";
 import { resetRuns, useRuns } from "../../state/runs";
 import { resetStore } from "../../state/store";
 import { EMPTY_PROJECT_CONFIG, EMPTY_STATUS } from "../../test/apiMock";
@@ -45,6 +46,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   resetStore();
   resetRuns();
+  resetLibrary();
 });
 
 describe("shownActions", () => {
@@ -249,6 +251,50 @@ describe("ActionsSection", () => {
 
       const dialog = await screen.findByRole("dialog", { name: "New Action" });
       expect(within(dialog).getByRole("button", { name: "Script" })).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
+  describe("a new-action request from the inspector", () => {
+    const request = () => act(() => useLibrary.getState().requestNewAction({ runsAs: "terminal", label: "dev", command: "npm run dev" }));
+
+    it("opens the editor with the draft's title and command prefilled", async () => {
+      renderSection();
+
+      request();
+
+      const dialog = await screen.findByRole("dialog", { name: "New Action" });
+      expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("dev");
+      expect(within(dialog).getByRole("textbox", { name: "Command" })).toHaveValue("npm run dev");
+      expect(within(dialog).getByRole("button", { name: "Terminal" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("is taken once the editor is open", async () => {
+      renderSection();
+
+      request();
+
+      await screen.findByRole("dialog", { name: "New Action" });
+      expect(useLibrary.getState().newAction).toBeNull();
+    });
+
+    it("does not reopen the editor when the section is mounted again", async () => {
+      const { unmount } = renderSection();
+      request();
+      await userEvent.click(await within(await screen.findByRole("dialog", { name: "New Action" })).findByRole("button", { name: "Cancel" }));
+      unmount();
+
+      renderSection();
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("opens nothing while the section is not editable, and keeps the request", () => {
+      renderSection({}, { editable: false });
+
+      request();
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(useLibrary.getState().newAction?.draft.label).toBe("dev");
     });
   });
 

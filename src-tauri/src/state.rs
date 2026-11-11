@@ -10,6 +10,7 @@ use crate::launch::LaunchQueue;
 use crate::lock::MutexExt;
 use crate::run::Runner;
 use crate::run::system::{self, System};
+use crate::stats;
 
 pub struct AppState {
     pub launches: LaunchQueue,
@@ -20,6 +21,7 @@ pub struct AppState {
     /// The project the main window shows, as its page reports it; the palette and the tray act on it.
     current: Mutex<Option<String>>,
     pub devenv: DevEnv,
+    pub stats: stats::Cache,
 }
 
 impl AppState {
@@ -36,6 +38,7 @@ impl AppState {
                 Box::new(devenv::commands::announce_change),
             ),
             system,
+            stats: stats::Cache::default(),
             terminal_folder: config_dir.join("terminal"),
             current: Mutex::new(None),
         })

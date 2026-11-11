@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { PanelLeft } from "lucide-react";
 import { DetailTools, ProjectDetail } from "../main/detail/ProjectDetail";
+import { Inspector } from "../main/inspector/Inspector";
 import { ProjectList, SearchField } from "../main/ProjectList";
 import { Sidebar } from "../main/Sidebar";
 import { useLibraryView } from "../queries/useLibraryView";
@@ -52,7 +53,11 @@ export function Shell() {
       <Pane as="main" className="detail-pane" label="Project" strip={<DetailTools project={current} />}>
         <ProjectDetail project={current} library={library} />
       </Pane>
-      {inspector && <Pane as="aside" className="inspector-pane" label="Inspector" />}
+      {inspector && (
+        <Pane as="aside" className="inspector-pane" label="Inspector">
+          <Inspector project={current} />
+        </Pane>
+      )}
       <button type="button" className={classNames("icon-btn sidebar-toggle", !sidebarHidden && "sidebar-toggle--on-dark")} aria-label={sidebarLabel} title={sidebarLabel} onClick={toggleSidebar}>
         <PanelLeft size={16} />
       </button>

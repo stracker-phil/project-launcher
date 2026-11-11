@@ -228,20 +228,19 @@ pub fn close(app: &AppHandle) {
     }
 }
 
-/// The debug app driven by the dev scripts (`LAUNCHER_BACKGROUND=1`) never takes the keys from the app in front.
+/// A check that captures the palette (`LAUNCHER_PALETTE_PASSIVE=1`, debug builds only) keeps it from taking the
+/// keys of the app in front and from closing when the capture tool takes the focus.
+fn passive() -> bool {
+    cfg!(debug_assertions) && std::env::var("LAUNCHER_PALETTE_PASSIVE").as_deref() == Ok("1")
+}
+
 fn takes_keyboard() -> bool {
-    #[cfg(debug_assertions)]
-    if crate::dev::background() {
-        return false;
-    }
-    true
+    !passive()
 }
 
 /// A click elsewhere closes the palette, unless it is still settling after opening.
 pub fn focus_lost(app: &AppHandle) {
-    // The dev scripts drive the debug app without the focus; their tools would close it at once.
-    #[cfg(debug_assertions)]
-    if crate::dev::background() {
+    if passive() {
         return;
     }
     if app.state::<Palette>().settling() {

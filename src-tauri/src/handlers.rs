@@ -2,7 +2,7 @@
 
 use tauri::ipc::Invoke;
 
-use crate::{autostart, bus, commands, data, devenv, menu, run, status, window};
+use crate::{autostart, bus, commands, data, devenv, menu, run, stats, status, window};
 
 pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -53,6 +53,10 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         run::commands::copy_project_path,
         run::commands::edit_project_file,
         run::commands::project_status,
+        stats::commands::quick_stats,
+        stats::commands::file_stats,
+        stats::commands::run_package_script,
+        stats::commands::open_project_file,
         devenv::commands::dev_status,
         devenv::commands::dev_action,
         devenv::commands::open_database,

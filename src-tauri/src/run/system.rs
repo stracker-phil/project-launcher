@@ -75,6 +75,16 @@ pub fn system() -> Arc<dyn System> {
 
 pub struct Os;
 
+/// Runs a read-only program (`git`, `du`) for real in every build, in `cwd` when given; what it printed,
+/// whatever its exit code.
+pub fn read(cwd: Option<&Path>, name: &str, args: &[&str]) -> Output {
+    let mut command = program(name, args);
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
+    capture(command, INSPECT_TIMEOUT)
+}
+
 /// Homebrew's and the system's folders ahead of the inherited PATH.
 fn path() -> String {
     let inherited = std::env::var("PATH").unwrap_or_default();
@@ -266,11 +276,7 @@ impl System for Os {
     }
 
     fn inspect(&self, cwd: Option<&Path>, name: &str, args: &[&str]) -> Output {
-        let mut command = program(name, args);
-        if let Some(cwd) = cwd {
-            command.current_dir(cwd);
-        }
-        capture(command, INSPECT_TIMEOUT)
+        read(cwd, name, args)
     }
 
     fn copy(&self, text: &str) -> AppResult<()> {

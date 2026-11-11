@@ -837,21 +837,35 @@ fn demo_data(config: &TempDir) -> Data {
 }
 
 #[test]
-fn the_demo_acme_website_lists_its_apps_without_the_unavailable_git_client() {
+fn the_demo_acme_website_lists_the_git_client_exactly_when_it_is_a_git_repository() {
     let config = temp_config_dir();
     let data = demo_data(&config);
+    let is_repo = config
+        .path()
+        .join(demo::DEMO_FOLDER)
+        .join("acme-website")
+        .join(".git")
+        .exists();
 
     let acme = data.project_config("demo00000001").unwrap();
 
-    assert_eq!(
-        labels(&acme.apps),
-        ["Edit Code", "Shell", "Open in Browser", "Open Repository"]
-    );
+    let expected: &[&str] = if is_repo {
+        &[
+            "Edit Code",
+            "Shell",
+            "Open Git Client",
+            "Open in Browser",
+            "Open Repository",
+        ]
+    } else {
+        &["Edit Code", "Shell", "Open in Browser", "Open Repository"]
+    };
+    assert_eq!(labels(&acme.apps), expected);
     assert_eq!(acme.apps[0].app.as_deref(), Some("Visual Studio Code"));
     assert_eq!(acme.apps[1].shortcut.as_deref(), Some("Mod+Shift+T"));
     assert_eq!(labels(&acme.scripts), ["Build", "Lint", "Export Database"]);
     assert_eq!(acme.dev, DevMode::Ddev);
-    assert!(!acme.is_git_repo);
+    assert_eq!(acme.is_git_repo, is_repo);
     let git = acme
         .builtins
         .iter()
@@ -860,7 +874,7 @@ fn the_demo_acme_website_lists_its_apps_without_the_unavailable_git_client() {
     assert!(git.enabled);
     assert_eq!(
         git.unavailable_reason.as_deref(),
-        Some("Not a git repository")
+        (!is_repo).then_some("Not a git repository")
     );
 }
 

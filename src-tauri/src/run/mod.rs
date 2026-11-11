@@ -185,6 +185,53 @@ impl Runner<'_> {
         self.open_shell(&target)
     }
 
+    /// Runs `command` in a terminal in the project folder; one still running there comes to the front.
+    pub fn terminal_command(&self, id: &str, command: &str, now_ms: i64) -> AppResult<Launched> {
+        let target = self.target(id)?;
+        self.opened(id, now_ms)?;
+        let app = self.data.settings().terminal_app;
+        self.terminal(&app)
+            .run(id, &target.name, &target.dir, &target.env, command)
+    }
+
+    /// Opens a file of the project (`path` relative to its folder, never outside it) in the project's editor,
+    /// else the default editor, else its default app.
+    pub fn open_file(&self, id: &str, path: &str, now_ms: i64) -> AppResult<()> {
+        let relative = std::path::Path::new(path);
+        let inside = relative.components().all(|c| {
+            matches!(
+                c,
+                std::path::Component::Normal(_) | std::path::Component::CurDir
+            )
+        });
+        if !inside {
+            return Err(AppError::InvalidInput(format!(
+                "Not a file of the project: {path}"
+            )));
+        }
+        let dir = PathBuf::from(self.data.project_dir(id)?);
+        let file = dir.join(relative);
+        if !file.is_file() {
+            return Err(AppError::NotFound(format!("{path} isn’t there anymore")));
+        }
+        let editor = self
+            .data
+            .project(id)?
+            .meta
+            .editor
+            .unwrap_or(self.data.settings().default_editor);
+        self.opened(id, now_ms)?;
+        let file = file.to_string_lossy();
+        match editor.trim() {
+            "" => self.system.open(&[&file]),
+            editor => self.system.spawn(&Job {
+                command: shell::open_with(editor, &file),
+                cwd: Some(dir.clone()),
+                env: Vec::new(),
+            }),
+        }
+    }
+
     pub fn reveal(&self, id: &str, now_ms: i64) -> AppResult<()> {
         let dir = self.data.project_dir(id)?;
         self.opened(id, now_ms)?;

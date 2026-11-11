@@ -111,6 +111,8 @@ export type CliLink = "installed" | "notInstalled" | "notApplicable";
  */
 export type CommandLine = { path: string, link: CliLink, };
 
+export type Commit = { subject: string, author: string, atMs: number, };
+
 /**
  * What the detail shows: where the database comes from, its engine, `user@host/db` for a URL (never the
  * password) and why it can't be opened.
@@ -150,6 +152,8 @@ export type DockerStatus = { running: boolean, activity: Activity | null,
  */
 manager: string, };
 
+export type Edited = { path: string, atMs: number, };
+
 export type EnvVar = { name: string, value: string, };
 
 export type ErrorKind = "io" | "invalid_input" | "not_found" | "launch" | "internal";
@@ -159,10 +163,39 @@ export type ErrorKind = "io" | "invalid_input" | "not_found" | "launch" | "inter
  */
 export type Failure = { label: string, output: string, };
 
+export type FileStats = { files: number, 
+/**
+ * More files than the scan reads.
+ */
+truncated: boolean, sourceBytes: number, 
+/**
+ * Ignored files included.
+ */
+diskBytes: number | null, lines: number, languages: Array<LanguageShare>, 
+/**
+ * Newest first.
+ */
+recent: Array<Edited>, computedAtMs: number, };
+
 /**
  * A sidebar entry. Archived projects show only under `Archived`.
  */
 export type Filter = { "kind": "all" } | { "kind": "starred" } | { "kind": "untagged" } | { "kind": "archived" } | { "kind": "tag", "tag": string };
+
+export type GitStats = { 
+/**
+ * `None` on a detached HEAD.
+ */
+branch: string | null, hasUpstream: boolean, ahead: number, behind: number, modified: number, untracked: number, lastCommit: Commit | null, commits: number, firstCommitMs: number | null, latestTag: string | null, 
+/**
+ * Commits per week, oldest week first.
+ */
+weekly: Array<number>, };
+
+/**
+ * One language's share; `color` is a project colour name ("Blue"), `None` for Other.
+ */
+export type LanguageShare = { name: string, color: string | null, files: number, lines: number, bytes: number, };
 
 /**
  * Something the page acts on once it listens: from the launch that started the app or a later one.
@@ -193,6 +226,8 @@ sections: Array<Section>,
  * Why the list is empty, when it is.
  */
 emptyText: string | null, };
+
+export type Manager = "npm" | "pnpm" | "yarn" | "bun" | "composer";
 
 export type MenuCommand = { 
 /**
@@ -227,6 +262,12 @@ export type OpenedDatabase = "opened" | "starting";
  * What launching an action did: an app, link or terminal opened, or a script ran to its end.
  */
 export type Outcome = { "kind": "opened", how: Launched, } | { "kind": "ran", result: ScriptResult, };
+
+export type PackageScript = { manager: Manager, name: string, 
+/**
+ * What the manifest says it runs.
+ */
+script: string, command: string, };
 
 export type Project = { id: string, 
 /**
@@ -286,6 +327,12 @@ editor: string | null, };
  * `running` terminal commands still run in their tab.
  */
 export type ProjectStatus = { states: Array<StateDisplay>, hidden: Array<ActionSource>, running: Array<ActionSource>, };
+
+export type QuickStats = { 
+/**
+ * "WordPress plugin · v3.1.2".
+ */
+kind: string | null, requirements: Array<string>, scripts: Array<PackageScript>, git: GitStats | null, computedAtMs: number, };
 
 export type Row = { project: Project, 
 /**

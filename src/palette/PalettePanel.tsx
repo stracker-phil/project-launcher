@@ -51,6 +51,12 @@ export function PalettePanel({ commands, onClose }: { commands: PaletteCommand[]
   useEffect(() => {
     listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest" });
   }, [active]);
+  // The panel takes the keys only once it shows, after this mounted: the field takes them then.
+  useEffect(() => {
+    const focusField = () => inputRef.current?.focus();
+    window.addEventListener("focus", focusField);
+    return () => window.removeEventListener("focus", focusField);
+  }, []);
 
   const changeText = (next: string) => {
     setText(next);

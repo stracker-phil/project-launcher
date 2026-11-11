@@ -25,6 +25,7 @@ pub mod projects;
 mod remote;
 pub mod run;
 pub mod state;
+pub mod stats;
 pub mod status;
 pub mod store;
 #[cfg(any(test, debug_assertions, feature = "test-util"))]
