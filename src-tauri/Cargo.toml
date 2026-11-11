@@ -1,0 +1,63 @@
+[package]
+name = "launcher"
+version = "0.1.0"
+description = "List, search and launch your coding projects"
+authors = ["Philipp Stracker <info@philippstracker.com>"]
+edition = "2024"
+license = "MIT"
+
+[lib]
+name = "launcher_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-log = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-deep-link = "2"
+# Launch at login as a LaunchAgent with --hidden (ADR 0034).
+tauri-plugin-autostart = "2"
+# The show/hide shortcut, release builds only (ADR 0036).
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+log = "0.4"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "io-util", "net", "fs"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+url = "2"
+ts-rs = { version = "12", features = ["serde-compat", "serde-json-impl", "no-serde-warnings"] }
+libc = "0.2"
+tempfile = { version = "3", optional = true }
+
+[features]
+# Exposes test helpers to integration tests in tests/.
+test-util = ["dep:tempfile"]
+
+# Debug builds keep file and line numbers for backtraces, not full debug info; dependencies keep none. This
+# shrinks target/ by more than half (scripts/clean-build.sh removes what is left over).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+strip = true
+# Panics unwind (ADR 0005): a bug fails one command, not the app.
+panic = "unwind"
+
+[dev-dependencies]
+# Itself with test helpers, so integration tests in tests/ can use them (ADR 0021).
+launcher = { path = ".", features = ["test-util"] }
+tempfile = "3"
+proptest = "1"
+tokio = { version = "1", features = ["test-util", "macros", "rt"] }

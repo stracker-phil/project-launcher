@@ -1,0 +1,13 @@
+{
+  "productName": "Launcher (Debug)",
+  "identifier": "com.philippstracker.launcher.debug",
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "launcher-debug"
+        ]
+      }
+    }
+  }
+}

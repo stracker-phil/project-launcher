@@ -1,0 +1,80 @@
+# Architecture
+
+Launcher is a menu-bar app that keeps a registry of the owner's coding projects and launches their editor,
+terminal, git client, URLs, scripts, dev servers and databases. Its moving parts are the Rust core (project
+registry, config resolution, launchers, dev-environment status), the command bus, and three windows: the main
+window, the Settings window and the floating command palette.
+
+## Design rules
+
+These rules hold everywhere in the code. Keep them when you change things.
+
+1. **Rust owns the logic; React only renders** ([ADR 0001](adr/0001-rust-owns-the-logic.md)). Validation, ordering,
+   filtering, grouping, dates and the CLI are Rust. The page asks, renders and forwards intent.
+2. **IPC only in `api.ts` files** ([ADR 0002](adr/0002-ipc-goes-through-the-api-files.md)). Only `src/api/index.ts` (and
+   `src/<module>/api.ts`) imports `@tauri-apps/*`. Everything else imports the `api` object, which is also
+   what UI tests mock. `src/test/boundary.test.ts` enforces it.
+3. **Errors are data** ([ADR 0003](adr/0003-errors-are-kinds-not-messages.md)). Every command returns `Result<T, AppError>`, serialized as
+   `{ kind, message, field? }`. The UI branches on `kind` only.
+4. **Types are generated** ([ADR 0004](adr/0004-ipc-types-are-generated-from-rust.md)). Every type crossing IPC derives `ts_rs::TS` and
+   exports to `src/api/types.gen.ts` (camelCase). Never edit the generated file.
+5. **Panics unwind** ([ADR 0005](adr/0005-panics-unwind.md)). A bug fails one command, not the app. Locks are taken with the
+   poison-tolerant helpers in `lock.rs`.
+6. **No color literal outside `src/styles/palettes/`** ([ADR 0025](adr/0025-every-color-is-a-palette-token.md)). A Vitest scan enforces it.
+7. **The look is native and light** ([ADR 0024](adr/0024-native-look-with-the-main-window-following-the-prototype.md), [ux.md](ux.md)).
+8. **One write path into the data** ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)). Every change goes through the data layer's one
+   write function, which validates, saves and announces it as an event. No other code writes the data.
+9. **Commands live in Rust** ([ADR 0008](adr/0008-commands-live-in-rust.md)). Menus, shortcuts, the palette, the CLI and links run
+   commands of one bus by id.
+10. **Small feature modules** ([ADR 0006](adr/0006-small-feature-modules.md)): by feature, pure cores, ports only where a
+    swap is real, files under ~400 lines.
+11. **Debug is a separate app on demo data** ([ADR 0022](adr/0022-the-debug-build-is-a-separate-app-on-demo-data.md)); nothing in the repo carries
+    real data ([`demo-data.md`](../.claude/rules/demo-data.md)).
+12. **Local first** ([ADR 0016](adr/0016-launcher-has-no-network-code.md)): no network at all, no secrets kept. Database passwords read
+    from a dev server go to DataBee by environment variable and are never stored.
+
+## Process model
+
+- One process holds the window(s); the same binary is the CLI. The first process binds `launcher.sock` and
+  holds `launcher.lock` in the config dir; a second one hands its request over and exits
+  ([ADR 0009](adr/0009-the-cli-asks-the-running-app.md)).
+- Windows are declared `visible: false` and shown by Rust, so `--hidden` never flashes them. Closing hides;
+  only Quit ends the app.
+- Launch requests are queued in Rust and pulled by the page (`take_launch_events`).
+- `launcher://` links arrive through `tauri-plugin-deep-link` and run an allowlist of commands.
+- Background work is supervised and restarted on panic ([ADR 0005](adr/0005-panics-unwind.md)): the dev-environment status
+  poller (Docker, DDEV, wp-env; only while a window shows it), running scripts with captured output, and the
+  project stats cache. Each change is announced as a Rust event that invalidates the page's queries
+  ([ADR 0014](adr/0014-page-reads-go-through-tanstack-query.md)).
+- The tray menu and the global shortcut (release builds only) run bus commands while every window is hidden
+  ([ADR 0034](adr/0034-a-menu-bar-app-that-keeps-running.md), [ADR 0036](adr/0036-global-shortcuts-only-in-release-builds.md)).
+
+## Data
+
+JSON files only ([ADR 0012](adr/0012-json-files-only-no-database.md)), in the config dir through `JsonStore` (atomic, 0600 in a 0700 dir, defaults
+for missing files, unparsable files moved aside; [ADR 0013](adr/0013-json-stores-repair-themselves-on-load.md)):
+
+| File | Holds |
+|---|---|
+| `projects.json` | The registry: id, path, created and last-opened times, and Launcher-only metadata (name, icon, colour, tag, notes, starred, archived) |
+| `settings.json` | `Settings`: default editor, git client, terminal app, tags, Docker manager, appearance, shortcuts |
+| `<project>/.project-launcher.json` | Owned by the owner: apps, scripts, env, states, dev services, database. Launcher edits it read-modify-write and keeps unknown keys |
+
+Every change goes through one writer ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)) as an op with a computed inverse; the bounded,
+non-persisted undo stack lives in `AppState` ([ADR 0015](adr/0015-writes-are-operations-with-inverses-for-undo.md)). Each write emits an event (`projects_changed`,
+`settings_changed`) that the page maps to query keys.
+
+## Repository map
+
+Filled in as the code is added: `src-tauri/src/` and `src/` by feature folder, one line each.
+
+## Webview hardening
+
+- CSP in `src-tauri/tauri.conf.json` (`csp` and `devCsp`): `script-src 'self'`, `style-src-elem 'self'`, no
+  frames, objects, base URI or form actions, `connect-src` only to IPC ([ADR 0017](adr/0017-hardened-runtime-strict-csp-and-no-navigation.md)).
+- `window/navigation.rs` keeps every webview on the app's own pages; web links go through `open_url`.
+- The bundle is signed with the hardened runtime (`scripts/sign-app.sh`).
+
+## Platform
+
+macOS on Apple Silicon only; see [adapting.md](adapting.md) for every macOS- or name-specific place.
