@@ -18,6 +18,7 @@ pub mod lock;
 pub mod menu;
 mod remote;
 pub mod state;
+pub mod status;
 pub mod store;
 #[cfg(any(test, debug_assertions, feature = "test-util"))]
 pub mod test_support;

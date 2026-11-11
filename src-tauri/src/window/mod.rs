@@ -2,6 +2,7 @@
 //! icon shows only while a regular window is open (ADR 0034).
 
 pub mod navigation;
+pub mod settings;
 
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
@@ -11,7 +12,7 @@ use crate::events::{PAGE_COMMAND_EVENT, WINDOW_OPENED_EVENT};
 pub const MAIN: &str = "main";
 
 /// Windows that give the app a Dock icon while they show; the palette panel never does.
-const REGULAR: [&str; 1] = [MAIN];
+const REGULAR: [&str; 2] = [MAIN, settings::LABEL];
 
 /// Unminimizes and focuses the window; skipped with `LAUNCHER_BACKGROUND=1` in debug builds so
 /// scripts/dev never steal focus.

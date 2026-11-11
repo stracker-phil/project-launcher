@@ -98,4 +98,15 @@ describe.each(SCHEMES)("%s palette contrast", (scheme) => {
   ])("%s reads at 4.5:1 on %s", (fg, bg) => {
     expect(ratio(fg, bg)).toBeGreaterThanOrEqual(4.5);
   });
+
+  it.each(["--settings-text", "--settings-text-secondary", "--settings-text-strong"])(
+    "%s reads at 4.5:1 on the settings background",
+    (fg) => {
+      expect(ratio(fg, "--settings-bg")).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it.each(["--settings-bg", "--settings-chrome"])("--settings-text-tertiary reads at 3:1 on %s", (bg) => {
+    expect(ratio("--settings-text-tertiary", bg)).toBeGreaterThanOrEqual(3);
+  });
 });

@@ -14,6 +14,22 @@ field?: AppErrorField, };
  */
 export type AppErrorField = { path: string, message: string, };
 
+/**
+ * Paths start with `~` for the home folder.
+ */
+export type AppStatus = { 
+/**
+ * `Launcher`, or `Launcher (Debug)` in debug builds.
+ */
+name: string, version: string, debug: boolean, dataFolder: string, logFolder: string, commandLine: CommandLine, };
+
+export type CliLink = "installed" | "notInstalled" | "notApplicable";
+
+/**
+ * The `launcher` command on the PATH, at `path`.
+ */
+export type CommandLine = { path: string, link: CliLink, };
+
 export type ErrorKind = "io" | "invalid_input" | "not_found" | "internal";
 
 /**

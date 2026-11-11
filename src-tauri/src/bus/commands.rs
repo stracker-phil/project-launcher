@@ -13,6 +13,21 @@ pub fn register(bus: &mut Bus) {
             .help("Show the Launcher window")
             .run_now(window::show_main),
     );
+    bus.add(
+        Command::new("app:settings", "Settings…")
+            .help("Open Settings")
+            .run_now(|app: &AppHandle| window::settings::open(app, None)),
+    );
+    bus.add_family(
+        Command::new("app:settings:", "Settings Page")
+            .help("Open Settings at a page")
+            .hidden()
+            .family("<page>")
+            .run(|app, page| async move {
+                window::settings::open(&app, Some(&page));
+                Ok(())
+            }),
+    );
     bus.add_family(
         Command::new("page:", "Window Action")
             .help("Run one of the main window's own commands (the menus' items for what the page does)")
@@ -107,7 +122,24 @@ mod tests {
     }
 
     #[test]
-    fn settings_is_not_registered_yet() {
-        assert!(!registered().knows("app:settings"));
+    fn settings_opens_from_its_own_command() {
+        let bus = registered();
+        let info = bus.info("app:settings").unwrap();
+        assert_eq!(info.title, "Settings…");
+        assert_eq!(info.help, "Open Settings");
+        assert!(!info.hidden);
+    }
+
+    #[test]
+    fn settings_page_ids_resolve_to_the_hidden_settings_page_family() {
+        let bus = registered();
+
+        let id = "app:settings:about";
+        assert!(bus.knows(id));
+        let info = bus.info(id).unwrap();
+        assert_eq!(info.title, "Settings Page");
+        assert_eq!(info.help, "Open Settings at a page");
+        assert!(info.hidden);
+        assert_eq!(bus.family("app:settings:").unwrap().arg, "<page>");
     }
 }

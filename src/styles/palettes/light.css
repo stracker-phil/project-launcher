@@ -74,6 +74,21 @@
   --sidebar-selection-bg: #383838;
   --sidebar-border: #2c2c2c;
 
+  /* Settings window (System Settings layout) */
+  --settings-bg: #ffffff;
+  --settings-chrome: #f5f5f5;
+  --settings-fill-quiet: rgba(0, 0, 0, 0.035);
+  --settings-fill: rgba(0, 0, 0, 0.055);
+  --settings-fill-strong: rgba(0, 0, 0, 0.1);
+  --settings-line: rgba(0, 0, 0, 0.12);
+  --settings-hairline: rgba(38, 38, 38, 0.06);
+  --settings-text: #262626;
+  --settings-text-strong: #000000;
+  --settings-text-secondary: rgba(38, 38, 38, 0.68);
+  --settings-text-tertiary: rgba(38, 38, 38, 0.52);
+  --settings-field: #ffffff;
+  --settings-field-line: rgba(0, 0, 0, 0.16);
+
   /* Project colors, picked by name (ADR 0025) */
   --project-blue: #138af2;
   --project-green: #006b4f;

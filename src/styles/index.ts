@@ -5,4 +5,5 @@ import "./motion.css";
 import "./base.css";
 import "./controls.css";
 import "./shell.css";
+import "./settings.css";
 import "./overlays.css";

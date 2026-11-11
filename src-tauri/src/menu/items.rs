@@ -153,8 +153,7 @@ mod tests {
         bus::register(&mut bus);
 
         for item in all_items() {
-            let expected_missing = item.command == "app:settings"
-                || (item.command == "app:reload" && !cfg!(debug_assertions));
+            let expected_missing = item.command == "app:reload" && !cfg!(debug_assertions);
             assert_eq!(
                 bus.knows(item.command),
                 !expected_missing,

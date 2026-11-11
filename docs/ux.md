@@ -140,6 +140,16 @@ Rust's field error in red below, Segmented, switches; destructive buttons ask in
 another window in front, switches, primary buttons and the list turn gray (`window-blurred`). Generic pages:
 Appearance, Shortcuts, Status, About (version, Show Data Folder, Open Log Folder), Privacy & Data.
 
+Launcher's values (`src/styles/settings.css`, `src-tauri/src/window/settings.rs`): window 880×720, min
+760×560, not maximizable, traffic lights at 20,22; 36px strips (drag region in the list, page title 15px
+semibold in the pane); page list rows 28px with 8px radius, `--settings-fill-strong` for the current page;
+search field 28px on `--settings-fill`; page body 8/20/24px padding, 24px between groups; rows at least 48px
+(14px vertical padding); values `--settings-text-secondary`, selectable and cut off with an ellipsis; push
+buttons 28px with 8px radius. The search matches page titles, keywords and row titles; a page found by a row
+names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F focuses the field, ⎋ and ⌘W hide the
+window. Pages so far: Status (version, build, data and log folder, the `launcher` command link) and About
+(version, Show Data Folder, Open Log Folder).
+
 ## Keys
 App actions are Rust commands; page keys live in the page registry, reached from menus as `page:<id>`. Menus
 in Mac order; View holds window appearance only; Help holds Open Log Folder and Show Data Folder. Bare keys

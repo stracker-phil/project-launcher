@@ -6,3 +6,5 @@ pub const LAUNCH_EVENT: &str = "launch";
 pub const WINDOW_OPENED_EVENT: &str = "window_opened";
 /// The id of a page command (`page:<id>` without the prefix) for the main window to run.
 pub const PAGE_COMMAND_EVENT: &str = "page_command";
+/// The settings page (or an unknown id, which shows the first page) for the Settings window to show.
+pub const OPEN_SETTINGS_EVENT: &str = "open_settings";

@@ -17,6 +17,8 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 | Id | Title | Notes |
 |---|---|---|
 | `app:show` | Open Launcher | Shows the main window; tray |
+| `app:settings` | Settings… | Opens the Settings window where it was; ⌘, |
+| `app:settings:<page>` | Settings Page | Hidden. Opens Settings at a page or row id (`status`, `about`, `cli`, …); an unknown id shows the first page |
 | `page:<command>` | Window Action | Hidden. Shows the main window and emits `page_command` with `<command>` |
 | `window:close` | Close Window | Hidden. Hides the window in front (⌘W) |
 | `app:logs` | Open Log Folder | Help menu |
@@ -35,6 +37,13 @@ keys (no ⌘ or ⌃) never fire in text fields.
 | `view.toggleSidebar` | Toggle Sidebar | ⌃⌘S |
 | `view.toggleInspector` | Toggle Inspector | ⌃⌘I |
 
+The Settings window has its own (`settingsCommands.ts`):
+
+| Id | Title | Key |
+|---|---|---|
+| `settings.close` | Close Settings | ⎋ (not while a text field or sheet has focus); runs `window:close` |
+| `settings.search` | Search Settings | ⌘F |
+
 ## Menus
 
 `src-tauri/src/menu/items.rs` places commands; an item shows only when the bus knows its command, and a
@@ -42,7 +51,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 
 | Menu | Items |
 |---|---|
-| Launcher | About · Settings… ⌘, (once registered) · Services · Hide, Hide Others, Show All · Quit Launcher ⌘Q |
+| Launcher | About · Settings… ⌘, · Services · Hide, Hide Others, Show All · Quit Launcher ⌘Q |
 | File | Close Window ⌘W |
 | Edit | macOS's Undo, Redo, Cut, Copy, Paste, Select All |
 | View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |

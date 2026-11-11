@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { AppError, ErrorKind, LaunchEvent } from "./types.gen";
+import type { AppError, AppStatus, ErrorKind, LaunchEvent } from "./types.gen";
 
-export type { AppError, ErrorKind, LaunchEvent } from "./types.gen";
+export type { AppError, AppStatus, CliLink, CommandLine, ErrorKind, LaunchEvent } from "./types.gen";
 
 /** Every event Rust emits to the page (`src-tauri/src/events.rs`), with its payload. */
 export type EventPayloads = {
@@ -10,6 +10,8 @@ export type EventPayloads = {
   window_opened: null;
   /** A menu's `page:<id>` item, without the prefix. */
   page_command: string;
+  /** A settings page id for the Settings window to show. */
+  open_settings: string;
 };
 export type EventName = keyof EventPayloads;
 
@@ -20,6 +22,8 @@ export const api = {
   takeLaunchEvents: () => invoke<LaunchEvent[]>("take_launch_events"),
   /** Runs a command of the Rust bus by id (`app:show`, `page:view.toggleSidebar`, …). */
   runCommand: (id: string) => invoke<void>("run_command", { id }),
+  /** Settings → Status: version, build, folders and the command line link. */
+  appStatus: () => invoke<AppStatus>("app_status"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>
     listen<EventPayloads[E]>(event, (e) => handler(e.payload)),
 };
