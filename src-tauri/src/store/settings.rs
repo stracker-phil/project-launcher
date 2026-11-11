@@ -40,6 +40,37 @@ pub struct Settings {
 
 const DEFAULT_TERMINAL: &str = "Terminal";
 
+/// The apps Settings → General names: what the built-ins and the project file open with.
+#[derive(Serialize, Deserialize, TS, Debug, Clone, Copy, PartialEq, Eq)]
+#[ts(export, export_to = "src/api/types.gen.ts")]
+#[serde(rename_all = "camelCase")]
+pub enum AppSetting {
+    DefaultEditor,
+    GitClient,
+    TerminalApp,
+    ConfigEditor,
+}
+
+impl AppSetting {
+    pub fn of(self, settings: &mut Settings) -> &mut String {
+        match self {
+            AppSetting::DefaultEditor => &mut settings.default_editor,
+            AppSetting::GitClient => &mut settings.git_client,
+            AppSetting::TerminalApp => &mut settings.terminal_app,
+            AppSetting::ConfigEditor => &mut settings.config_editor,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            AppSetting::DefaultEditor => "Change Default Editor",
+            AppSetting::GitClient => "Change Git Client",
+            AppSetting::TerminalApp => "Change Terminal App",
+            AppSetting::ConfigEditor => "Change Config Editor",
+        }
+    }
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Self {

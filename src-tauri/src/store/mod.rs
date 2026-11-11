@@ -6,7 +6,7 @@ pub mod json_store;
 pub mod settings;
 
 pub use json_store::JsonStore;
-pub use settings::{Appearance, Settings, Shortcuts};
+pub use settings::{AppSetting, Appearance, Settings, Shortcuts};
 
 use std::fs;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};

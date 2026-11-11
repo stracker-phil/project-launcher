@@ -9,6 +9,7 @@ import { api, type MenuShortcut, type Project } from "../api";
 import { DEFAULT_SETTINGS, EMPTY_STATUS, type createApiMock } from "../test/apiMock";
 import { createQueryClient } from "./queryClient";
 import { useEvents } from "./useEvents";
+import { useMenuCommands } from "./useMenuCommands";
 import { useMenuShortcuts } from "./useMenuShortcuts";
 import { useProjectStatus } from "./useProjectStatus";
 import { useProjects } from "./useProjects";
@@ -104,6 +105,23 @@ describe("useEvents", () => {
     act(() => emit("projects_changed", null));
 
     await waitFor(() => expect(result.current?.states[0].value).toBe("develop"));
+  });
+
+  it.each(["projects_changed", "settings_changed"] as const)("reads the palette's menu commands again on %s", async (event) => {
+    mocked.menuCommands.mockResolvedValue([{ menu: "File", label: "New Project", command: "app:new", key: "⌘N" }]);
+    const { result } = renderHook(
+      () => {
+        useEvents();
+        return useMenuCommands().data;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current?.[0].key).toBe("⌘N"));
+    mocked.menuCommands.mockResolvedValue([{ menu: "File", label: "New Project", command: "app:new", key: "⌘J" }]);
+
+    act(() => emit(event, null));
+
+    await waitFor(() => expect(result.current?.[0].key).toBe("⌘J"));
   });
 
   it("leaves the menu's shortcuts alone on projects_changed", async () => {

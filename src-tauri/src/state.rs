@@ -1,11 +1,12 @@
 //! `AppState`: what Tauri manages for the commands, opened from the config folder.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::data::Data;
 use crate::error::AppResult;
 use crate::launch::LaunchQueue;
+use crate::lock::MutexExt;
 use crate::run::Runner;
 use crate::run::system::{self, System};
 
@@ -15,6 +16,8 @@ pub struct AppState {
     pub system: Arc<dyn System>,
     /// Holds terminal scripts and sessions.
     terminal_folder: PathBuf,
+    /// The project the main window shows, as its page reports it; the palette and the tray act on it.
+    current: Mutex<Option<String>>,
 }
 
 impl AppState {
@@ -27,7 +30,20 @@ impl AppState {
             data: Data::open(config_dir),
             system: system::system(),
             terminal_folder: config_dir.join("terminal"),
+            current: Mutex::new(None),
         })
+    }
+
+    pub fn current_project(&self) -> Option<String> {
+        self.current.lock_unpoisoned().clone()
+    }
+
+    /// Returns whether it changed.
+    pub fn set_current_project(&self, id: Option<String>) -> bool {
+        let mut current = self.current.lock_unpoisoned();
+        let changed = *current != id;
+        *current = id;
+        changed
     }
 
     pub fn runner(&self) -> Runner<'_> {
@@ -36,5 +52,42 @@ impl AppState {
             system: self.system.as_ref(),
             folder: self.terminal_folder.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_support::temp_config_dir;
+
+    fn state() -> (tempfile::TempDir, AppState) {
+        let dir = temp_config_dir();
+        let state = AppState::open(dir.path()).unwrap();
+        (dir, state)
+    }
+
+    #[test]
+    fn no_project_is_current_at_first() {
+        let (_dir, state) = state();
+        assert_eq!(state.current_project(), None);
+    }
+
+    #[test]
+    fn setting_the_current_project_reports_whether_it_changed_and_can_be_read_back() {
+        let (_dir, state) = state();
+
+        assert!(state.set_current_project(Some("northwind".into())));
+        assert_eq!(state.current_project().as_deref(), Some("northwind"));
+
+        assert!(!state.set_current_project(Some("northwind".into())));
+        assert_eq!(state.current_project().as_deref(), Some("northwind"));
+
+        assert!(state.set_current_project(Some("acme-website".into())));
+        assert_eq!(state.current_project().as_deref(), Some("acme-website"));
+
+        assert!(state.set_current_project(None));
+        assert_eq!(state.current_project(), None);
+
+        assert!(!state.set_current_project(None));
     }
 }

@@ -66,7 +66,7 @@ The dev scripts work without stealing focus. They are macOS-only (zsh, Swift, `s
 | `bun run build:app` | builds `src-tauri/target/debug/bundle/macos/Launcher (Debug).app` (`tauri.debug.conf.json`, `VITE_DEV_HOOKS=1`) |
 | `scripts/dev/launch.sh [args]` | signs and restarts the debug app next to the terminal without focus; refuses a bundle older than the code |
 | `scripts/dev/js.sh '<js>'` | runs JavaScript in the debug app over its socket (`@<label>` on the first line targets another window) |
-| `scripts/dev/screenshot.sh <png> [--overlay]` | captures the debug window, also on another Space; never the release app |
+| `scripts/dev/screenshot.sh <png> [--overlay]` | captures the debug window, also on another Space; never the release app. `--overlay` captures the open palette panel; with `LAUNCHER_BACKGROUND=1` (as `launch.sh` starts it) the palette never takes the keys from the app in front and stays open when it loses the focus, so a check neither types into it nor closes it |
 | `scripts/dev/e2e.sh` | clicks controls twice and fails when the panel, toolbar, first row or the control moved |
 
 ## Signing

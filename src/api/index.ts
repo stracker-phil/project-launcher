@@ -5,6 +5,7 @@ import type {
   ActionSource,
   AddedProjects,
   AppError,
+  AppSetting,
   AppStatus,
   Appearance,
   Builtin,
@@ -26,6 +27,7 @@ import type {
 
 export type {
   AddedProjects,
+  AppSetting,
   Action,
   ActionDraft,
   ActionEdit,
@@ -74,6 +76,11 @@ export type EventPayloads = {
   window_opened: null;
   /** A menu's `page:<id>` item, without the prefix. */
   page_command: string;
+  /** The project the main window shows, as the palette opens. */
+  palette_opened: string | null;
+  palette_closed: null;
+  /** A project for the main window to select, under the filter that shows it. */
+  select_project: { id: string; filter: Filter };
   /** A settings page id for the Settings window to show. */
   open_settings: string;
   /** The project list or a project's details changed. */
@@ -101,6 +108,8 @@ export const api = {
   /** Takes the menu items' keys off while a shortcut is being recorded. */
   pauseMenuKeys: (paused: boolean) => invoke<void>("pause_menu_keys", { paused }),
   getSettings: () => invoke<Settings>("get_settings"),
+  /** Names the app a setting opens with; blank leaves it to the default. */
+  setAppSetting: (setting: AppSetting, value: string) => invoke<void>("set_app_setting", { setting, value }),
   setAppearance: (appearance: Appearance) => invoke<void>("set_appearance", { appearance }),
   /** `key: null` leaves the command without a key. */
   setShortcut: (command: string, key: string | null) => invoke<void>("set_shortcut", { command, key }),
@@ -147,6 +156,14 @@ export const api = {
   editProjectFile: (id: string) => invoke<void>("edit_project_file", { id }),
   /** Runs the project's state providers. */
   projectStatus: (id: string) => invoke<ProjectStatus>("project_status", { id }),
+  /** The main window's page reports the project it shows. */
+  setCurrentProject: (id: string | null) => invoke<void>("set_current_project", { id }),
+  /** The palette page has drawn its fresh state. */
+  paletteShown: () => invoke<void>("palette_shown"),
+  closePalette: () => invoke<void>("close_palette"),
+  autostartEnabled: () => invoke<boolean>("autostart_enabled"),
+  /** Returns whether it is on now. */
+  setAutostart: (on: boolean) => invoke<boolean>("set_autostart", { on }),
   undo: () => invoke<string | null>("undo_change"),
   redo: () => invoke<string | null>("redo_change"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>

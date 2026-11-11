@@ -8,7 +8,7 @@ import { Toasts } from "./components/Toasts";
 import { TooltipHost } from "./components/TooltipHost";
 import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
-import { CommandPalette } from "./palette/CommandPalette";
+import { useReportCurrentProject, useSelectProjectRequests } from "./main/useCurrentProject";
 import { createQueryClient } from "./queries/queryClient";
 import { useEvents } from "./queries/useEvents";
 import { useSettings } from "./queries/useSettings";
@@ -17,12 +17,14 @@ import { useStore } from "./state/store";
 
 const windowClient = createQueryClient();
 
-/** The main window: the panes, the palette, and the overlays every window has. */
+/** The main window: the panes and the overlays every window has. */
 function MainWindow() {
   const { data: settings } = useSettings();
   useAppearance(settings?.appearance);
   useEvents();
   useMainCommands();
+  useReportCurrentProject();
+  useSelectProjectRequests();
   const onLaunch = useCallback((event: LaunchEvent) => {
     if (event.type === "error") useStore.getState().toast("error", event.message);
   }, []);
@@ -30,7 +32,6 @@ function MainWindow() {
   return (
     <>
       <Shell />
-      <CommandPalette />
       <MenuHost />
       <Toasts />
       <ConfirmHost />

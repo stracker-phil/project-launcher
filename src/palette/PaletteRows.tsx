@@ -2,13 +2,15 @@ import { Check, History, Zap } from "lucide-react";
 import type { Prefix } from "./prefixes";
 import type { PaletteCommand } from "./sources";
 
-/** While searching, `meta` is its detail, else its section (the results are not grouped by section). */
+/** The hint at the right, else while searching the command's section (results aren't grouped by section). */
 export function CommandRow({ command, searching }: { command: PaletteCommand; searching: boolean }) {
-  const meta = searching ? (command.detail ?? command.section) : undefined;
+  const meta = command.hint ?? (searching && command.mode === "commands" ? command.section : undefined);
   const Icon = command.checked ? Check : Zap;
   return (
     <>
-      <Icon size={16} strokeWidth={command.checked ? 2.2 : 1.8} aria-label={command.checked ? "On" : undefined} aria-hidden={command.checked ? undefined : true} />
+      {command.icon ?? (
+        <Icon size={16} strokeWidth={command.checked ? 2.2 : 1.8} aria-label={command.checked ? "On" : undefined} aria-hidden={command.checked ? undefined : true} />
+      )}
       <span className="palette__summary">{command.label}</span>
       {meta && <span className="palette__meta">{meta}</span>}
       {command.shortcut && <kbd className="palette__shortcut">{command.shortcut}</kbd>}

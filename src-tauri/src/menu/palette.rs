@@ -127,7 +127,7 @@ mod tests {
         "edit:redo",
         "page:view.toggleSidebar",
         "page:view.toggleInspector",
-        "page:palette.open",
+        "app:palette",
         "app:reload",
         "app:logs",
         "app:data",
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn the_command_palette_item_is_never_listed() {
         let listed = listed(&Enabled(ALL), &Shortcuts::new());
-        assert!(!commands(&listed).contains(&"page:palette.open"));
+        assert!(!commands(&listed).contains(&"app:palette"));
     }
 
     #[test]

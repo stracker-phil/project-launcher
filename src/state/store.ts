@@ -48,10 +48,6 @@ export interface Store {
   /** Shows the sheet; resolves true when the owner confirms, false on Cancel or Escape. */
   confirm: (question: Omit<Confirmation, "answer">) => Promise<boolean>;
 
-  /** The command palette (⌘K) is open. */
-  paletteOpen: boolean;
-  setPaletteOpen: (open: boolean) => void;
-
   menu: OpenMenu | null;
   /** Shows a menu, replacing an open one; opening it again on the same element closes it. */
   openMenu: (entries: MenuEntry[], at: MenuAt, label?: string, options?: MenuOptions) => void;
@@ -105,8 +101,6 @@ export const useStore = create<Store>()((set, get) => ({
       });
     }),
 
-  paletteOpen: false,
-  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
 
   menu: null,
   openMenu: (entries, at, label = "Menu", options = {}) => {

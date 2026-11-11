@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, type EventName } from "../api";
 import { LIBRARY_KEY } from "./useLibraryView";
+import { MENU_COMMANDS_KEY } from "./useMenuCommands";
 import { MENU_SHORTCUTS_KEY } from "./useMenuShortcuts";
 import { PROJECT_CONFIG_KEY } from "./useProjectConfig";
 import { PROJECT_STATUS_KEY } from "./useProjectStatus";
@@ -10,8 +11,8 @@ import { SETTINGS_KEY } from "./useSettings";
 
 /** Which reads each Rust event makes stale (ADR 0014). */
 export const INVALIDATES: Partial<Record<EventName, readonly (readonly string[])[]>> = {
-  projects_changed: [PROJECTS_KEY, PROJECT_CONFIG_KEY, PROJECT_STATUS_KEY, LIBRARY_KEY],
-  settings_changed: [SETTINGS_KEY, MENU_SHORTCUTS_KEY, PROJECT_CONFIG_KEY, LIBRARY_KEY],
+  projects_changed: [PROJECTS_KEY, PROJECT_CONFIG_KEY, PROJECT_STATUS_KEY, LIBRARY_KEY, MENU_COMMANDS_KEY],
+  settings_changed: [SETTINGS_KEY, MENU_SHORTCUTS_KEY, MENU_COMMANDS_KEY, PROJECT_CONFIG_KEY, LIBRARY_KEY],
 };
 
 /** Refetches the queries a Rust event makes stale, while mounted; every window mounts it once. */

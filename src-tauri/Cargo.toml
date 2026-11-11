@@ -14,7 +14,8 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+# macos-private-api: the palette panel's transparent window (ADR 0037).
+tauri = { version = "2", features = ["macos-private-api", "tray-icon", "image-png"] }
 tauri-plugin-log = "2"
 tauri-plugin-opener = "2"
 # The folder panel for adding projects.
@@ -35,6 +36,11 @@ uuid = { version = "1", features = ["v4"] }
 url = "2"
 ts-rs = { version = "12", features = ["serde-compat", "serde-json-impl", "no-serde-warnings"] }
 libc = "0.2"
+# The palette as a non-activating NSPanel (ADR 0037).
+objc2 = "0.6"
+# Pinned: the panel swaps the class of tao's window, which needs 0.37.1's layout (a `focusable` ivar); later
+# versions keep their state elsewhere, and the palette then stays a plain window (`window/native.rs`).
+tao = { version = "=0.37.1", default-features = false }
 tempfile = { version = "3", optional = true }
 
 [features]

@@ -19,7 +19,12 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 | `app:show` | Open Launcher | Shows the main window; tray |
 | `app:settings` | Settings… | Opens the Settings window where it was; ⌘, |
 | `app:settings:<page>` | Settings Page | Hidden. Opens Settings at a page or row id (`status`, `about`, `cli`, …); an unknown id shows the first page |
-| `page:<command>` | Window Action | Hidden. Shows the main window and emits `page_command` with `<command>` |
+| `page:<command>` | Window Action | Hidden. Emits `page_command` with `<command>` to the main window, showing it first unless the command acts on the current project without it (`window::IN_BACKGROUND`: terminal, reveal, copy path, edit file, star, archive, lock; and `action:<list>:<index>`). The page also takes `filter:<json>` (shows a sidebar filter) and `action:<list>:<index>` (launches the current project's action; `main/pageRequests.ts`) |
+| `app:palette` | Command Palette… | ⌘K; opens or closes the palette panel; tray |
+| `app:toggle` | Show or Hide Launcher | The global shortcut ⌃⌘L (release builds only, ADR 0036); hides the main window while it is in front, else shows it; rebindable under Settings → Shortcuts → Global |
+| `project:show:<id>` | Show Project | Hidden. Shows the main window with the project selected (`select_project` with `{ id, filter }`: Archived for an archived project, else All Projects); palette and tray |
+| `project:launch:<id>:<list>:<index>` | Launch Action | Hidden. Runs a project's action in Rust; the tray's rows |
+| `project:reveal:<id>` | Reveal Project in Finder | Hidden. The tray's row |
 | `window:close` | Close Window | Hidden. Hides the window in front (⌘W) |
 | `edit:undo` | Undo | ⌘Z. With the main or Settings window focused it emits `edit_request` `"undo"` to it; the page undoes the typing of a focused text field (`document.execCommand`), else calls `undo_change`. Without a focused window it undoes the last data change directly |
 | `edit:redo` | Redo | ⇧⌘Z; as `edit:undo`, with `"redo"` and `redo_change` |
@@ -61,17 +66,24 @@ The Settings window has its own (`settingsCommands.ts`):
 
 ## The palette
 
-The command palette (`src/palette/`, [ADR 0031](adr/0031-the-palette-runs-the-menus.md)) lists, when it opens:
+The command palette is its own window, a floating non-activating panel (`palette`, [ADR 0037](adr/0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md)):
+`window/palette.rs` builds it hidden at startup and turns it into an `NSPanel` (`window/native.rs`). `app:palette`
+(⌘K, the tray) opens it centred over the main window while that shows, else on the pointer's screen, a fifth of the
+way down (`place`). It opens invisible and emits `palette_opened` with the project the main window shows; the page
+(`src/windows/palette/`) remounts its panel and calls `palette_shown`, which makes it visible. ⎋, ⌘K, a chosen
+row (`close_palette`) or a click elsewhere (after a 400 ms settle) closes it; a second toggle within 250 ms is
+ignored. The app in front stays in front.
 
-- every enabled menu-bar item from `MENUS` except Command Palette… itself, in menu order, from the Tauri command
-  `menu_commands` (`src-tauri/src/menu/palette.rs`: `MenuCommand` with menu title, label, command id and the key
-  as the menu shows it, `⌃⌘S`). A `page:<id>` item runs the page command directly (and is left out when that
-  can't run now); any other item runs through `api.runCommand`;
-- the page commands with a title that no menu item runs (matched on `page:<id>`), under "Window";
-- the rows of menus a component offers while on screen (`usePaletteMenu`), as "Title: Item › Subitem";
-- each Settings page as "Settings: <page>", which runs `app:settings:<id>`.
+It lists ([ADR 0031](adr/0031-the-palette-runs-the-menus.md), `src/palette/sources.ts`):
 
-A failure shows as an error toast.
+- every project (archived last; `project:show:<id>`), prefix `:`;
+- the sidebar's filters and tags with their counts (`page:filter:<json>`), prefix `#`;
+- the current project's actions (`page:action:<list>:<index>`) and the Project menu's items, under the project's
+  name, prefix `/`;
+- every other enabled menu-bar item from `menu_commands` (`src-tauri/src/menu/palette.rs`) and each Settings page
+  as "Settings: <page>" (`app:settings:<id>`), prefix `>`.
+
+Everything runs through `api.runCommand`, so the main window's page does the work and shows its toasts.
 
 ## Menus
 
@@ -104,8 +116,11 @@ and redo included, rebuilds the menu bar (`menu::refresh`), and `menu_commands` 
 | `reset_shortcut(command, from?)` | Back to the default key; `from`, which has that key now, is left without one in the same undo step ("Reset Shortcut") |
 | `pause_menu_keys(paused)` | Rebuilds the menu bar without (or again with) its keys while Settings → Shortcuts records one |
 
-The tray menu's items are `app:show` and `app:quit`; Tauri hands tray clicks to the same handler
-(`menu::clicked`).
+The tray menu (`tray.rs`): Open Launcher, Command Palette…, Recent Projects ▸ (the ten last opened, not archived,
+not the current one, ⌥1…⌥0; `project:show:<id>`), the current project's actions with their keys and Reveal in
+Finder (`project:launch:…`, `project:reveal:<id>`), Settings… and Quit. It is rebuilt when the projects or the
+settings change (`announce`) and when the main window reports another current project (`set_current_project`).
+Tauri hands tray clicks to the same handler (`menu::clicked`).
 
 ## Undo and redo
 

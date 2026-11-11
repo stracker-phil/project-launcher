@@ -1,75 +1,114 @@
 import { describe, expect, it, vi } from "vitest";
-import { paletteSections, SOURCED_PREFIXES } from "./sections";
+import type { PaletteMode } from "./prefixes";
+import { paletteSections, sourcedPrefixes } from "./sections";
 import type { PaletteCommand } from "./sources";
 
-const command = (label: string, section: string, detail?: string): PaletteCommand => ({
+const command = (mode: PaletteMode, label: string, section: string, detail?: string): PaletteCommand => ({
   id: `${section}:${label}`,
+  mode,
   label,
   section,
   detail,
   run: vi.fn(),
 });
 
-const COMMANDS = [
-  command("File: New Project", "File"),
-  command("File: Open Folder", "File"),
-  command("View: Week View", "View"),
-  command("Settings: Status", "Settings", "log, version"),
+const PROJECTS = [command("projects", "Alpha", "Projects"), command("projects", "Beta Shop", "Projects", "~/Projects/beta")];
+const LIBRARY = [command("library", "All Projects", "Library", "library"), command("library", "Client", "Library", "tag")];
+const ACTIONS = [command("actions", "Open in Editor", "Alpha"), command("actions", "Reveal in Finder", "Alpha")];
+const MENU = [
+  command("commands", "New Project", "File"),
+  command("commands", "Week View", "View"),
+  command("commands", "Settings: Status", "Settings", "log, version"),
 ];
+const ALL = [...MENU, ...ACTIONS, ...LIBRARY, ...PROJECTS];
 
 const outline = (sections: ReturnType<typeof paletteSections>) =>
   sections.map((s) => ({ heading: s.heading, items: s.items.map((i) => (i.kind === "recent" ? i.text : i.command.label)) }));
 
 describe("paletteSections", () => {
-  it("shows the recent searches first and then the commands under their menus when the field is empty", () => {
-    expect(outline(paletteSections(COMMANDS, ["week"], ""))).toEqual([
-      { heading: "Recent Searches", items: ["week"] },
-      { heading: "File", items: ["File: New Project", "File: Open Folder"] },
-      { heading: "View", items: ["View: Week View"] },
-      { heading: "Settings", items: ["Settings: Status"] },
-    ]);
+  describe("without a query", () => {
+    it("shows the recent searches first, then projects, library, the project's actions and the menus", () => {
+      expect(outline(paletteSections(ALL, ["week"], "")).map((s) => s.heading)).toEqual([
+        "Recent Searches",
+        "Projects",
+        "Library",
+        "Alpha",
+        "File",
+        "View",
+        "Settings",
+      ]);
+    });
+
+    it("leaves out the recent searches when there are none", () => {
+      expect(paletteSections(ALL, [], "").map((s) => s.heading)[0]).toBe("Projects");
+    });
+
+    it("keeps the order of the commands inside a section", () => {
+      expect(outline(paletteSections(ALL, [], ""))[0]).toEqual({ heading: "Projects", items: ["Alpha", "Beta Shop"] });
+    });
   });
 
-  it("leaves out the recent searches when there are none", () => {
-    expect(paletteSections(COMMANDS, [], "").map((s) => s.heading)).toEqual(["File", "View", "Settings"]);
+  describe("with a prefix", () => {
+    it.each([
+      [">", ["File", "View", "Settings"]],
+      [":", ["Projects"]],
+      ["#", ["Library"]],
+      ["/", ["Alpha"]],
+    ])("keeps only the kind of the %s prefix and no recent searches", (text, headings) => {
+      expect(paletteSections(ALL, ["week"], text).map((s) => s.heading)).toEqual(headings);
+    });
+
+    it("applies the query after the prefix", () => {
+      expect(outline(paletteSections(ALL, [], ">  week"))).toEqual([{ heading: "Commands", items: ["Week View"] }]);
+    });
+
+    it("shows nothing for a prefix whose kind has no commands", () => {
+      expect(paletteSections(MENU, ["week"], ":")).toEqual([]);
+    });
   });
 
-  it("shows the sections without the recent searches for the commands prefix alone", () => {
-    expect(paletteSections(COMMANDS, ["week"], ">").map((s) => s.heading)).toEqual(["File", "View", "Settings"]);
-  });
+  describe("with a query", () => {
+    it("ranks each kind's matches under its own heading, in kind order", () => {
+      const found = paletteSections(ALL, ["x"], "pro");
 
-  it("shows one ranked Commands section for a query", () => {
-    const found = paletteSections(COMMANDS, ["week"], "open");
+      expect(outline(found)).toEqual([
+        { heading: "Projects", items: ["Alpha", "Beta Shop"] },
+        { heading: "Library", items: ["All Projects"] },
+        { heading: "Commands", items: ["New Project"] },
+      ]);
+    });
 
-    expect(outline(found)).toEqual([{ heading: "Commands", items: ["File: Open Folder"] }]);
-  });
+    it("heads the current project's actions with its name", () => {
+      expect(outline(paletteSections(ALL, [], "editor"))).toEqual([{ heading: "Alpha", items: ["Open in Editor"] }]);
+    });
 
-  it("ranks a label match above a match in the detail", () => {
-    const commands = [command("Status Page", "Settings", "login"), command("Log Viewer", "View")];
+    it("ranks a label match above a match in the detail", () => {
+      const commands = [command("commands", "Status Page", "Settings", "login"), command("commands", "Log Viewer", "View")];
 
-    expect(outline(paletteSections(commands, [], "log"))[0].items).toEqual(["Log Viewer", "Status Page"]);
-  });
+      expect(outline(paletteSections(commands, [], "log"))[0].items).toEqual(["Log Viewer", "Status Page"]);
+    });
 
-  it("searches the detail and the section too", () => {
-    expect(outline(paletteSections(COMMANDS, [], "version"))[0].items).toEqual(["Settings: Status"]);
-    expect(outline(paletteSections(COMMANDS, [], "week"))[0].items).toEqual(["View: Week View"]);
-  });
+    it("searches the detail and the section too", () => {
+      expect(outline(paletteSections(ALL, [], "version"))[0].items).toEqual(["Settings: Status"]);
+      expect(outline(paletteSections(ALL, [], "shop"))[0].items).toEqual(["Beta Shop"]);
+    });
 
-  it("applies the query after the commands prefix", () => {
-    expect(outline(paletteSections(COMMANDS, [], ">  open"))).toEqual([{ heading: "Commands", items: ["File: Open Folder"] }]);
-  });
-
-  it("shows nothing when a query matches no command", () => {
-    expect(paletteSections(COMMANDS, [], "zzzz")).toEqual([]);
-  });
-
-  it.each([":", "#", "/", ":proj"])("shows nothing for the prefix %s that has no source yet", (text) => {
-    expect(paletteSections(COMMANDS, ["week"], text)).toEqual([]);
+    it("shows nothing when a query matches no command", () => {
+      expect(paletteSections(ALL, [], "zzzz")).toEqual([]);
+    });
   });
 });
 
-describe("SOURCED_PREFIXES", () => {
-  it("is only the commands prefix", () => {
-    expect(SOURCED_PREFIXES.map((p) => p.char)).toEqual([">"]);
+describe("sourcedPrefixes", () => {
+  it("is only the prefixes whose kind has commands, in prefix order", () => {
+    expect(sourcedPrefixes([...MENU, ...ACTIONS]).map((p) => p.char)).toEqual([">", "/"]);
+  });
+
+  it("is every prefix when every kind has commands", () => {
+    expect(sourcedPrefixes(ALL).map((p) => p.char)).toEqual([">", ":", "#", "/"]);
+  });
+
+  it("is empty without commands", () => {
+    expect(sourcedPrefixes([])).toEqual([]);
   });
 });

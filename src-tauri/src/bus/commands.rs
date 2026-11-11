@@ -15,6 +15,19 @@ pub fn register(bus: &mut Bus) {
             .run_now(window::show_main),
     );
     bus.add(
+        Command::new("app:palette", "Command Palette…")
+            .help("Open or close the command palette")
+            .run_now(window::palette::toggle),
+    );
+    bus.add(
+        Command::new(
+            crate::global_shortcut::COMMAND,
+            crate::global_shortcut::LABEL,
+        )
+        .help("Show the Launcher window, or hide it while it is in front")
+        .run_now(crate::global_shortcut::toggle),
+    );
+    bus.add(
         Command::new("app:settings", "Settings…")
             .help("Open Settings")
             .run_now(|app: &AppHandle| window::settings::open(app, None)),
@@ -122,7 +135,7 @@ mod tests {
     fn page_command_ids_resolve_to_the_hidden_window_action_family() {
         let bus = registered();
 
-        for id in ["page:view.toggleSidebar", "page:palette.open"] {
+        for id in ["page:view.toggleSidebar", "page:project.new"] {
             assert!(bus.knows(id), "{id}");
             let info = bus.info(id).unwrap();
             assert_eq!(info.title, "Window Action", "{id}");

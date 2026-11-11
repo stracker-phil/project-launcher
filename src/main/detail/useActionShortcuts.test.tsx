@@ -118,14 +118,5 @@ describe("useActionShortcuts", () => {
 
       expect(mocked.launchAction).not.toHaveBeenCalled();
     });
-
-    it("ignores the shortcut while the palette is open", async () => {
-      render(<Detail shown={alpha} />);
-      useStore.getState().setPaletteOpen(true);
-
-      await userEvent.keyboard("{Meta>}o{/Meta}");
-
-      expect(mocked.launchAction).not.toHaveBeenCalled();
-    });
   });
 });

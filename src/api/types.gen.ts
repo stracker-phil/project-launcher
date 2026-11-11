@@ -63,6 +63,11 @@ field?: AppErrorField, };
 export type AppErrorField = { path: string, message: string, };
 
 /**
+ * The apps Settings → General names: what the built-ins and the project file open with.
+ */
+export type AppSetting = "defaultEditor" | "gitClient" | "terminalApp" | "configEditor";
+
+/**
  * Paths start with `~` for the home folder.
  */
 export type AppStatus = { 

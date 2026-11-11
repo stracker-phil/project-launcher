@@ -15,3 +15,10 @@ pub const SETTINGS_CHANGED_EVENT: &str = "settings_changed";
 /// `"undo"` or `"redo"` from the Edit menu, for the focused window: a text field undoes its typing, anything
 /// else undoes the last change of the data.
 pub const EDIT_REQUEST_EVENT: &str = "edit_request";
+/// The project the main window shows (`null`: none), as the palette opens; the palette page resets and reports
+/// back with `palette_shown`.
+pub const PALETTE_OPENED_EVENT: &str = "palette_opened";
+/// No payload; the palette closed.
+pub const PALETTE_CLOSED_EVENT: &str = "palette_closed";
+/// `{ id, filter }`: a project for the main window to select, under the filter that shows it (from the palette, the tray or the CLI).
+pub const SELECT_PROJECT_EVENT: &str = "select_project";

@@ -1,6 +1,7 @@
 //! Launching a project's actions, its folder, path and file, and reading its states; every process goes
 //! through the `System` port.
 
+pub mod bus;
 pub mod commands;
 pub mod shell;
 pub mod states;

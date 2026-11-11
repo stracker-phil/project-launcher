@@ -10,8 +10,8 @@ export function useActionShortcuts(project: Project | null, actions: Action[]) {
     if (!project) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.repeat) return;
-      const { menu, confirmation, paletteOpen } = useStore.getState();
-      if (menu || confirmation || paletteOpen) return;
+      const { menu, confirmation } = useStore.getState();
+      if (menu || confirmation) return;
       if (isTextInput(e.target) && !e.metaKey && !e.ctrlKey) return;
       if (e.target instanceof Element && e.target.closest(".popover, [data-recording]")) return;
       const pressed = normalizeBinding(bindingFromEvent(e) ?? "");

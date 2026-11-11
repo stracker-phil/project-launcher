@@ -41,6 +41,7 @@ pub fn refresh(app: &AppHandle) {
     if let Err(e) = build(app).and_then(|menu| app.set_menu(menu)) {
         log::warn!("Couldn't rebuild the menu bar: {e}");
     }
+    crate::global_shortcut::apply(app);
 }
 
 /// Takes the menu items' keys off while a key is being recorded, and puts them back after.

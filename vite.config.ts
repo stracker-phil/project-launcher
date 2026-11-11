@@ -19,7 +19,7 @@ export default defineConfig(() => ({
   // Secondary windows are pages of their own (`src/windows/<name>/`).
   build: {
     rollupOptions: {
-      input: { main: "index.html", settings: "src/windows/settings/index.html" },
+      input: { main: "index.html", settings: "src/windows/settings/index.html", palette: "src/windows/palette/index.html" },
     },
   },
   test: {

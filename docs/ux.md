@@ -35,8 +35,8 @@ or on the screen while the main window is hidden; opens with ⌘K, from the tray
 background. Prefixes: `>` commands, `:` projects, `#` library, `/` the current project's actions.
 
 ### Tray menu
-Open Launcher (⌃⌘L), Command Palette, Recent Projects ▸ (⌥1 … ⌥0), Settings…, Quit, then the current
-project's apps and scripts.
+Open Launcher, Command Palette…, Recent Projects ▸ (⌥1 … ⌥0), then the current project's name (gray) with its
+apps and scripts (their keys as hints) and Reveal in Finder, then Settings… and Quit.
 
 ## Principles
 - Calm, light and native: it looks like the Mac apps beside it (`native-look`). The window opens at
@@ -162,6 +162,8 @@ names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F foc
 window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
 `--settings-control` tile with `--settings-control-shadow`. Pages so far:
 
+- General: the default editor, git client, terminal and project file editor (text fields, saved when left or
+  on ↵), and Open at login (a switch; gray in the debug app, which never installs a login item).
 - Appearance: Automatic / Light / Dark (Segmented); both windows switch at once.
 - Shortcuts: every menu item's key, grouped by menu, then the page keys no menu item holds (Main Window,
   Settings Window); each row found by the search. A row shows its key in a 7rem recorder field: a click records

@@ -2,13 +2,18 @@
 
 use tauri::ipc::Invoke;
 
-use crate::{bus, commands, data, menu, run, status};
+use crate::{autostart, bus, commands, data, menu, run, status, window};
 
 pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         commands::open_url,
         commands::take_launch_events,
         commands::log_frontend_error,
+        commands::set_current_project,
+        autostart::autostart_enabled,
+        autostart::set_autostart,
+        window::palette::palette_shown,
+        window::palette::close_palette,
         bus::app::run_command,
         menu::palette::menu_commands,
         menu::shortcuts::menu_shortcuts,
@@ -18,6 +23,7 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::list_projects,
         data::commands::reload_projects,
         data::commands::set_appearance,
+        data::commands::set_app_setting,
         data::commands::set_shortcut,
         data::commands::reset_shortcut,
         data::commands::reassign_shortcut,

@@ -1,12 +1,8 @@
-/* The command palette (docs/ux.md → Command palette), over the main window until it moves into its own panel. */
-.palette-scrim {
-  position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; padding-top: 110px;
-  background: var(--scrim); animation: fade-in var(--motion-fast) var(--ease-out);
-}
+/* The command palette (docs/ux.md → Command palette): the whole page of its floating panel (ADR 0037). */
+html:has(.palette), html:has(.palette) body { background: transparent; }
 .palette {
-  display: flex; flex-direction: column; align-self: flex-start; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 160px);
-  overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: var(--panel-bg); box-shadow: var(--shadow-palette);
-  animation: rise-in var(--motion-slow) var(--ease-out); transform-origin: top center;
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  border: 1px solid var(--border); border-radius: 16px; background: var(--panel-bg);
 }
 .palette__input {
   display: flex; flex: none; align-items: center; gap: 12px; height: 56px; padding: 0 18px;

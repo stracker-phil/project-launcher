@@ -11,13 +11,16 @@ use crate::menu;
 use crate::projects::Project;
 use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig, RunsAs};
 use crate::state::AppState;
-use crate::store::{Appearance, Settings};
+use crate::store::{AppSetting, Appearance, Settings};
 use tauri_plugin_dialog::DialogExt;
 
 /// Emits one event per stale read, to every window.
 pub fn announce(app: &AppHandle, changed: Changed) {
     if changed.settings {
         menu::refresh(app);
+    }
+    if changed.settings || changed.projects {
+        crate::tray::refresh(app);
     }
     for (stale, event) in [
         (changed.settings, SETTINGS_CHANGED_EVENT),
@@ -85,6 +88,16 @@ pub async fn set_appearance(
 }
 
 /// `key: null` leaves the command without a key; a menu item's key needs ⌘ or ⌃.
+#[tauri::command]
+pub async fn set_app_setting(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    setting: AppSetting,
+    value: String,
+) -> AppResult<()> {
+    announced(&app, state.data.set_app(setting, &value))
+}
+
 #[tauri::command]
 pub async fn set_shortcut(
     app: AppHandle,

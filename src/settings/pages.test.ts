@@ -24,6 +24,12 @@ describe("registerCoreSettingsPages", () => {
     expect(searchSettingsPages("shortcuts").map((match) => match.page.id)).toContain("shortcuts");
   });
 
+  it.each(["Git client", "Project file editor", "Open at login"])("finds the General page by its %s row", (title) => {
+    registerCoreSettingsPages();
+
+    expect(searchSettingsPages(title).map((match) => match.page.id)).toEqual(["general"]);
+  });
+
   it("adds the menu commands to the Shortcuts page's searchable rows", async () => {
     mocked.menuShortcuts.mockResolvedValue([{ menu: "File", label: "Quit", command: "app:quit", defaultKey: "Mod+Q", key: "Mod+Q" }]);
 

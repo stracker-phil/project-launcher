@@ -94,3 +94,15 @@ mod tests {
         assert_eq!(sanitize_log_text(&text), "a".repeat(4095));
     }
 }
+
+/// The main window's page reports the project it shows; the palette and the tray act on it.
+#[tauri::command]
+pub fn set_current_project(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::state::AppState>,
+    id: Option<String>,
+) {
+    if state.set_current_project(id) {
+        crate::tray::refresh(&app);
+    }
+}

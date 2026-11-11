@@ -1,5 +1,6 @@
 //! The menu items' keys for Settings → Shortcuts, and the check a new key passes before it is stored.
 
+use crate::global_shortcut;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use ts_rs::TS;
@@ -30,9 +31,9 @@ fn binding(accelerator: Option<&str>) -> Option<String> {
         .map(|combo| combo.binding())
 }
 
-/// Every item of a known command, enabled or not, in menu order.
+/// Every item of a known command, enabled or not, in menu order; release builds add the global shortcut.
 pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuShortcut> {
-    menu_items()
+    let menu = menu_items()
         .filter(|(_, item)| commands.knows(item.command))
         .map(|(menu, item)| MenuShortcut {
             menu: menu.to_string(),
@@ -40,8 +41,15 @@ pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuSh
             command: item.command.to_string(),
             default_key: binding(item.accelerator),
             key: binding(effective_accelerator(item, shortcuts).as_deref()),
-        })
-        .collect()
+        });
+    let global = cfg!(not(debug_assertions)).then(|| MenuShortcut {
+        menu: global_shortcut::GROUP.into(),
+        label: global_shortcut::LABEL.into(),
+        command: global_shortcut::COMMAND.into(),
+        default_key: Some(global_shortcut::DEFAULT_KEY.into()),
+        key: global_shortcut::key(shortcuts),
+    });
+    menu.chain(global).collect()
 }
 
 /// The key to store for a command: a menu item's key must have ⌘ or ⌃ and is stored normalized; any other
@@ -51,7 +59,9 @@ pub fn checked(command: &str, key: Option<String>) -> AppResult<Option<String>> 
         return Ok(None);
     };
     let command = command.trim();
-    if !menu_items().any(|(_, item)| item.command == command) {
+    let needs_modifier = command == global_shortcut::COMMAND
+        || menu_items().any(|(_, item)| item.command == command);
+    if !needs_modifier {
         return Ok(Some(key));
     }
     let combo = menu_combo(&key).ok_or_else(|| AppError::InvalidField {
@@ -106,7 +116,7 @@ mod tests {
         "edit:redo",
         "page:view.toggleSidebar",
         "page:view.toggleInspector",
-        "page:palette.open",
+        "app:palette",
         "app:reload",
         "app:logs",
         "app:data",
@@ -147,7 +157,7 @@ mod tests {
                 "edit:redo",
                 "page:view.toggleSidebar",
                 "page:view.toggleInspector",
-                "page:palette.open",
+                "app:palette",
                 "app:reload",
                 "app:logs",
                 "app:data",
@@ -168,7 +178,7 @@ mod tests {
                 key: Some("Mod+,".to_string()),
             }
         );
-        let palette = find(&listed, "page:palette.open");
+        let palette = find(&listed, "app:palette");
         assert_eq!(palette.menu, "View");
         assert_eq!(palette.label, "Command Palette…");
     }
@@ -183,7 +193,7 @@ mod tests {
             ("edit:redo", Some("Mod+Shift+Z")),
             ("page:view.toggleSidebar", Some("Mod+Ctrl+S")),
             ("page:view.toggleInspector", Some("Mod+Ctrl+I")),
-            ("page:palette.open", Some("Mod+K")),
+            ("app:palette", Some("Mod+K")),
             ("app:reload", Some("Mod+Alt+R")),
             ("app:logs", None),
             ("app:data", None),
@@ -218,10 +228,10 @@ mod tests {
     fn an_override_changes_the_current_key_and_keeps_the_default() {
         let listed = listed(
             &KnownButDisabled(ALL),
-            &overrides("page:palette.open", Some("cmd+alt+p")),
+            &overrides("app:palette", Some("cmd+alt+p")),
         );
         assert_eq!(
-            keys(find(&listed, "page:palette.open")),
+            keys(find(&listed, "app:palette")),
             (Some("Mod+K"), Some("Mod+Alt+P"))
         );
         assert_eq!(
@@ -299,8 +309,45 @@ mod tests {
 
     #[test]
     fn no_key_passes_through_for_every_command() {
-        for command in ["app:quit", "page:palette.open", "project.open"] {
+        for command in ["app:quit", "app:palette", "app:toggle", "project.open"] {
             assert_eq!(checked(command, None).unwrap(), None, "{command}");
+        }
+    }
+
+    #[test]
+    fn the_global_shortcut_needs_command_or_control_like_a_menu_key() {
+        for key in ["L", "Shift+L", "Alt+L"] {
+            let err = checked("app:toggle", Some(key.to_string())).unwrap_err();
+            assert_eq!(field_of(&err), Some("shortcut"), "{key:?}");
+        }
+    }
+
+    #[test]
+    fn the_global_shortcut_is_stored_normalized() {
+        for (key, expected) in [
+            ("ctrl+cmd+l", "Mod+Ctrl+L"),
+            ("Ctrl+Mod+L", "Mod+Ctrl+L"),
+            ("cmd+shift+k", "Mod+Shift+K"),
+        ] {
+            assert_eq!(
+                checked("app:toggle", Some(key.to_string())).unwrap(),
+                Some(expected.to_string()),
+                "{key}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_global_shortcut_is_listed_in_release_builds_only() {
+        let listed = listed(&KnownButDisabled(ALL), &Shortcuts::new());
+        let global = listed.iter().find(|item| item.command == "app:toggle");
+        if cfg!(debug_assertions) {
+            assert_eq!(global, None);
+        } else {
+            assert_eq!(
+                global.map(keys),
+                Some((Some("Ctrl+Mod+L"), Some("Ctrl+Mod+L")))
+            );
         }
     }
 

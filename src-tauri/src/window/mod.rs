@@ -1,7 +1,10 @@
 //! The app's windows. Closing one hides it; the app keeps running in the menu bar until it quits, and the Dock
 //! icon shows only while a regular window is open (ADR 0034).
 
+#[cfg(target_os = "macos")]
+mod native;
 pub mod navigation;
+pub mod palette;
 pub mod settings;
 
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
@@ -117,9 +120,24 @@ fn hide_or_warn(window: &WebviewWindow) {
     }
 }
 
-/// Shows the main window and asks its page to run one of its own commands (`page:<id>` from the menus).
+/// Page commands that act on the current project without needing the window on screen.
+const IN_BACKGROUND: [&str; 7] = [
+    "project.terminal",
+    "project.reveal",
+    "project.copyPath",
+    "project.editFile",
+    "project.star",
+    "project.archive",
+    "project.lock",
+];
+
+/// Asks the main window's page to run one of its own commands (`page:<id>` from the menus and the palette),
+/// showing the window first unless the command works without it.
 pub fn run_page_command(app: &AppHandle, id: &str) {
-    show_main(app);
+    // `action:<list>:<index>` launches one of the current project's actions.
+    if !IN_BACKGROUND.contains(&id) && !id.starts_with("action:") {
+        show_main(app);
+    }
     if let Err(e) = app.emit_to(MAIN, PAGE_COMMAND_EVENT, id) {
         log::warn!("Couldn't ask the window to run {id}: {e}");
     }

@@ -10,7 +10,7 @@ use crate::cli::LogLevel;
 use crate::handlers::handlers;
 use crate::ipc::IpcMessage;
 use crate::state::AppState;
-use crate::{bus, ipc, menu, remote, tray, window};
+use crate::{bus, ipc, menu, remote, run, tray, window};
 
 const MAX_LOG_BYTES: u128 = 5 * 1024 * 1024;
 
@@ -21,22 +21,32 @@ pub fn start(
     log_level: LogLevel,
     hidden: bool,
 ) {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(not(debug_assertions))]
+    let builder = builder
+        .plugin(crate::global_shortcut::plugin())
+        .plugin(crate::autostart::plugin());
+    builder
         .manage(state)
         .manage(commands_bus())
         .manage(menu::MenuKeys::default())
+        .manage(window::palette::Palette::default())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(window::navigation::guard())
         .plugin(tauri_plugin_deep_link::init())
         .on_menu_event(|app, event| menu::clicked(app, event.id().as_ref()))
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && window::close_requested(window.app_handle(), window.label())
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. }
+                if window::close_requested(window.app_handle(), window.label()) =>
             {
                 api.prevent_close();
             }
+            WindowEvent::Focused(false) if window.label() == window::palette::LABEL => {
+                window::palette::focus_lost(window.app_handle());
+            }
+            _ => {}
         })
         .setup(move |app| {
             // After `log_plugin`'s setup, which raises the max level to `Trace`.
@@ -46,6 +56,8 @@ pub fn start(
             window::set_dock_icon(app.handle(), false);
             app.set_menu(menu::build(app.handle())?)?;
             tray::install(app.handle())?;
+            window::palette::install(app.handle())?;
+            crate::global_shortcut::apply(app.handle());
             app.state::<AppState>().launches.push(initial);
             #[cfg(debug_assertions)]
             apply_dev_frame(app);
@@ -73,6 +85,7 @@ pub fn start(
 fn commands_bus() -> bus::Commands {
     let mut commands = bus::CommandBus::default();
     bus::register(&mut commands);
+    run::bus::register(&mut commands);
     bus::Commands(commands)
 }
 

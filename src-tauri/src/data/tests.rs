@@ -11,7 +11,7 @@ use super::{Changed, Data, MetaEdit};
 use crate::error::{AppError, ErrorKind};
 use crate::projects::file::FILE_NAME;
 use crate::projects::{FileKey, KnownProject, MetaKey, Registry};
-use crate::store::{Appearance, Settings};
+use crate::store::{AppSetting, Appearance, Settings};
 use crate::test_support::temp_config_dir;
 
 mod config;
@@ -151,6 +151,101 @@ fn the_appearance_it_already_has_changes_nothing_and_is_not_undoable() {
         Changed::default()
     );
     assert_eq!(undo_label(&fx.data), None);
+}
+
+fn app_value(data: &Data, setting: AppSetting) -> String {
+    setting.of(&mut data.settings()).clone()
+}
+
+#[test]
+fn an_app_setting_is_stored_trimmed_in_its_own_field() {
+    for (setting, field) in [
+        (AppSetting::DefaultEditor, "defaultEditor"),
+        (AppSetting::GitClient, "gitClient"),
+        (AppSetting::TerminalApp, "terminalApp"),
+        (AppSetting::ConfigEditor, "configEditor"),
+    ] {
+        let fx = Fixture::new(&[], &[]);
+        assert_eq!(
+            fx.data.set_app(setting, "  Example App  ").unwrap(),
+            SETTINGS_ONLY,
+            "{field}"
+        );
+        assert_eq!(app_value(&fx.data, setting), "Example App", "{field}");
+        let stored = serde_json::to_value(fx.data.settings()).unwrap();
+        assert_eq!(stored[field], "Example App", "{field}");
+    }
+}
+
+#[test]
+fn setting_one_app_leaves_the_others_alone() {
+    let fx = Fixture::new(&[], &[]);
+    let terminal = app_value(&fx.data, AppSetting::TerminalApp);
+    fx.data
+        .set_app(AppSetting::DefaultEditor, "Example Editor")
+        .unwrap();
+    assert_eq!(app_value(&fx.data, AppSetting::GitClient), "");
+    assert_eq!(app_value(&fx.data, AppSetting::ConfigEditor), "");
+    assert_eq!(app_value(&fx.data, AppSetting::TerminalApp), terminal);
+}
+
+#[test]
+fn an_app_setting_undo_restores_the_previous_value_under_its_label() {
+    let fx = Fixture::new(&[], &[]);
+    for (setting, label) in [
+        (AppSetting::DefaultEditor, "Change Default Editor"),
+        (AppSetting::GitClient, "Change Git Client"),
+        (AppSetting::TerminalApp, "Change Terminal App"),
+        (AppSetting::ConfigEditor, "Change Config Editor"),
+    ] {
+        let before = app_value(&fx.data, setting);
+        fx.data.set_app(setting, "Example App").unwrap();
+
+        let undone = fx.data.undo().unwrap().unwrap();
+        assert_eq!(undone.label, label);
+        assert_eq!(undone.changed, SETTINGS_ONLY, "{label}");
+        assert_eq!(app_value(&fx.data, setting), before, "{label}");
+
+        let redone = fx.data.redo().unwrap().unwrap();
+        assert_eq!(redone.label, label);
+        assert_eq!(app_value(&fx.data, setting), "Example App", "{label}");
+        fx.data.undo().unwrap();
+    }
+}
+
+#[test]
+fn an_app_setting_it_already_has_changes_nothing_and_is_not_undoable() {
+    let fx = Fixture::new(&[], &[]);
+    fx.data
+        .set_app(AppSetting::GitClient, "Example Git")
+        .unwrap();
+    fx.data.undo().unwrap();
+    fx.data
+        .set_app(AppSetting::GitClient, "Example Git")
+        .unwrap();
+
+    for value in ["Example Git", "  Example Git "] {
+        assert_eq!(
+            fx.data.set_app(AppSetting::GitClient, value).unwrap(),
+            Changed::default(),
+            "{value:?}"
+        );
+    }
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Git Client"));
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn a_blank_app_setting_clears_it_back_to_the_default() {
+    let fx = Fixture::new(&[], &[]);
+    fx.data
+        .set_app(AppSetting::DefaultEditor, "Example Editor")
+        .unwrap();
+    assert_eq!(
+        fx.data.set_app(AppSetting::DefaultEditor, "   ").unwrap(),
+        SETTINGS_ONLY
+    );
+    assert_eq!(app_value(&fx.data, AppSetting::DefaultEditor), "");
 }
 
 #[test]

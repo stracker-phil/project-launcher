@@ -1,10 +1,10 @@
-//! Appearance and shortcut edits.
+//! Appearance, app and shortcut edits.
 
 use super::{edit, invalid_field, required};
 use crate::data::ops::Op;
 use crate::data::{Changed, Data};
 use crate::error::{AppError, AppResult};
-use crate::store::Appearance;
+use crate::store::{AppSetting, Appearance};
 
 impl Data {
     pub fn set_appearance(&self, appearance: Appearance) -> AppResult<Changed> {
@@ -13,6 +13,17 @@ impl Data {
                 return Ok(None);
             }
             edit("Change Appearance", Op::SetAppearance(appearance))
+        })
+    }
+
+    /// Names the app a setting opens with; blank leaves it to the default.
+    pub fn set_app(&self, setting: AppSetting, value: &str) -> AppResult<Changed> {
+        let value = value.trim().to_string();
+        self.change(|data| {
+            if *setting.of(&mut data.settings()) == value {
+                return Ok(None);
+            }
+            edit(setting.label(), Op::SetApp(setting, value))
         })
     }
 

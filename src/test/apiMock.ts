@@ -91,6 +91,12 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     copyProjectPath: vi.fn().mockResolvedValue(undefined),
     editProjectFile: vi.fn().mockResolvedValue(undefined),
     projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
+    setAppSetting: vi.fn().mockResolvedValue(undefined),
+    setCurrentProject: vi.fn().mockResolvedValue(undefined),
+    paletteShown: vi.fn().mockResolvedValue(undefined),
+    closePalette: vi.fn().mockResolvedValue(undefined),
+    autostartEnabled: vi.fn().mockResolvedValue(false),
+    setAutostart: vi.fn(async (on: boolean) => on),
     undo: vi.fn().mockResolvedValue(null),
     redo: vi.fn().mockResolvedValue(null),
     on: vi.fn(async (event: string, handler: Handler) => {

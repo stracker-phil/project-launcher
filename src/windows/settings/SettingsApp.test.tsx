@@ -36,10 +36,26 @@ afterEach(() => {
 });
 
 describe("SettingsApp", () => {
-  it("lists Appearance, Shortcuts, Status then About and opens on Appearance", async () => {
+  it("lists General, Appearance, Shortcuts, Status then About and opens on General", async () => {
     await renderSettings();
 
-    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Appearance", "Shortcuts", "Status", "About"]);
+    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["General", "Appearance", "Shortcuts", "Status", "About"]);
+    expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
+    expect(within(nav()).getByRole("button", { name: "General" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("shows the app fields and the login switch on General", async () => {
+    await renderSettings();
+
+    expect(await screen.findByRole("textbox", { name: "Default editor" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Open at login" })).toBeInTheDocument();
+  });
+
+  it("shows Appearance when it is chosen in the page list", async () => {
+    await renderSettings();
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Appearance" }));
+
     expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
     expect(within(nav()).getByRole("button", { name: "Appearance" })).toHaveAttribute("aria-current", "page");
   });
@@ -146,6 +162,14 @@ describe("SettingsApp", () => {
 
         expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
       });
+    });
+
+    it("finds General by its Open at login row", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "open at");
+
+      expect(within(nav()).getByRole("button", { name: "General Open at login" })).toBeInTheDocument();
     });
 
     it("shows No Results when nothing matches", async () => {

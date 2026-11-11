@@ -2,6 +2,7 @@
 //! Launcher or starts the app.
 
 mod app;
+mod autostart;
 pub mod bus;
 pub mod cli;
 mod commands;
@@ -11,6 +12,7 @@ mod dev;
 pub mod error;
 pub mod events;
 mod folders;
+pub mod global_shortcut;
 mod handlers;
 mod instance;
 pub mod ipc;

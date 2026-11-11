@@ -77,7 +77,7 @@ describe("ShortcutsPage", () => {
 
       await recorder("Toggle Inspector");
 
-      expect(group("Main Window").getByText("Command Palette")).toBeInTheDocument();
+      expect(group("Main Window").getByText("Toggle Inspector")).toBeInTheDocument();
       expect(group("Main Window").queryByText("Toggle Sidebar")).not.toBeInTheDocument();
       expect(group("View").getByText("Toggle Sidebar")).toBeInTheDocument();
       expect(group("Settings Window").getByRole("button", { name: "Record shortcut for Close Settings" })).toHaveTextContent("⎋");
@@ -89,7 +89,7 @@ describe("ShortcutsPage", () => {
       renderPage();
 
       expect(await recorder("Redo")).toHaveTextContent("None");
-      expect(await recorder("Command Palette")).toHaveTextContent("None");
+      expect(await recorder("Toggle Inspector")).toHaveTextContent("None");
     });
 
     it("shows an alert when the menu's keys cannot be read", async () => {

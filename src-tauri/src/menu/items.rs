@@ -81,7 +81,7 @@ pub const PROJECT: &[&[Item]] = &[
     ],
     &[plain("Remove from List", "page:project.remove")],
 ];
-pub const PALETTE: Item = item("Command Palette…", "page:palette.open", "CmdOrCtrl+K");
+pub const PALETTE: Item = item("Command Palette…", "app:palette", "CmdOrCtrl+K");
 /// Registered in debug builds only, so release builds leave it out.
 pub const RELOAD: Item = item("Reload", "app:reload", "CmdOrCtrl+Alt+R");
 pub const HELP: &[Item] = &[
@@ -251,7 +251,6 @@ mod tests {
                 "page:library.all",
                 "page:library.archived",
                 "page:library.starred",
-                "page:palette.open",
                 "page:project.archive",
                 "page:project.copyPath",
                 "page:project.editFile",
