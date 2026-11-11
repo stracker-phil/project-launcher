@@ -4,3 +4,5 @@
 pub const LAUNCH_EVENT: &str = "launch";
 /// No payload; the hidden main window was shown again.
 pub const WINDOW_OPENED_EVENT: &str = "window_opened";
+/// The id of a page command (`page:<id>` without the prefix) for the main window to run.
+pub const PAGE_COMMAND_EVENT: &str = "page_command";

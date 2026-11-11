@@ -5,9 +5,11 @@ vi.mock("./api", async (orig) => ({ ...(await orig<object>()), api: (await impor
 
 import { api } from "./api";
 import App from "./App";
+import { clearCommands } from "./commands/registry";
+import type { createApiMock } from "./test/apiMock";
 import { resetStore } from "./state/store";
 
-const mocked = vi.mocked(api, true);
+const mocked = vi.mocked(api, true) as ReturnType<typeof createApiMock> & ReturnType<typeof vi.mocked<typeof api>>;
 
 describe("App", () => {
   beforeEach(() => {
@@ -43,5 +45,41 @@ describe("App", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(mocked.logError).not.toHaveBeenCalled();
+  });
+
+  describe("page commands from the menus", () => {
+    const sidebar = () => screen.queryByRole("navigation", { name: "Sidebar" });
+    const inspector = () => screen.queryByRole("complementary", { name: "Inspector" });
+
+    beforeEach(() => {
+      clearCommands();
+    });
+
+    it("hides the sidebar when the View menu sends view.toggleSidebar", () => {
+      render(<App />);
+      expect(sidebar()).toBeInTheDocument();
+
+      act(() => mocked.emit("page_command", "view.toggleSidebar"));
+
+      expect(sidebar()).not.toBeInTheDocument();
+    });
+
+    it("shows the inspector when the View menu sends view.toggleInspector", () => {
+      render(<App />);
+      expect(inspector()).not.toBeInTheDocument();
+
+      act(() => mocked.emit("page_command", "view.toggleInspector"));
+
+      expect(inspector()).toBeInTheDocument();
+    });
+
+    it("changes nothing for an unknown command id", () => {
+      render(<App />);
+
+      act(() => mocked.emit("page_command", "view.unknown"));
+
+      expect(sidebar()).toBeInTheDocument();
+      expect(inspector()).not.toBeInTheDocument();
+    });
   });
 });

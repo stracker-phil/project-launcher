@@ -10,6 +10,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     openUrl: vi.fn().mockResolvedValue(undefined),
     logError: vi.fn().mockResolvedValue(undefined),
     takeLaunchEvents: vi.fn().mockResolvedValue([]),
+    runCommand: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(async (event: string, handler: Handler) => {
       const handlers = byEvent.get(event) ?? new Set<Handler>();
       handlers.add(handler);

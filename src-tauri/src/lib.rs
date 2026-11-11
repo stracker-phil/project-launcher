@@ -2,17 +2,20 @@
 //! Launcher or starts the app.
 
 mod app;
+pub mod bus;
 pub mod cli;
 mod commands;
 #[cfg(debug_assertions)]
 mod dev;
 pub mod error;
 pub mod events;
+mod folders;
 mod handlers;
 mod instance;
 pub mod ipc;
 pub mod launch;
 pub mod lock;
+pub mod menu;
 mod remote;
 pub mod state;
 pub mod store;

@@ -77,11 +77,15 @@ One line per module, added with the code.
 | `src-tauri/src/remote/` | What the running app does for each socket message |
 | `src-tauri/src/launch.rs` | Launch events queued for the page (`take_launch_events`) |
 | `src-tauri/src/window/` | Showing and hiding windows, the Dock icon; `navigation.rs` keeps webviews on app pages |
-| `src-tauri/src/tray.rs` | The menu-bar item |
+| `src-tauri/src/bus/` | The command bus (`CommandBus`, `Command`), the app's commands (`commands.rs`), `run_command` and `spawn` (`app.rs`); ids in [commands.md](commands.md) |
+| `src-tauri/src/menu/` | The menu bar: items per menu (`items.rs`), building it from the bus (`build.rs`), `clicked` |
+| `src-tauri/src/tray.rs` | The menu-bar item; its items are bus commands |
+| `src-tauri/src/folders.rs` | Revealing the log and data folders in Finder |
 | `src-tauri/src/commands.rs`, `handlers.rs` | Core Tauri commands (`open_url`, `take_launch_events`, `log_frontend_error`) and the handler list |
 | `src-tauri/src/error.rs`, `lock.rs`, `events.rs`, `state.rs`, `store/` | `AppError`, poison-tolerant locks, event names, `AppState`, private folders |
 | `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval); test fixtures |
 | `src/api/` | The page's only Tauri boundary (`api`, `toAppError`) and the generated types |
+| `src/commands/` | Page commands: the registry and key matching (`registry.ts`), the keydown hook (`useShortcuts.ts`), the main window's commands (`mainCommands.ts`), `useMainCommands` |
 | `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
 | `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet; `window.launcher` in debug builds |
 | `src/shell/` | The main window's panes: sidebar, project list, detail, inspector slot |

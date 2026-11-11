@@ -1,4 +1,4 @@
-//! The Tauri app: managed state, plugins, window events, setup and the run loop.
+//! The Tauri app: managed state, plugins, window and menu events, setup and the run loop.
 
 use std::path::{Path, PathBuf};
 
@@ -10,7 +10,7 @@ use crate::cli::LogLevel;
 use crate::handlers::handlers;
 use crate::ipc::IpcMessage;
 use crate::state::AppState;
-use crate::{ipc, remote, tray, window};
+use crate::{bus, ipc, menu, remote, tray, window};
 
 const MAX_LOG_BYTES: u128 = 5 * 1024 * 1024;
 
@@ -23,10 +23,12 @@ pub fn start(
 ) {
     tauri::Builder::default()
         .manage(state)
+        .manage(commands_bus())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(window::navigation::guard())
         .plugin(tauri_plugin_deep_link::init())
+        .on_menu_event(|app, event| menu::clicked(app, event.id().as_ref()))
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event
                 && window::close_requested(window.app_handle(), window.label())
@@ -40,6 +42,7 @@ pub fn start(
             log::info!("Launcher {} started", env!("CARGO_PKG_VERSION"));
             // A menu-bar app: no Dock icon until a window shows.
             window::set_dock_icon(app.handle(), false);
+            app.set_menu(menu::build(app.handle())?)?;
             tray::install(app.handle())?;
             app.state::<AppState>().launches.push(initial);
             #[cfg(debug_assertions)]
@@ -63,6 +66,12 @@ pub fn start(
             RunEvent::Reopen { .. } => window::show_main(app),
             _ => {}
         });
+}
+
+fn commands_bus() -> bus::Commands {
+    let mut commands = bus::CommandBus::default();
+    bus::register(&mut commands);
+    bus::Commands(commands)
 }
 
 /// Links (`launcher://…`) bring the window forward; the commands they may run arrive with the command bus.

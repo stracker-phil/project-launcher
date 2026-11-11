@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { type LaunchEvent } from "./api";
+import { useMainCommands } from "./commands";
 import { ConfirmHost } from "./components/ConfirmSheet";
 import { Toasts } from "./components/Toasts";
 import { TooltipHost } from "./components/TooltipHost";
@@ -11,6 +12,7 @@ import { useStore } from "./state/store";
 /** The main window: the panes, and the overlays every window has. */
 export default function App() {
   useAppearance();
+  useMainCommands();
   const onLaunch = useCallback((event: LaunchEvent) => {
     if (event.type === "error") useStore.getState().toast("error", event.message);
   }, []);

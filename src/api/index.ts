@@ -8,6 +8,8 @@ export type { AppError, ErrorKind, LaunchEvent } from "./types.gen";
 export type EventPayloads = {
   launch: null;
   window_opened: null;
+  /** A menu's `page:<id>` item, without the prefix. */
+  page_command: string;
 };
 export type EventName = keyof EventPayloads;
 
@@ -16,6 +18,8 @@ export const api = {
   openUrl: (url: string) => invoke<void>("open_url", { url }),
   logError: (message: string) => invoke<void>("log_frontend_error", { message }),
   takeLaunchEvents: () => invoke<LaunchEvent[]>("take_launch_events"),
+  /** Runs a command of the Rust bus by id (`app:show`, `page:view.toggleSidebar`, …). */
+  runCommand: (id: string) => invoke<void>("run_command", { id }),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>
     listen<EventPayloads[E]>(event, (e) => handler(e.payload)),
 };

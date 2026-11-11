@@ -5,7 +5,7 @@ pub mod navigation;
 
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
-use crate::events::WINDOW_OPENED_EVENT;
+use crate::events::{PAGE_COMMAND_EVENT, WINDOW_OPENED_EVENT};
 
 /// The main window's label.
 pub const MAIN: &str = "main";
@@ -61,10 +61,8 @@ pub fn main_visible(app: &AppHandle) -> bool {
 /// Hides a regular window. With the last one gone the Dock icon goes too, and the app steps back so the
 /// app behind it gets focus.
 fn hide_regular(app: &AppHandle, label: &str) {
-    if let Some(window) = app.get_webview_window(label)
-        && let Err(e) = window.hide()
-    {
-        log::warn!("Couldn't hide the {label} window: {e}");
+    if let Some(window) = app.get_webview_window(label) {
+        hide_or_warn(&window);
     }
     if REGULAR.iter().any(|label| is_visible(app, label)) {
         return;
@@ -87,6 +85,45 @@ pub fn close_requested(app: &AppHandle, label: &str) -> bool {
         hide_regular(app, label);
     }
     ours
+}
+
+fn focused_window(app: &AppHandle) -> Option<WebviewWindow> {
+    app.webview_windows()
+        .into_values()
+        .find(|window| window.is_focused().unwrap_or(false))
+}
+
+/// ⌘W: hides the window in front; a regular window hides as its close button does.
+pub fn close_focused(app: &AppHandle) {
+    let Some(window) = focused_window(app) else {
+        return;
+    };
+    if !close_requested(app, window.label()) {
+        hide_or_warn(&window);
+    }
+}
+
+fn hide_or_warn(window: &WebviewWindow) {
+    if let Err(e) = window.hide() {
+        log::warn!("Couldn't hide the {} window: {e}", window.label());
+    }
+}
+
+/// Shows the main window and asks its page to run one of its own commands (`page:<id>` from the menus).
+pub fn run_page_command(app: &AppHandle, id: &str) {
+    show_main(app);
+    if let Err(e) = app.emit_to(MAIN, PAGE_COMMAND_EVENT, id) {
+        log::warn!("Couldn't ask the window to run {id}: {e}");
+    }
+}
+
+#[cfg(debug_assertions)]
+pub fn reload_focused(app: &AppHandle) {
+    if let Some(window) = focused_window(app)
+        && let Err(e) = window.eval("location.reload()")
+    {
+        log::warn!("Couldn't reload the page: {e}");
+    }
 }
 
 pub fn set_dock_icon(app: &AppHandle, shown: bool) {

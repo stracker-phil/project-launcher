@@ -8,7 +8,7 @@ the subagents for tests, suites and reviews. Every new name-, path- or platform-
 
 | What | Release | Debug | Where |
 |---|---|---|---|
-| Product name | `Launcher` | `Launcher (Debug)` | `tauri.conf.json` `productName` and window title, `tauri.debug.conf.json`, `lib.rs` `APP_NAME`, `index.html` |
+| Product name | `Launcher` | `Launcher (Debug)` | `tauri.conf.json` `productName` and window title, `tauri.debug.conf.json`, `lib.rs` `APP_NAME`, `index.html`, the `app:show`/`app:quit` titles (`bus/commands.rs`) and the Quit item (`menu/items.rs`) |
 | Bundle identifier | `com.philippstracker.launcher` | `com.philippstracker.launcher.debug` | both configs and `lib.rs` `IDENTIFIER` (tested); names the config dir and logs |
 | Binary and CLI | `launcher` | the same, called by path | Cargo package name (also the self dev-dependency), `cli/` |
 | Installed links | `~/Applications/Launcher.app`, `~/.local/bin/launcher` | never installed | `scripts/install.sh` |
@@ -44,7 +44,7 @@ None: the app has no network code and no listener besides its Unix socket (tests
 
 | Goal | Start here |
 |---|---|
-| A new command or shortcut | `src-tauri/src/bus/`, the menu table in `src-tauri/src/menu/`, `docs/ux.md` → Keys |
+| A new command or shortcut | `src-tauri/src/bus/`, the menu table in `src-tauri/src/menu/`, `docs/commands.md`, `docs/ux.md` → Keys |
 | A new setting | the `Settings` model in `src-tauri/src/store/settings/`, a page in `src/registry/settingsPages.ts` |
 | A new Tauri command | the feature's `commands.rs`, `handlers.rs`, `src/api/index.ts`, `src/test/apiMock.ts` |
 | A new CLI subcommand | `src-tauri/src/cli/`, `src-tauri/src/remote/` |

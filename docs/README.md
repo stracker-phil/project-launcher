@@ -6,6 +6,7 @@ use it, see the [project README](../README.md).
 | Page | Covers |
 |---|---|
 | [architecture.md](architecture.md) | Design rules, process model, data, repository map, webview hardening |
+| [commands.md](commands.md) | The command bus, every command id, page commands and the menus |
 | [ux.md](ux.md) | Design language: window, tokens, type, metrics, menus, tooltips, motion, Settings, keys |
 | [testing.md](testing.md) | Unit and integration tests, the test agents, the demo seed, scripts that drive the app, signing |
 | [adapting.md](adapting.md) | Identity (names, ids, paths), network hosts, platform-specific code, conventions to keep |

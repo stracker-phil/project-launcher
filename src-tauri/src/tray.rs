@@ -1,15 +1,14 @@
-//! The menu-bar item, the app's home while every window is hidden (ADR 0034).
+//! The menu-bar item, the app's home while every window is hidden (ADR 0034). Its items' ids are bus
+//! commands; the app's menu event handler (`menu::clicked`) runs them, as it does the menu bar's.
 
 use tauri::AppHandle;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 
-use crate::window;
-
 const TRAY_ID: &str = "main";
-const OPEN: &str = "tray:open";
-const QUIT: &str = "tray:quit";
+const OPEN: &str = "app:show";
+const QUIT: &str = "app:quit";
 
 /// 36 px source for the 18 pt menu bar icon.
 const ICON: &[u8] = include_bytes!("../icons/tray/tray.png");
@@ -35,20 +34,12 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
             )?,
         ],
     )?;
+    // No `on_menu_event` here: Tauri hands tray menu clicks to the app's handler too, so they would run twice.
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(ICON)?)
         .icon_as_template(true)
         .tooltip(crate::APP_NAME)
         .menu(&menu)
-        .on_menu_event(|app, event| clicked(app, event.id().as_ref()))
         .build(app)?;
     Ok(())
-}
-
-fn clicked(app: &AppHandle, id: &str) {
-    match id {
-        OPEN => window::show_main(app),
-        QUIT => app.exit(0),
-        _ => {}
-    }
 }
