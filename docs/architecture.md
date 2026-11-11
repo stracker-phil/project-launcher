@@ -66,7 +66,24 @@ non-persisted undo stack lives in `AppState` ([ADR 0015](adr/0015-writes-are-ope
 
 ## Repository map
 
-Filled in as the code is added: `src-tauri/src/` and `src/` by feature folder, one line each.
+One line per module, added with the code.
+
+| Path | Holds |
+|---|---|
+| `src-tauri/src/lib.rs` | Identity consts (`IDENTIFIER`, `APP_NAME`, `LINK_SCHEME`, tested against both Tauri configs) and `run`: CLI, handoff, start |
+| `src-tauri/src/app.rs` | The Tauri builder: plugins, window events, setup, the run loop (only Quit ends it) |
+| `src-tauri/src/cli/` | The `launcher` command line (clap) and how replies print (`reply.rs`) |
+| `src-tauri/src/ipc/`, `instance.rs` | The Unix socket (0600, same user): wire format, client, server; the instance lock and handoff |
+| `src-tauri/src/remote/` | What the running app does for each socket message |
+| `src-tauri/src/launch.rs` | Launch events queued for the page (`take_launch_events`) |
+| `src-tauri/src/window/` | Showing and hiding windows, the Dock icon; `navigation.rs` keeps webviews on app pages |
+| `src-tauri/src/tray.rs` | The menu-bar item |
+| `src-tauri/src/commands.rs`, `handlers.rs` | Core Tauri commands (`open_url`, `take_launch_events`, `log_frontend_error`) and the handler list |
+| `src-tauri/src/error.rs`, `lock.rs`, `events.rs`, `state.rs`, `store/` | `AppError`, poison-tolerant locks, event names, `AppState`, private folders |
+| `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval); test fixtures |
+| `src/api/` | The page's only Tauri boundary (`api`, `toAppError`) and the generated types |
+| `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`) |
+| `src/test/` | `createApiMock()` and the module-boundary guard |
 
 ## Webview hardening
 
