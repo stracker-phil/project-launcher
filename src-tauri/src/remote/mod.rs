@@ -10,6 +10,8 @@ use crate::error::AppError;
 use crate::ipc::{HandlerResult, IpcMessage};
 use crate::{launch, window};
 
+mod automation;
+
 /// Lets the reply to `quit` reach the sender before the app exits.
 const QUIT_DELAY: Duration = Duration::from_millis(200);
 
@@ -32,6 +34,9 @@ fn quit_after_reply(app: AppHandle) {
 /// Handles one message from another process and returns what its sender prints.
 pub async fn handle(app: AppHandle, message: IpcMessage) -> HandlerResult {
     log::info!("Received {} from another process", message.kind());
+    if let Some(result) = automation::handle(&app, &message).await {
+        return result;
+    }
     match message {
         IpcMessage::Show { focus } => {
             if focus {
@@ -67,5 +72,7 @@ pub async fn handle(app: AppHandle, message: IpcMessage) -> HandlerResult {
             crate::dev::seed(&app, yes)?;
             ack()
         }
+        // The command line's project requests, answered above.
+        _ => ack(),
     }
 }

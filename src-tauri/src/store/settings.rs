@@ -71,6 +71,17 @@ pub enum AppSetting {
 }
 
 impl AppSetting {
+    pub fn get(self, settings: &Settings) -> &str {
+        match self {
+            AppSetting::DefaultEditor => &settings.default_editor,
+            AppSetting::GitClient => &settings.git_client,
+            AppSetting::TerminalApp => &settings.terminal_app,
+            AppSetting::ConfigEditor => &settings.config_editor,
+            AppSetting::DockerStartCommand => &settings.docker_start_command,
+            AppSetting::DockerStopCommand => &settings.docker_stop_command,
+        }
+    }
+
     pub fn of(self, settings: &mut Settings) -> &mut String {
         match self {
             AppSetting::DefaultEditor => &mut settings.default_editor,
@@ -185,6 +196,29 @@ fn repaired_shortcuts(raw: &Value) -> Shortcuts {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn an_app_setting_reads_its_own_field() {
+        let settings = Settings {
+            default_editor: "Nova".into(),
+            git_client: "Fork".into(),
+            terminal_app: "Ghostty".into(),
+            config_editor: "Zed".into(),
+            docker_start_command: "demo-docker up".into(),
+            docker_stop_command: "demo-docker down".into(),
+            ..Settings::default()
+        };
+        for (setting, expected) in [
+            (AppSetting::DefaultEditor, "Nova"),
+            (AppSetting::GitClient, "Fork"),
+            (AppSetting::TerminalApp, "Ghostty"),
+            (AppSetting::ConfigEditor, "Zed"),
+            (AppSetting::DockerStartCommand, "demo-docker up"),
+            (AppSetting::DockerStopCommand, "demo-docker down"),
+        ] {
+            assert_eq!(setting.get(&settings), expected, "{setting:?}");
+        }
+    }
 
     #[test]
     fn a_non_object_loads_the_defaults() {

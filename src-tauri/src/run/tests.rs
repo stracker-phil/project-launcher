@@ -651,6 +651,68 @@ fn nested_file_text(fx: &Fx) -> String {
     fx.dir().join("src/main.js").to_string_lossy().into_owned()
 }
 
+fn script_result(ok: bool, exit_code: Option<i32>, timed_out: bool, output: &str) -> ScriptResult {
+    ScriptResult {
+        ok,
+        exit_code,
+        timed_out,
+        output: output.into(),
+        duration_ms: 10,
+    }
+}
+
+fn launch_message(error: Option<AppError>) -> Option<String> {
+    match error {
+        Some(AppError::Launch(message)) => Some(message),
+        Some(other) => panic!("expected a Launch error, got {other:?}"),
+        None => None,
+    }
+}
+
+#[test]
+fn a_script_that_succeeded_has_no_failure() {
+    assert_eq!(
+        launch_message(script_result(true, Some(0), false, "done\n").failure()),
+        None
+    );
+}
+
+#[test]
+fn a_failed_script_reports_its_output_and_exit_code() {
+    for (output, exit_code, expected) in [
+        (
+            "lint: 2 errors",
+            Some(3),
+            "lint: 2 errors\nThe script failed (exit code 3).",
+        ),
+        ("", Some(3), "The script failed (exit code 3)."),
+        ("", None, "The script failed (exit code 1)."),
+    ] {
+        assert_eq!(
+            launch_message(script_result(false, exit_code, false, output).failure()),
+            Some(expected.to_string()),
+            "{output:?} {exit_code:?}"
+        );
+    }
+}
+
+#[test]
+fn a_script_that_timed_out_reports_the_time_limit() {
+    for (output, expected) in [
+        (
+            "still going",
+            "still going\nThe script failed (timed out after 120 seconds).",
+        ),
+        ("", "The script failed (timed out after 120 seconds)."),
+    ] {
+        assert_eq!(
+            launch_message(script_result(false, None, true, output).failure()),
+            Some(expected.to_string()),
+            "{output:?}"
+        );
+    }
+}
+
 #[test]
 fn a_file_opens_in_the_first_editor_that_is_set() {
     let cases = [

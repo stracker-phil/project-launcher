@@ -175,3 +175,33 @@ an environment stopped by hand stays stopped.
 | `open_project_file(id, path)` | Opens a file of the project (a relative path inside its folder) in its editor, else the default editor, else its default app |
 
 Both stats stay cached for five minutes; `refresh` reads again (the inspector's Refresh button).
+
+## Command line
+
+The same binary is the command line ([ADR 0009](adr/0009-the-cli-asks-the-running-app.md)); each subcommand asks the running app over its socket (`cli/`,
+`remote/automation.rs`, the name matching in `automation/`). `--json` prints the answer as it came.
+
+| Subcommand | Does |
+|---|---|
+| `launcher` / `--hidden` | Starts Launcher or brings it forward; `--hidden` starts it in the menu bar |
+| `show`, `focus`, `hide`, `quit`, `status` | The window and the app |
+| `list [--json]` | Every project: NAME, TAG, PATH (`~` for home); JSON entries `{ id, name, path, tag, starred, archived }` with an absolute path. Daybook calls `launcher list --json` |
+| `describe [project] [--json]` | A project's details, apps (with what they open) and scripts; defaults to the project of the current folder |
+| `commands [--json]` | The bus's command ids and titles |
+| `open <project>` | Shows the project in the main window (`project:show:<id>`). Daybook calls `launcher open <id>` |
+| `launch <project> <app>`, `run <project> <script>` | Opens an app; runs a script and prints its output (a failed script exits with 1 and says why; scripts wait up to 120 s) |
+| `terminal`, `finder`, `config`, `db` `<project>` | A shell in the folder, the folder in Finder, the project file in an editor, the database in DataBee |
+| `palette`, `settings`, `command <id>` | The palette, Settings, any bus command |
+| `import <folder> [--yes]` | The prototype's data folder (its `projects.json`, `settings.json`): without `--yes` it lists what would change, with it imports as one undo step. Release builds only |
+
+`<project>` is an id, a folder inside a project (`.`, `..`, `~/…` or a path with `/`, made absolute by the command
+line) or a name: the exact name, then the folder's name, then a part only one project's name has. App and script
+names match the same way, case-insensitively.
+
+### The import
+
+`automation/import.rs`: the prototype's projects join the list under their old ids, so links that name them (Daybook)
+keep working; their name and details (`icon`, `color`, `tag`, `notes`, `starred`, `archived`) move into each
+project's `.project-launcher.json`, where keys the file has already stay; missing folders and broken files are
+skipped and listed. Its default editor, git client, terminal, project file editor, Docker app and commands fill the
+settings, its tags join the tag list. Run it once without `--yes`, check the list, then with `--yes`.

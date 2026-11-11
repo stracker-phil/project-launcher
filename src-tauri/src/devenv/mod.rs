@@ -21,7 +21,7 @@ use crate::lock::MutexExt;
 use crate::projects::config::DevMode;
 use crate::store::Settings;
 pub use database::DatabaseInfo;
-pub use docker::{Manager, manager};
+pub use docker::{Manager, manager, manager_label};
 pub use model::*;
 use tools::Tools;
 

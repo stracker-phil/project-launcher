@@ -6,6 +6,7 @@
 pub mod reply;
 
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
@@ -34,11 +35,16 @@ impl From<LogLevel> for log::LevelFilter {
     }
 }
 
-const EXAMPLES: &str = "Examples:
+const EXAMPLES: &str = "<project> is a project's name (a unique part is enough), a folder inside it (. for here) or its id.
+App and script names match case-insensitively; a unique part of the name is enough.
+
+Examples:
   launcher                           start Launcher or bring it to the front
   launcher --hidden                  start Launcher in the menu bar only
-  launcher show                      show the window without bringing Launcher to the front
-  launcher status --json";
+  launcher list --json               every project as JSON
+  launcher launch acme editor        open Acme's editor
+  launcher run . build               run this folder's project's Build script and print its output
+  launcher command app:palette       run a command (see launcher commands)";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -74,6 +80,45 @@ enum Command {
     Hide,
     /// Quit the running app
     Quit,
+    /// List every project
+    List,
+    /// Show a project's details, apps and scripts
+    Describe {
+        /// Defaults to the project of the current folder
+        #[arg(default_value = ".")]
+        project: String,
+    },
+    /// List the command ids for `launcher command`
+    Commands,
+    /// Show a project in Launcher
+    Open { project: String },
+    /// Open one of a project's apps, e.g. Editor
+    Launch { project: String, app: String },
+    /// Run one of a project's scripts and print its output
+    Run { project: String, script: String },
+    /// Open a terminal in the project
+    Terminal { project: String },
+    /// Show the project folder in Finder
+    Finder { project: String },
+    /// Edit the project's .project-launcher.json
+    Config { project: String },
+    /// Open the project's MySQL or MariaDB database in DataBee
+    Db { project: String },
+    /// Open the command palette
+    Palette,
+    /// Open Settings
+    Settings,
+    /// Run a command by id, e.g. app:palette
+    #[command(name = "command")]
+    Exec { id: String },
+    /// Import Project Launcher's (the prototype's) data folder; shows what changes unless --yes
+    Import {
+        /// The folder with its projects.json and settings.json
+        folder: String,
+        /// Import, after checking what the run without it showed
+        #[arg(long)]
+        yes: bool,
+    },
     /// Developer tools (debug builds only)
     #[cfg(debug_assertions)]
     #[command(subcommand)]
@@ -146,8 +191,79 @@ where
     }
 }
 
+fn expand_home(spec: &str) -> PathBuf {
+    match (spec.strip_prefix('~'), std::env::home_dir()) {
+        (Some(rest), Some(home)) => home.join(rest.trim_start_matches('/')),
+        _ => PathBuf::from(spec),
+    }
+}
+
+/// The folder as an absolute, canonical path, since the app runs in another working folder.
+fn absolute_path(spec: &str) -> String {
+    let expanded = expand_home(spec);
+    let absolute = if expanded.is_absolute() {
+        expanded
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(&expanded))
+            .unwrap_or(expanded)
+    };
+    absolute
+        .canonicalize()
+        .unwrap_or(absolute)
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// A project given as a folder (`.`, `..`, `~/…`, or a path with `/`) becomes an absolute path; a name or an
+/// id stays as it is.
+fn project_spec(spec: String) -> String {
+    let looks_like_path =
+        spec == "." || spec == ".." || spec.contains('/') || spec.starts_with('~');
+    if looks_like_path {
+        absolute_path(&spec)
+    } else {
+        spec
+    }
+}
+
 fn message(command: Command) -> IpcMessage {
     match command {
+        Command::List => IpcMessage::List,
+        Command::Describe { project } => IpcMessage::Describe {
+            project: project_spec(project),
+        },
+        Command::Commands => IpcMessage::Commands,
+        Command::Open { project } => IpcMessage::Open {
+            project: project_spec(project),
+        },
+        Command::Launch { project, app } => IpcMessage::Launch {
+            project: project_spec(project),
+            name: app,
+        },
+        Command::Run { project, script } => IpcMessage::Run {
+            project: project_spec(project),
+            name: script,
+        },
+        Command::Terminal { project } => IpcMessage::Terminal {
+            project: project_spec(project),
+        },
+        Command::Finder { project } => IpcMessage::Finder {
+            project: project_spec(project),
+        },
+        Command::Config { project } => IpcMessage::Config {
+            project: project_spec(project),
+        },
+        Command::Db { project } => IpcMessage::Db {
+            project: project_spec(project),
+        },
+        Command::Palette => IpcMessage::Palette,
+        Command::Settings => IpcMessage::Settings,
+        Command::Exec { id } => IpcMessage::Command { id },
+        Command::Import { folder, yes } => IpcMessage::Import {
+            folder: absolute_path(&folder),
+            yes,
+        },
         Command::Status => IpcMessage::Status,
         Command::Show => IpcMessage::Show { focus: false },
         Command::Focus => IpcMessage::Activate { hidden: false },

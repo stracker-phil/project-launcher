@@ -139,6 +139,92 @@ fn messages_have_their_wire_shape() {
 }
 
 #[test]
+fn automation_messages_have_their_wire_shape() {
+    let cases = vec![
+        (IpcMessage::List, serde_json::json!({ "type": "list" })),
+        (
+            IpcMessage::Commands,
+            serde_json::json!({ "type": "commands" }),
+        ),
+        (
+            IpcMessage::Describe {
+                project: "/work/acme".into(),
+            },
+            serde_json::json!({ "type": "describe", "project": "/work/acme" }),
+        ),
+        (
+            IpcMessage::Launch {
+                project: "acme".into(),
+                name: "editor".into(),
+            },
+            serde_json::json!({ "type": "launch", "project": "acme", "name": "editor" }),
+        ),
+        (
+            IpcMessage::Run {
+                project: "acme".into(),
+                name: "build".into(),
+            },
+            serde_json::json!({ "type": "run", "project": "acme", "name": "build" }),
+        ),
+        (
+            IpcMessage::Command {
+                id: "app:palette".into(),
+            },
+            serde_json::json!({ "type": "command", "id": "app:palette" }),
+        ),
+        (
+            IpcMessage::Import {
+                folder: "/tmp/prototype".into(),
+                yes: true,
+            },
+            serde_json::json!({ "type": "import", "folder": "/tmp/prototype", "yes": true }),
+        ),
+    ];
+    for (message, wire) in cases {
+        assert_eq!(serde_json::to_value(&message).unwrap(), wire, "{wire}");
+        assert_eq!(
+            serde_json::from_value::<IpcMessage>(wire.clone()).unwrap(),
+            message,
+            "{wire}"
+        );
+    }
+}
+
+#[test]
+fn running_a_script_and_importing_wait_longer_than_other_messages() {
+    let default = IpcMessage::Status.reply_timeout();
+    assert_eq!(IpcMessage::List.reply_timeout(), default);
+    assert_eq!(
+        IpcMessage::Launch {
+            project: "acme".into(),
+            name: "editor".into(),
+        }
+        .reply_timeout(),
+        default
+    );
+    for message in [
+        IpcMessage::Run {
+            project: "acme".into(),
+            name: "build".into(),
+        },
+        IpcMessage::Import {
+            folder: "/tmp/prototype".into(),
+            yes: false,
+        },
+    ] {
+        assert!(message.reply_timeout() > default, "{message:?}");
+    }
+    assert!(
+        IpcMessage::Run {
+            project: "acme".into(),
+            name: "build".into(),
+        }
+        .reply_timeout()
+            > std::time::Duration::from_secs(120)
+    );
+}
+
+#[test]
 fn activate_without_hidden_deserializes_as_not_hidden() {
     let message: IpcMessage = serde_json::from_str(r#"{"type":"activate"}"#).unwrap();
     assert_eq!(message, IpcMessage::Activate { hidden: false });

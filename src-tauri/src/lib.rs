@@ -2,6 +2,7 @@
 //! Launcher or starts the app.
 
 mod app;
+pub mod automation;
 mod autostart;
 pub mod bus;
 pub mod cli;

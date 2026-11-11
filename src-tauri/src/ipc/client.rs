@@ -56,11 +56,12 @@ pub fn try_forward(socket: &Path, message: &IpcMessage) -> io::Result<Forward> {
 
 /// Sends `message` as a request and waits for its reply; `None` when nothing listens.
 pub fn request(socket: &Path, message: IpcMessage) -> io::Result<Option<IpcReply>> {
+    let timeout = message.reply_timeout();
     let request = IpcRequest {
         id: uuid::Uuid::new_v4().to_string(),
         message,
     };
-    let Some(answer) = send_line(socket, &request, CLIENT_TIMEOUT)? else {
+    let Some(answer) = send_line(socket, &request, timeout)? else {
         return Ok(None);
     };
     match serde_json::from_str::<IpcReply>(&answer) {

@@ -41,6 +41,28 @@ pub struct ScriptResult {
     pub duration_ms: u64,
 }
 
+impl ScriptResult {
+    /// The error the command line reports for a failed script, with its output; `None` when it succeeded.
+    pub fn failure(&self) -> Option<AppError> {
+        if self.ok {
+            return None;
+        }
+        let reason = if self.timed_out {
+            format!("timed out after {} seconds", SCRIPT_TIMEOUT.as_secs())
+        } else {
+            format!("exit code {}", self.exit_code.unwrap_or(1))
+        };
+        let output = if self.output.is_empty() {
+            String::new()
+        } else {
+            format!("{}\n", self.output)
+        };
+        Some(AppError::Launch(format!(
+            "{output}The script failed ({reason})."
+        )))
+    }
+}
+
 /// What launching an action did: an app, link or terminal opened, or a script ran to its end.
 #[derive(Serialize, TS, Debug, Clone, PartialEq)]
 #[ts(export, export_to = "src/api/types.gen.ts")]

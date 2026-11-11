@@ -10,24 +10,34 @@ pub struct Manager {
     pub stop: String,
 }
 
+/// The name of the app that runs Docker.
+pub fn manager_label(manager: DockerManager) -> &'static str {
+    match manager {
+        DockerManager::DockerDesktop => "Docker Desktop",
+        DockerManager::OrbStack => "OrbStack",
+        DockerManager::Colima => "Colima",
+        DockerManager::Custom => "Docker",
+    }
+}
+
 /// The settings' manager; a custom one runs the owner's commands.
 pub fn manager(settings: &Settings) -> Manager {
-    let preset = |label: &str, start: &str, stop: &str| Manager {
-        label: label.into(),
+    let label = manager_label(settings.docker_manager).to_string();
+    let preset = |start: &str, stop: &str| Manager {
+        label: label.clone(),
         start: start.into(),
         stop: stop.into(),
     };
     match settings.docker_manager {
         DockerManager::DockerDesktop => preset(
-            "Docker Desktop",
             "open -a Docker",
             // `docker desktop stop` needs Docker Desktop 4.37+; older versions are asked to quit.
             r#"docker desktop stop || osascript -e 'quit app "Docker"'"#,
         ),
-        DockerManager::OrbStack => preset("OrbStack", "orb start", "orb stop"),
-        DockerManager::Colima => preset("Colima", "colima start", "colima stop"),
+        DockerManager::OrbStack => preset("orb start", "orb stop"),
+        DockerManager::Colima => preset("colima start", "colima stop"),
         DockerManager::Custom => Manager {
-            label: "Docker".into(),
+            label,
             start: settings.docker_start_command.trim().into(),
             stop: settings.docker_stop_command.trim().into(),
         },
@@ -84,6 +94,18 @@ mod tests {
             docker_start_command: start.into(),
             docker_stop_command: stop.into(),
             ..Settings::default()
+        }
+    }
+
+    #[test]
+    fn a_manager_label_names_the_app_that_runs_docker() {
+        for (docker_manager, label) in [
+            (DockerManager::DockerDesktop, "Docker Desktop"),
+            (DockerManager::OrbStack, "OrbStack"),
+            (DockerManager::Colima, "Colima"),
+            (DockerManager::Custom, "Docker"),
+        ] {
+            assert_eq!(manager_label(docker_manager), label, "{docker_manager:?}");
         }
     }
 

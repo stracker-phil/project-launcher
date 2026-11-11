@@ -27,6 +27,53 @@ pub enum IpcMessage {
     Hide,
     Quit,
     Status,
+    /// Every project (`launcher list`).
+    List,
+    /// One project's details, apps and scripts; `project` is a name, an absolute folder or an id.
+    Describe {
+        project: String,
+    },
+    /// The bus's commands (`launcher commands`).
+    Commands,
+    /// Shows the project in the main window.
+    Open {
+        project: String,
+    },
+    /// Opens one of the project's apps, by its label.
+    Launch {
+        project: String,
+        name: String,
+    },
+    /// Runs one of the project's scripts and answers with its output.
+    Run {
+        project: String,
+        name: String,
+    },
+    Terminal {
+        project: String,
+    },
+    Finder {
+        project: String,
+    },
+    /// Opens the project's `.project-launcher.json`.
+    Config {
+        project: String,
+    },
+    /// Opens the project's database in DataBee.
+    Db {
+        project: String,
+    },
+    Palette,
+    Settings,
+    /// Runs a bus command by id.
+    Command {
+        id: String,
+    },
+    /// Imports the prototype's data folder; without `yes` only says what would change.
+    Import {
+        folder: String,
+        yes: bool,
+    },
     /// Runs JavaScript in a window (used by scripts/dev to drive the UI).
     #[cfg(debug_assertions)]
     Eval {
@@ -40,6 +87,15 @@ pub enum IpcMessage {
 }
 
 impl IpcMessage {
+    /// How long the sender waits for the reply.
+    pub fn reply_timeout(&self) -> Duration {
+        match self {
+            IpcMessage::Run { .. } => SCRIPT_REPLY_TIMEOUT,
+            IpcMessage::Import { .. } => IMPORT_REPLY_TIMEOUT,
+            _ => CLIENT_TIMEOUT,
+        }
+    }
+
     /// The message type for logs; never its contents (scripts).
     pub fn kind(&self) -> &'static str {
         match self {
@@ -49,6 +105,20 @@ impl IpcMessage {
             IpcMessage::Hide => "Hide",
             IpcMessage::Quit => "Quit",
             IpcMessage::Status => "Status",
+            IpcMessage::List => "List",
+            IpcMessage::Describe { .. } => "Describe",
+            IpcMessage::Commands => "Commands",
+            IpcMessage::Open { .. } => "Open",
+            IpcMessage::Launch { .. } => "Launch",
+            IpcMessage::Run { .. } => "Run",
+            IpcMessage::Terminal { .. } => "Terminal",
+            IpcMessage::Finder { .. } => "Finder",
+            IpcMessage::Config { .. } => "Config",
+            IpcMessage::Db { .. } => "Db",
+            IpcMessage::Palette => "Palette",
+            IpcMessage::Settings => "Settings",
+            IpcMessage::Command { .. } => "Command",
+            IpcMessage::Import { .. } => "Import",
             #[cfg(debug_assertions)]
             IpcMessage::Eval { .. } => "Eval",
             #[cfg(debug_assertions)]
@@ -139,3 +209,7 @@ pub(super) const ACK: &str = "ok";
 pub const MAX_MESSAGE_BYTES: u64 = 64 * 1024;
 /// How long either side waits for the other.
 pub(super) const CLIENT_TIMEOUT: Duration = Duration::from_secs(5);
+/// A script runs for up to two minutes; the extra seconds leave room for its reply.
+const SCRIPT_REPLY_TIMEOUT: Duration = Duration::from_secs(130);
+/// The import reads and writes every project file.
+const IMPORT_REPLY_TIMEOUT: Duration = Duration::from_secs(60);
