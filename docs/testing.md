@@ -69,6 +69,7 @@ The dev scripts work without stealing focus. They are macOS-only (zsh, Swift, `s
 | `bun run build:app` | builds `src-tauri/target/debug/bundle/macos/Launcher (Debug).app` (`tauri.debug.conf.json`, `VITE_DEV_HOOKS=1`) |
 | `scripts/dev/launch.sh [args]` | signs and restarts the debug app next to the terminal without focus; refuses a bundle older than the code |
 | `scripts/dev/js.sh '<js>'` | runs JavaScript in the debug app over its socket (`@<label>` on the first line targets another window) |
+| `scripts/dev/screens.sh [dir]` | the README screenshots (`docs/screens/`), light and dark: moves the debug data folder aside, starts the debug build at a fixed size on a fresh demo seed, drives it with its own CLI and restores the folder. The window comes to the front, since macOS doesn't draw a covered web view. Build first |
 | `scripts/dev/screenshot.sh <png> [--overlay]` | captures the debug window, also on another Space; never the release app. `--overlay` captures the open palette panel; with `LAUNCHER_PALETTE_PASSIVE=1` in the environment of `launch.sh` the palette never takes the keys from the app in front and stays open when it loses the focus, so a check neither types into it nor closes it; without it the palette behaves as in the release app |
 | `scripts/dev/e2e.sh` | clicks controls twice and fails when the panel, toolbar, first row or the control moved |
 
