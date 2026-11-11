@@ -38,6 +38,8 @@ export function Popover({ open, anchor, label, onClose, children }: Props) {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // Escape while a shortcut field records only cancels the recording.
+      if (e.target instanceof Element && e.target.closest("[data-recording]")) return;
       e.preventDefault();
       e.stopPropagation();
       onClose();

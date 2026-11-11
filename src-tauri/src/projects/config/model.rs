@@ -177,6 +177,28 @@ impl ActionDraft {
         }
     }
 
+    /// This draft's fields with `defaults` filling the empty ones: what a built-in's copy holds.
+    pub fn over(self, defaults: &ActionDraft) -> ActionDraft {
+        let pick = |own: Option<String>, default: &Option<String>| {
+            own.filter(|v| !v.is_empty()).or_else(|| default.clone())
+        };
+        ActionDraft {
+            runs_as: self.runs_as,
+            label: if self.label.is_empty() {
+                defaults.label.clone()
+            } else {
+                self.label
+            },
+            app: pick(self.app, &defaults.app),
+            args: pick(self.args, &defaults.args),
+            url: pick(self.url, &defaults.url),
+            command: pick(self.command, &defaults.command),
+            icon: pick(self.icon, &defaults.icon),
+            color: pick(self.color, &defaults.color),
+            shortcut: pick(self.shortcut, &defaults.shortcut),
+        }
+    }
+
     /// The draft of a file entry: its string fields as written, the shortcut in the page's notation.
     pub fn of_entry(entry: Option<&Value>, runs_as: RunsAs) -> Self {
         let text = |name: &str| entry?.get(name)?.as_str().map(str::to_string);
@@ -485,6 +507,44 @@ mod tests {
                 ..ActionDraft::default()
             }
         );
+    }
+
+    #[test]
+    fn a_draft_over_defaults_keeps_its_own_values_and_fills_the_empty_ones() {
+        let defaults = ActionDraft {
+            runs_as: RunsAs::App,
+            label: "Edit Code".into(),
+            app: Some("Zed".into()),
+            icon: Some("Code".into()),
+            shortcut: Some("Mod+O".into()),
+            ..ActionDraft::default()
+        };
+        let own = ActionDraft {
+            runs_as: RunsAs::Terminal,
+            label: String::new(),
+            app: Some("Fork".into()),
+            icon: Some(String::new()),
+            color: Some("Red".into()),
+            ..ActionDraft::default()
+        };
+
+        assert_eq!(
+            own.over(&defaults),
+            ActionDraft {
+                runs_as: RunsAs::Terminal,
+                label: "Edit Code".into(),
+                app: Some("Fork".into()),
+                icon: Some("Code".into()),
+                color: Some("Red".into()),
+                shortcut: Some("Mod+O".into()),
+                ..ActionDraft::default()
+            }
+        );
+        let named = ActionDraft {
+            label: "Mine".into(),
+            ..ActionDraft::default()
+        };
+        assert_eq!(named.over(&defaults).label, "Mine");
     }
 
     #[test]

@@ -46,6 +46,7 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 | `project.rename`, `project.icon`, `project.notes` | Rename Project, Change Icon & Color…, Edit Note | ⌘E for Rename; the selected project's field in edit mode; off while it is locked |
 | `project.star`, `project.archive` | Star Project, Archive Project | Toggle; starring unarchives and archiving unstars, in one undo step |
 | `project.lock` | Lock Project Details | ⇧⌘L; toggles `"locked"` in the project file |
+| `project.terminal`, `project.reveal`, `project.copyPath`, `project.editFile` | Open Terminal Here, Reveal in Finder, Copy Path, Edit Project File… | ⌥⌘C for Copy Path; a shell in the folder with the project's env, the folder in Finder, the absolute path on the clipboard, `.project-launcher.json` in the config editor (else the project's or default editor, else the text editor) |
 | `project.remove` | Remove from List | The toast offers Undo; the folder and its file stay |
 
 The library's and project's commands live in `src/main/libraryCommands.ts`; they act on the project the detail
@@ -84,7 +85,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 | Edit | Undo ⌘Z, Redo ⇧⌘Z (`edit:undo`, `edit:redo`, replacing macOS's own) · macOS's Cut, Copy, Paste, Select All |
 | View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
 | Library | All Projects ⌘1, Starred ⌘2 · Archived ⌘0 |
-| Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Remove from List |
+| Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Open Terminal Here, Reveal in Finder, Copy Path ⌥⌘C, Edit Project File… · Remove from List |
 | Window | Minimize, Zoom · Bring All to Front |
 | Help | Open Log Folder, Show Data Folder |
 
@@ -120,3 +121,18 @@ Debug builds only.
 | Command | Does |
 |---|---|
 | `launcher dev seed --yes` | Replaces the debug build's projects, project folders and settings with the demo seed and clears the undo history; refused without `--yes` |
+
+## Launching
+
+An action's key (its `shortcut`, or a built-in's default such as ⌘O for Edit Code) launches it while the main
+window shows its project and no text field, menu, sheet or palette has the keys
+(`src/main/detail/useActionShortcuts.ts`). A menu item with the same key wins.
+
+| Tauri command | Does |
+|---|---|
+| `launch_action(id, source)` | Runs the action at `source` (`run/mod.rs` `Runner::launch`): an app on the folder or its arguments (a CLI on the login PATH directly, else `open -a`), a link, a terminal command, or a script in a login `zsh` with a 120 s timeout. Returns `Outcome`: `opened` with `Launched` (`launched`, `focused`, `needsPermission`, `activated`) or `ran` with the `ScriptResult` |
+| `open_terminal(id)` | A shell in the folder with the project's env |
+| `reveal_project(id)`, `copy_project_path(id)`, `edit_project_file(id)` | The folder in Finder, its path on the clipboard, the project file in an editor |
+| `project_status(id)` | Runs the state providers: the states to show, the actions their `hiddenStates` hide now, the terminal commands still running (`ProjectStatus`) |
+
+Everything but copying the path records the project as opened (`lastOpenedAt`) and announces `projects_changed`.

@@ -114,7 +114,7 @@ export type DevMode = "none" | "docker" | "ddev" | "wp-env";
 
 export type EnvVar = { name: string, value: string, };
 
-export type ErrorKind = "io" | "invalid_input" | "not_found" | "internal";
+export type ErrorKind = "io" | "invalid_input" | "not_found" | "launch" | "internal";
 
 /**
  * A sidebar entry. Archived projects show only under `Archived`.
@@ -125,6 +125,13 @@ export type Filter = { "kind": "all" } | { "kind": "starred" } | { "kind": "unta
  * Something the page acts on once it listens: from the launch that started the app or a later one.
  */
 export type LaunchEvent = { "type": "error", message: string, } | { "type": "activate" };
+
+/**
+ * What a launch did. `NeedsPermission`: Terminal or iTerm didn't select the running command's tab (most often
+ * Automation is refused), so only the app came to the front; `Activated`: this terminal can't be asked for a
+ * tab.
+ */
+export type Launched = "launched" | "focused" | "needsPermission" | "activated";
 
 export type Library = { 
 /**
@@ -167,6 +174,11 @@ key: string | null, };
  * A change to one `meta` key of a project's file; empty text, no note lines and `false` remove the key.
  */
 export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean } | { "field": "url", "value": string | null } | { "field": "repoUrl", "value": string | null };
+
+/**
+ * What launching an action did: an app, link or terminal opened, or a script ran to its end.
+ */
+export type Outcome = { "kind": "opened", how: Launched, } | { "kind": "ran", result: ScriptResult, };
 
 export type Project = { id: string, 
 /**
@@ -221,6 +233,12 @@ notes: Array<string>, starred: boolean, archived: boolean, url: string | null, r
  */
 editor: string | null, };
 
+/**
+ * The project's states and what they mean for its actions: `hidden` actions name a state that holds now,
+ * `running` terminal commands still run in their tab.
+ */
+export type ProjectStatus = { states: Array<StateDisplay>, hidden: Array<ActionSource>, running: Array<ActionSource>, };
+
 export type Row = { project: Project, 
 /**
  * The file's problem, else the first note line, else the folder.
@@ -231,6 +249,11 @@ subtitle: string, };
  * How an action runs; a `script` lives in `scripts`, everything else in `apps`.
  */
 export type RunsAs = "app" | "url" | "terminal" | "script";
+
+/**
+ * How a script ended; `output` holds stdout and stderr as they came.
+ */
+export type ScriptResult = { ok: boolean, exitCode: number | null, timedOut: boolean, output: string, durationMs: number, };
 
 export type Section = { title: string | null, rows: Array<Row>, };
 
@@ -266,6 +289,11 @@ untagged: number | null, archived: number, tags: Array<TagCount>, };
  * A state shown on the project: `source` names a provider, or `provider:.path` a value in its JSON output.
  */
 export type StateDef = { name: string, source: string, label: string, values: Array<StateValue>, };
+
+/**
+ * A state as the detail shows it; `color` only when the value is one the file defines.
+ */
+export type StateDisplay = { label: string, value: string, color?: string, };
 
 /**
  * A command whose output states read.

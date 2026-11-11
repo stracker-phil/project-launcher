@@ -2,7 +2,7 @@
 
 use tauri::ipc::Invoke;
 
-use crate::{bus, commands, data, menu, status};
+use crate::{bus, commands, data, menu, run, status};
 
 pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -33,6 +33,7 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::set_project_meta,
         data::commands::project_config,
         data::commands::save_action,
+        data::commands::duplicate_action,
         data::commands::remove_action,
         data::commands::move_action,
         data::commands::set_builtin_enabled,
@@ -40,5 +41,11 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::set_dev_mode,
         data::commands::undo_change,
         data::commands::redo_change,
+        run::commands::launch_action,
+        run::commands::open_terminal,
+        run::commands::reveal_project,
+        run::commands::copy_project_path,
+        run::commands::edit_project_file,
+        run::commands::project_status,
     ]
 }

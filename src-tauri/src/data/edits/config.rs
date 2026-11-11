@@ -12,7 +12,7 @@ use crate::data::{Changed, Data, Edit};
 use crate::error::{AppError, AppResult};
 use crate::projects::FileKey;
 use crate::projects::config::edit::Lists;
-use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode};
+use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, RunsAs};
 use crate::projects::file::{self, FileObject};
 
 impl Data {
@@ -30,6 +30,38 @@ impl Data {
             "New Action"
         };
         self.lists_edit(id, label, |lists| lists.save(source, draft, preset))
+    }
+
+    /// Adds a copy of the action at `source` without its key: "<label> Copy" in its own list, or, as
+    /// `runs_as`, the same label in that kind's list. A built-in's copy holds its values.
+    pub fn duplicate_action(
+        &self,
+        id: &str,
+        source: ActionSource,
+        runs_as: Option<RunsAs>,
+    ) -> AppResult<Changed> {
+        let config = self.project_config(id)?;
+        let action = config
+            .apps
+            .iter()
+            .chain(&config.scripts)
+            .find(|a| a.edit.source == source)
+            .ok_or_else(|| {
+                AppError::NotFound("That action isn’t in the project file anymore".into())
+            })?;
+        let edit = &action.edit;
+        let mut draft = match &edit.defaults {
+            Some(defaults) => edit.draft.clone().over(defaults),
+            None => edit.draft.clone(),
+        };
+        match runs_as {
+            Some(kind) => draft.runs_as = kind,
+            None => draft.label = format!("{} Copy", draft.label),
+        }
+        draft.shortcut = None;
+        self.lists_edit(id, "Duplicate Action", |lists| {
+            lists.save(None, &draft, None)
+        })
     }
 
     pub fn remove_action(&self, id: &str, source: ActionSource) -> AppResult<Changed> {

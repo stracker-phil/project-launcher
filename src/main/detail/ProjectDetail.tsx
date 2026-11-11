@@ -1,14 +1,18 @@
 import { Lock, LockOpen, PanelRight, Star } from "lucide-react";
-import type { Library, Project } from "../../api";
+import { useMemo } from "react";
+import type { Action, Library, Project, ProjectConfig, ProjectStatus } from "../../api";
 import { InlineText } from "../../components/InlineText";
 import { useProjectConfig } from "../../queries/useProjectConfig";
+import { useProjectStatus } from "../../queries/useProjectStatus";
 import { useLibrary, type EditField } from "../../state/library";
 import { useStore } from "../../state/store";
 import { addProjects, rename, setLocked, setMeta, toggleStar } from "../actions";
-import { ActionsSection } from "./ActionsSection";
+import { ActionsSection, shownActions } from "./ActionsSection";
 import { IconPicker } from "./IconPicker";
 import { EnvSection, InfoSection } from "./InfoSection";
+import { StatesRow } from "./StatesRow";
 import { TagPill } from "./TagPill";
+import { useActionShortcuts } from "./useActionShortcuts";
 
 export function DetailTools({ project }: { project: Project | null }) {
   const toggleInspector = useStore((s) => s.toggleInspector);
@@ -67,12 +71,23 @@ function EmptyDetail({ library }: { library: Library | undefined }) {
   );
 }
 
+const NO_ACTIONS: Action[] = [];
+
+/** The actions shown now, in one stable list per config and status. */
+function useShownActions(config: ProjectConfig | undefined, status: ProjectStatus | undefined): Action[] {
+  return useMemo(() => (config ? shownActions([...config.apps, ...config.scripts], status) : NO_ACTIONS), [config, status]);
+}
+
 /** The selected project; its header fields are edited in place. */
 export function ProjectDetail({ project, library }: { project: Project | null; library: Library | undefined }) {
   const editing = useLibrary((s) => s.editing);
   const edit = useLibrary((s) => s.edit);
   const stopEditing = useLibrary((s) => s.stopEditing);
-  const { data: config } = useProjectConfig(project?.available ? project.id : null);
+  const shownId = project?.available ? project.id : null;
+  const { data: config } = useProjectConfig(shownId);
+  const { data: status } = useProjectStatus(shownId);
+  const shortcutActions = useShownActions(config, status);
+  useActionShortcuts(shownId ? project : null, shortcutActions);
   if (!project) return <EmptyDetail library={library} />;
 
   const readOnly = project.locked || !project.available;
@@ -118,7 +133,8 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
         </div>
       </header>
       {project.fileError && <div className="callout callout--error">{project.fileError}</div>}
-      {config && <ActionsSection config={config} />}
+      {status && <StatesRow states={status.states} />}
+      {config && <ActionsSection project={project} config={config} status={status} editable={!readOnly} />}
       <InfoSection project={project} config={config} readOnly={readOnly} />
       {config && <EnvSection config={config} />}
     </div>

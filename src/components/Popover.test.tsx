@@ -41,6 +41,24 @@ describe("Popover", () => {
     expect(screen.getByRole("button", { name: "Opener" })).toHaveFocus();
   });
 
+  it("stays open on Escape inside an element that is recording a key", async () => {
+    const onClose = vi.fn();
+    render(
+      <Popover open anchor={{ current: null }} label="Options" onClose={onClose}>
+        <button type="button" data-recording>Recording</button>
+        <button type="button">Inside</button>
+      </Popover>,
+    );
+
+    screen.getByRole("button", { name: "Recording" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+
+    screen.getByRole("button", { name: "Inside" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("closes on a press outside", async () => {
     const onClose = vi.fn();
     render(<Harness open onClose={onClose} />);

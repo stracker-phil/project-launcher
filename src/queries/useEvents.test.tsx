@@ -6,10 +6,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await import("../test/apiMock")).createApiMock() }));
 
 import { api, type MenuShortcut, type Project } from "../api";
-import { DEFAULT_SETTINGS, type createApiMock } from "../test/apiMock";
+import { DEFAULT_SETTINGS, EMPTY_STATUS, type createApiMock } from "../test/apiMock";
 import { createQueryClient } from "./queryClient";
 import { useEvents } from "./useEvents";
 import { useMenuShortcuts } from "./useMenuShortcuts";
+import { useProjectStatus } from "./useProjectStatus";
 import { useProjects } from "./useProjects";
 import { useSettings } from "./useSettings";
 
@@ -86,6 +87,23 @@ describe("useEvents", () => {
     act(() => emit("settings_changed", null));
 
     await waitFor(() => expect(result.current.menu?.[0].key).toBe("Mod+J"));
+  });
+
+  it("reads a project's status again on projects_changed", async () => {
+    mocked.projectStatus.mockResolvedValue({ ...EMPTY_STATUS, states: [{ label: "Branch", value: "main" }] });
+    const { result } = renderHook(
+      () => {
+        useEvents();
+        return useProjectStatus("demo-1").data;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current?.states[0].value).toBe("main"));
+    mocked.projectStatus.mockResolvedValue({ ...EMPTY_STATUS, states: [{ label: "Branch", value: "develop" }] });
+
+    act(() => emit("projects_changed", null));
+
+    await waitFor(() => expect(result.current?.states[0].value).toBe("develop"));
   });
 
   it("leaves the menu's shortcuts alone on projects_changed", async () => {

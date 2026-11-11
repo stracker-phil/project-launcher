@@ -20,6 +20,7 @@ pub mod lock;
 pub mod menu;
 pub mod projects;
 mod remote;
+pub mod run;
 pub mod state;
 pub mod status;
 pub mod store;

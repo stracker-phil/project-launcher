@@ -173,6 +173,44 @@ describe("commands on the current project", () => {
     });
   });
 
+  describe.each([
+    { id: "project.terminal", call: () => mocked.openTerminal, needsAvailable: true },
+    { id: "project.reveal", call: () => mocked.revealProject, needsAvailable: false },
+    { id: "project.copyPath", call: () => mocked.copyProjectPath, needsAvailable: false },
+    { id: "project.editFile", call: () => mocked.editProjectFile, needsAvailable: true },
+  ])("$id", ({ id, call, needsAvailable }) => {
+    it("runs on the current project", () => {
+      resetLibrary({ current: alpha });
+
+      expect(runPageCommand(id)).toBe(true);
+
+      expect(call()).toHaveBeenCalledWith("alpha");
+    });
+
+    it("also runs on a locked project", () => {
+      resetLibrary({ current: project({ locked: true }) });
+
+      expect(runPageCommand(id)).toBe(true);
+
+      expect(call()).toHaveBeenCalledWith("alpha");
+    });
+
+    it("is disabled without a current project", () => {
+      expect(runPageCommand(id)).toBe(false);
+
+      expect(call()).not.toHaveBeenCalled();
+    });
+
+    it(needsAvailable ? "is disabled for an unavailable project" : "also runs on an unavailable project", () => {
+      resetLibrary({ current: project({ available: false }) });
+
+      expect(runPageCommand(id)).toBe(!needsAvailable);
+
+      if (needsAvailable) expect(call()).not.toHaveBeenCalled();
+      else expect(call()).toHaveBeenCalledWith("alpha");
+    });
+  });
+
   describe("project.remove", () => {
     it("removes the current project", () => {
       resetLibrary({ current: alpha });

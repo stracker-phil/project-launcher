@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Api, EventName, EventPayloads, Library, ProjectConfig, Settings } from "../api";
+import type { Api, EventName, EventPayloads, Library, ProjectConfig, ProjectStatus, Settings } from "../api";
 
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,6 +26,9 @@ export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
   locked: false,
   isGitRepo: false,
 };
+
+/** The status of a project without states, hidden actions or running terminals. */
+export const EMPTY_STATUS: ProjectStatus = { states: [], hidden: [], running: [] };
 
 /** The library of an empty install under the "All Projects" filter. */
 export const EMPTY_LIBRARY: Library = {
@@ -81,6 +84,13 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     setBuiltinEnabled: vi.fn().mockResolvedValue(undefined),
     setProjectLocked: vi.fn().mockResolvedValue(undefined),
     setDevMode: vi.fn().mockResolvedValue(undefined),
+    duplicateAction: vi.fn().mockResolvedValue(undefined),
+    launchAction: vi.fn().mockResolvedValue({ kind: "opened", how: "launched" }),
+    openTerminal: vi.fn().mockResolvedValue(undefined),
+    revealProject: vi.fn().mockResolvedValue(undefined),
+    copyProjectPath: vi.fn().mockResolvedValue(undefined),
+    editProjectFile: vi.fn().mockResolvedValue(undefined),
+    projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
     undo: vi.fn().mockResolvedValue(null),
     redo: vi.fn().mockResolvedValue(null),
     on: vi.fn(async (event: string, handler: Handler) => {

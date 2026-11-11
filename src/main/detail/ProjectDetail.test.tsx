@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,13 +11,14 @@ import { Toasts } from "../../components/Toasts";
 import { createQueryClient } from "../../queries/queryClient";
 import { resetLibrary } from "../../state/library";
 import { inspectorShown, resetStore, useStore } from "../../state/store";
-import { EMPTY_LIBRARY, EMPTY_PROJECT_CONFIG } from "../../test/apiMock";
+import { EMPTY_LIBRARY, EMPTY_PROJECT_CONFIG, EMPTY_STATUS } from "../../test/apiMock";
 import { action, library, project, section } from "../../test/library";
 import { DetailTools, ProjectDetail } from "./ProjectDetail";
 
 const mocked = vi.mocked(api, true);
 
 const alpha = project({ id: "alpha", name: "Alpha" });
+const NOTHING_YET = "Nothing to open yet: add an action or a built-in app with +.";
 
 /** `null` as `lib` renders without a library, as while it loads. */
 function renderDetail(shown: Project | null, lib: Library | null = library(shown ? [section(null, shown)] : [])) {
@@ -47,6 +48,7 @@ async function edit(label: string, text: string, finish = "{Enter}") {
 beforeEach(() => {
   vi.clearAllMocks();
   mocked.projectConfig.mockResolvedValue(EMPTY_PROJECT_CONFIG);
+  mocked.projectStatus.mockResolvedValue(EMPTY_STATUS);
   resetStore();
   resetLibrary();
 });
@@ -213,8 +215,71 @@ describe("ProjectDetail", () => {
     it("says nothing is there to open and shows no Scripts section for an empty config", async () => {
       renderDetail(alpha);
 
-      expect(await screen.findByText("Nothing to open yet.")).toBeInTheDocument();
+      expect(await screen.findByText(NOTHING_YET)).toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "Scripts" })).not.toBeInTheDocument();
+    });
+
+    it("shows the project's states as chips above the actions", async () => {
+      mocked.projectStatus.mockResolvedValue({ ...EMPTY_STATUS, states: [{ label: "Branch", value: "main" }, { label: "Server", value: "Running" }] });
+
+      renderDetail(alpha);
+
+      const states = await screen.findByRole("list", { name: "States" });
+      expect(within(states).getAllByRole("listitem").map((chip) => chip.textContent)).toEqual(["Branchmain", "ServerRunning"]);
+      expect(mocked.projectStatus).toHaveBeenCalledWith("alpha");
+    });
+
+    it("shows no states row for a project without states", async () => {
+      renderDetail(alpha);
+      await screen.findByText(NOTHING_YET);
+
+      expect(screen.queryByRole("list", { name: "States" })).not.toBeInTheDocument();
+    });
+
+    it("leaves out the actions the project's status hides", async () => {
+      withConfig({ apps: [action("Open in Editor"), action("Terminal", {}, "apps", 1)] });
+      mocked.projectStatus.mockResolvedValue({ ...EMPTY_STATUS, hidden: [{ list: "apps", index: 1 }] });
+
+      renderDetail(alpha);
+
+      await screen.findByRole("button", { name: /Open in Editor/ });
+      await waitFor(() => expect(screen.queryByRole("button", { name: /Terminal/ })).not.toBeInTheDocument());
+    });
+
+    it("launches an action from its tile", async () => {
+      withConfig({ apps: [action("Open in Editor")] });
+      renderDetail(alpha);
+
+      await userEvent.click(await screen.findByRole("button", { name: /Open in Editor/ }));
+
+      expect(mocked.launchAction).toHaveBeenCalledWith("alpha", { list: "apps", index: 0 });
+    });
+
+    it("launches an action with its shortcut", async () => {
+      withConfig({ apps: [action("Open in Editor", { shortcut: "Mod+E" })] });
+      renderDetail(alpha);
+      await screen.findByRole("button", { name: /Open in Editor/ });
+
+      await userEvent.keyboard("{Meta>}e{/Meta}");
+
+      expect(mocked.launchAction).toHaveBeenCalledWith("alpha", { list: "apps", index: 0 });
+    });
+
+    it("does not launch an action hidden by the status with its shortcut", async () => {
+      withConfig({ apps: [action("Open in Editor", { shortcut: "Mod+E" })] });
+      mocked.projectStatus.mockResolvedValue({ ...EMPTY_STATUS, hidden: [{ list: "apps", index: 0 }] });
+      renderDetail(alpha);
+      await screen.findByText(NOTHING_YET);
+
+      await userEvent.keyboard("{Meta>}e{/Meta}");
+
+      expect(mocked.launchAction).not.toHaveBeenCalled();
+    });
+
+    it("offers adding actions while unlocked", async () => {
+      renderDetail(alpha);
+
+      expect(await screen.findByRole("button", { name: "Add Action" })).toBeInTheDocument();
     });
 
     it("lists the environment variables", async () => {
@@ -230,7 +295,7 @@ describe("ProjectDetail", () => {
 
     it("shows no environment section without variables", async () => {
       renderDetail(alpha);
-      await screen.findByText("Nothing to open yet.");
+      await screen.findByText(NOTHING_YET);
 
       expect(screen.queryByRole("heading", { name: "Environment Variables" })).not.toBeInTheDocument();
     });
@@ -316,7 +381,7 @@ describe("ProjectDetail", () => {
 
       it("leaves the row out for a locked project without a dev environment", async () => {
         renderDetail(project({ locked: true }));
-        await screen.findByText("Nothing to open yet.");
+        await screen.findByText("Nothing to open.");
 
         expect(screen.queryByText("Dev Environment")).not.toBeInTheDocument();
       });

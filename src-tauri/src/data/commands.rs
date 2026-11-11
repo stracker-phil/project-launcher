@@ -9,7 +9,7 @@ use crate::events::{PROJECTS_CHANGED_EVENT, SETTINGS_CHANGED_EVENT};
 use crate::library::{Filter, Library};
 use crate::menu;
 use crate::projects::Project;
-use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig};
+use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig, RunsAs};
 use crate::state::AppState;
 use crate::store::{Appearance, Settings};
 use tauri_plugin_dialog::DialogExt;
@@ -249,6 +249,17 @@ pub async fn save_action(
     preset: Option<Builtin>,
 ) -> AppResult<()> {
     announced(&app, state.data.save_action(&id, source, &draft, preset))
+}
+
+#[tauri::command]
+pub async fn duplicate_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    source: ActionSource,
+    runs_as: Option<RunsAs>,
+) -> AppResult<()> {
+    announced(&app, state.data.duplicate_action(&id, source, runs_as))
 }
 
 #[tauri::command]

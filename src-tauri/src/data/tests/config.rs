@@ -435,6 +435,129 @@ fn moving_an_action_reorders_its_list_and_past_the_end_means_last() {
     assert_eq!(fx.file()["apps"], json!(["editor", "terminal"]));
 }
 
+fn base_file_with_docs() -> Value {
+    let mut file = base_file();
+    file["apps"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "label": "Docs", "app": "Safari", "shortcut": "cmd+shift+d" }));
+    file
+}
+
+#[test]
+fn duplicating_an_action_appends_a_copy_without_its_shortcut() {
+    let fx = Fx::new(Some(base_file_with_docs()));
+
+    assert_eq!(
+        fx.data.duplicate_action("p", apps(2), None).unwrap(),
+        PROJECTS_ONLY
+    );
+
+    let file = fx.file();
+    assert_eq!(file["apps"][2], base_file_with_docs()["apps"][2]);
+    assert_eq!(
+        file["apps"][3],
+        json!({ "label": "Docs Copy", "app": "Safari" })
+    );
+    assert_eq!(file["scripts"], base_file()["scripts"]);
+    assert_eq!(file["custom"], json!({ "keep": true }));
+}
+
+#[test]
+fn duplicating_a_script_appends_to_the_scripts() {
+    let fx = Fx::new(Some(base_file()));
+
+    fx.data.duplicate_action("p", scripts(0), None).unwrap();
+
+    assert_eq!(
+        fx.file()["scripts"],
+        json!([
+            { "label": "Build", "command": "make" },
+            { "label": "Build Copy", "command": "make" }
+        ])
+    );
+    assert_eq!(fx.file()["apps"], base_file()["apps"]);
+}
+
+#[test]
+fn duplicating_as_another_kind_keeps_the_label_and_uses_that_kinds_list() {
+    let fx = Fx::new(Some(base_file()));
+    fx.data
+        .duplicate_action("p", scripts(0), Some(RunsAs::Terminal))
+        .unwrap();
+    assert_eq!(
+        fx.file()["apps"][2],
+        json!({ "label": "Build", "command": "make" })
+    );
+    assert_eq!(fx.file()["scripts"], base_file()["scripts"]);
+
+    let mut file = base_file();
+    file["apps"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "label": "Dev", "command": "npm run dev" }));
+    let fx = Fx::new(Some(file));
+    fx.data
+        .duplicate_action("p", apps(2), Some(RunsAs::Script))
+        .unwrap();
+    assert_eq!(
+        fx.file()["scripts"][1],
+        json!({ "label": "Dev", "command": "npm run dev" })
+    );
+}
+
+#[test]
+fn duplicating_a_builtin_copies_its_effective_values_as_a_custom_action() {
+    let fx = Fx::with_settings(Some(base_file()), settings("Visual Studio Code", ""));
+
+    fx.data.duplicate_action("p", apps(0), None).unwrap();
+
+    let copy = fx.file()["apps"][2].clone();
+    assert_eq!(copy["label"], json!("Edit Code Copy"));
+    assert_eq!(copy["app"], json!("Visual Studio Code"));
+    assert_eq!(copy.get("preset"), None);
+    assert_eq!(copy.get("shortcut"), None);
+    assert_eq!(fx.file()["apps"][0], json!("editor"));
+}
+
+#[test]
+fn duplicating_an_unknown_action_is_not_found_and_changes_nothing() {
+    let fx = Fx::new(Some(base_file()));
+
+    for source in [apps(9), scripts(1)] {
+        let err = fx.data.duplicate_action("p", source, None).unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::NotFound, "{source:?}");
+    }
+
+    assert_eq!(fx.file(), base_file());
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn a_locked_project_refuses_to_duplicate_an_action() {
+    let mut file = base_file_with_docs();
+    file["locked"] = json!(true);
+    let fx = Fx::new(Some(file));
+    let before = fx.raw();
+
+    let err = fx.data.duplicate_action("p", apps(2), None).unwrap_err();
+
+    assert_eq!(err.kind(), ErrorKind::InvalidInput);
+    assert_eq!(fx.raw(), before);
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn a_duplicate_is_one_undo_step() {
+    let fx = Fx::new(Some(base_file()));
+    fx.data.duplicate_action("p", scripts(0), None).unwrap();
+
+    assert_eq!(undo_label(&fx.data), Some("Duplicate Action".into()));
+
+    assert_eq!(fx.file(), base_file());
+    assert_eq!(undo_label(&fx.data), None);
+}
+
 #[test]
 fn removing_an_action_drops_it_from_its_list_only() {
     let fx = Fx::new(Some(base_file()));

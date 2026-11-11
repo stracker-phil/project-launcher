@@ -152,7 +152,8 @@ impl Data {
             .clone()
     }
 
-    fn project_dir(&self, id: &str) -> AppResult<String> {
+    /// The project's folder, as an absolute path.
+    pub fn project_dir(&self, id: &str) -> AppResult<String> {
         self.registry
             .read(|r| r.get(id).map(|p| p.path.clone()))
             .ok_or_else(|| ops::project_not_found(id))

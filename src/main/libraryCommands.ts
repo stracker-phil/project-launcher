@@ -3,6 +3,7 @@ import type { PageCommand } from "../commands/registry";
 import { useLibrary } from "../state/library";
 import { useStore } from "../state/store";
 import { addProjects, removeProject, setLocked, toggleArchive, toggleStar } from "./actions";
+import { copyPath, editProjectFile, openTerminal, revealProject } from "./launch";
 import { editField } from "./projectMenu";
 
 const current = () => useLibrary.getState().current;
@@ -56,5 +57,9 @@ export const LIBRARY_COMMANDS: PageCommand[] = [
   { id: "project.star", title: "Star Project", when: available, run: onCurrent(toggleStar) },
   { id: "project.archive", title: "Archive Project", when: available, run: onCurrent(toggleArchive) },
   { id: "project.lock", title: "Lock Project Details", when: available, run: onCurrent((p) => setLocked(p, !p.locked)) },
+  { id: "project.terminal", title: "Open Terminal Here", when: available, run: onCurrent(openTerminal) },
+  { id: "project.reveal", title: "Reveal in Finder", when: () => !!current(), run: onCurrent(revealProject) },
+  { id: "project.copyPath", title: "Copy Path", when: () => !!current(), run: onCurrent(copyPath) },
+  { id: "project.editFile", title: "Edit Project File…", when: available, run: onCurrent(editProjectFile) },
   { id: "project.remove", title: "Remove from List", when: () => !!current(), run: onCurrent(removeProject) },
 ];

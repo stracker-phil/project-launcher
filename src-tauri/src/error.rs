@@ -18,6 +18,9 @@ pub enum AppError {
     InvalidField { field: String, message: String },
     #[error("{0}")]
     NotFound(String),
+    /// Starting an app, a terminal or a script failed; the message says why.
+    #[error("{0}")]
+    Launch(String),
     /// A bug or a broken invariant; the message is for the log and a bug report.
     #[error("{0}")]
     Internal(String),
@@ -29,6 +32,7 @@ impl AppError {
             AppError::Io(_) => ErrorKind::Io,
             AppError::InvalidInput(_) | AppError::InvalidField { .. } => ErrorKind::InvalidInput,
             AppError::NotFound(_) => ErrorKind::NotFound,
+            AppError::Launch(_) => ErrorKind::Launch,
             AppError::Internal(_) => ErrorKind::Internal,
         }
     }
@@ -82,6 +86,7 @@ pub enum ErrorKind {
     Io,
     InvalidInput,
     NotFound,
+    Launch,
     Internal,
 }
 
@@ -116,6 +121,10 @@ mod tests {
             (
                 AppError::NotFound("Project Northwind".into()),
                 json!({ "kind": "not_found", "message": "Project Northwind" }),
+            ),
+            (
+                AppError::Launch("open: no such app".into()),
+                json!({ "kind": "launch", "message": "open: no such app" }),
             ),
             (
                 AppError::Internal("broken".into()),
@@ -159,6 +168,7 @@ mod tests {
                 ErrorKind::InvalidInput,
             ),
             (AppError::NotFound(String::new()), ErrorKind::NotFound),
+            (AppError::Launch(String::new()), ErrorKind::Launch),
             (AppError::Internal(String::new()), ErrorKind::Internal),
         ];
         for (err, kind) in cases {

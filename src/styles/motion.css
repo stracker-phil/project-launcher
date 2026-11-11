@@ -3,6 +3,8 @@
   --motion-fast: 120ms;
   --motion-base: 150ms;
   --motion-slow: 200ms;
+  /* One turn of a spinner. */
+  --motion-spin: 900ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -61,3 +63,7 @@
 
 /* The scheme is switching (lib/theme.ts): nothing transitions, so every color takes the new value. */
 .restyling, .restyling *, .restyling *::before, .restyling *::after { transition: none !important; }
+
+/* A spinner that turns while something runs. */
+.spin { animation: spin var(--motion-spin) linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

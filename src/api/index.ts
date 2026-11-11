@@ -16,8 +16,11 @@ import type {
   MenuCommand,
   MenuShortcut,
   MetaEdit,
+  Outcome,
   Project,
   ProjectConfig,
+  ProjectStatus,
+  RunsAs,
   Settings,
 } from "./types.gen";
 
@@ -42,13 +45,18 @@ export type {
   ErrorKind,
   Filter,
   LaunchEvent,
+  Launched,
   Library,
   MenuCommand,
   MenuShortcut,
   MetaEdit,
+  Outcome,
   Project,
   ProjectConfig,
   ProjectMeta,
+  ProjectStatus,
+  ScriptResult,
+  StateDisplay,
   Row,
   Section,
   Sidebar,
@@ -123,6 +131,7 @@ export const api = {
   /** `source: null` creates the action; `preset` names the built-in the draft overrides. */
   saveAction: (id: string, source: ActionSource | null, draft: ActionDraft, preset: Builtin | null = null) =>
     invoke<void>("save_action", { id, source, draft, preset }),
+  duplicateAction: (id: string, source: ActionSource, runsAs: RunsAs | null) => invoke<void>("duplicate_action", { id, source, runsAs }),
   removeAction: (id: string, source: ActionSource) => invoke<void>("remove_action", { id, source }),
   moveAction: (id: string, source: ActionSource, to: number) => invoke<void>("move_action", { id, source, to }),
   setBuiltinEnabled: (id: string, preset: Builtin, enabled: boolean) => invoke<void>("set_builtin_enabled", { id, preset, enabled }),
@@ -130,6 +139,14 @@ export const api = {
   setProjectLocked: (id: string, locked: boolean) => invoke<void>("set_project_locked", { id, locked }),
   setDevMode: (id: string, mode: DevMode) => invoke<void>("set_dev_mode", { id, mode }),
   /** Takes back the last change; resolves to its label, or null when there was none. */
+  /** Opens an app, link or terminal command, or runs a script to its end. */
+  launchAction: (id: string, source: ActionSource) => invoke<Outcome>("launch_action", { id, source }),
+  openTerminal: (id: string) => invoke<void>("open_terminal", { id }),
+  revealProject: (id: string) => invoke<void>("reveal_project", { id }),
+  copyProjectPath: (id: string) => invoke<void>("copy_project_path", { id }),
+  editProjectFile: (id: string) => invoke<void>("edit_project_file", { id }),
+  /** Runs the project's state providers. */
+  projectStatus: (id: string) => invoke<ProjectStatus>("project_status", { id }),
   undo: () => invoke<string | null>("undo_change"),
   redo: () => invoke<string | null>("redo_change"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>
@@ -142,6 +159,7 @@ const ERROR_KINDS: Record<ErrorKind, true> = {
   io: true,
   invalid_input: true,
   not_found: true,
+  launch: true,
   internal: true,
 };
 
