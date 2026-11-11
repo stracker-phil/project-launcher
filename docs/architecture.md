@@ -79,7 +79,7 @@ dropped with its error. Recording a launch (`Data::touch_last_opened`) is not un
 
 Each write returns `Changed`, which `data::commands::announce` emits as `settings_changed` and
 `projects_changed`; `src/queries/useEvents.ts` maps them to the query keys `["settings"]` (plus
-`["menuShortcuts"]`) and `["projects"]`; both refresh `["projectConfig"]` (`useProjectConfig`), since the default editor and git
+`["menuShortcuts"]`) and `["projects"]`; both refresh `["projectConfig"]` (`useProjectConfig`) and `["library"]` (`useLibraryView`), since the default editor and git
 client resolve into it. A settings change, its undo and redo included, also rebuilds the menu bar
 (`menu::refresh`) with the owner's keys.
 
@@ -108,6 +108,7 @@ One line per module, added with the code.
 | `src-tauri/src/commands.rs`, `handlers.rs` | Core Tauri commands (`open_url`, `take_launch_events`, `log_frontend_error`) and the handler list |
 | `src-tauri/src/error.rs`, `lock.rs`, `events.rs`, `state.rs` | `AppError`, poison-tolerant locks, event names, `AppState` |
 | `src-tauri/src/store/` | Private folders, `JsonFile` and `JsonStore`, the `Settings` model and its repair |
+| `src-tauri/src/library/` | The main window's library (`build`): what a sidebar filter shows (archived only under Archived), the sidebar's counts and tags (the tag list's order, then tags only projects carry), the title, the "Recent" (opened in the last 72 hours) and "All" sections, both alphabetical, and search (name, folder, tag, notes) |
 | `src-tauri/src/projects/` | The registry (`registry.rs`), a project's `.project-launcher.json` (`file.rs`), the page's `Project` (`view.rs`), the launch config's model, resolver and editor (`config/`) |
 | `src-tauri/src/data/` | `Data`: reads, the one writer (`change`), undo and redo (`mod.rs`, `undo.rs`); ops and inverses (`ops.rs`); the checked edits (`edits/`: `settings.rs`, `tags.rs`, `projects.rs`); Tauri commands and events (`commands.rs`); the Edit menu's Undo and Redo (`edit_menu.rs`) |
 | `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval, demo seed); test fixtures and the demo seed (`demo.rs`) |
@@ -117,12 +118,13 @@ One line per module, added with the code.
 | `src/registry/settingsPages.ts` | Settings pages by id: title, icon, keywords, searchable rows, component; resolving and searching them; `useSettingsPagesVersion` re-renders the window when a page registers again |
 | `src/settings/` | The Settings window's layout (`SettingsWindow.tsx`), groups, rows and `Segmented` (`controls.tsx`), the core pages (`pages.ts`: Appearance, Shortcuts, Status, About); `shortcuts/` is Settings → Shortcuts (`ShortcutsPage.tsx`, `ShortcutRecorder.tsx`, the rows and conflicts in `rows.ts`) |
 | `src/palette/` | The command palette (`CommandPalette.tsx`, rows in `PaletteRows.tsx`): its sources (`sources.ts`: menu items, page commands, Settings pages, `usePaletteMenu` menus from `menus.ts`), what it shows (`sections.ts`), ranking (`rank.ts`), prefixes (`prefixes.ts`), recent searches in memory (`recent.ts`) |
-| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useMenuShortcuts`, `useProjects`, `useProjectConfig`) and `useEvents` (Rust events → query keys) |
+| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useMenuShortcuts`, `useProjects`, `useProjectConfig`, `useLibraryView`) and `useEvents` (Rust events → query keys) |
 | `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
 | `src/state/attempt.ts` | `attempt`: a request whose failure shows as an error toast |
 | `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet, the palette's open state, the open menu; `window.launcher` in debug builds |
 | `src/state/menuTypes.ts` | The menu's types (`MenuItem`, `MenuEntry`, `MenuAt`, `OpenMenu`) and `isItem`, shared by the store, `src/components/menu/` and the palette |
-| `src/shell/` | The main window's panes: sidebar, project list, detail, inspector slot |
+| `src/shell/` | The main window's panes (`Shell.tsx`): each pane's drag strip and body; the list stays mounted while the sidebar is hidden |
+| `src/main/` | The main window's content: `Sidebar.tsx` (filters, tags with inline new and rename, delete with a confirmation), `ProjectList.tsx` (search, sections, ↑↓, the selection fallback: the project picked last under the filter, else the first), `detail/` (header with `IconPicker`, name, `TagPill` and notes edited in place; Open and Scripts; Info with the links and the dev environment; env), `actions.ts` (the writes with their toasts), `projectMenu.ts`, `libraryCommands.ts`. View state (filter, search, selection, field in edit mode) is `src/state/library.ts` |
 | `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet`; `SegmentedControl`; `menu/` is the in-page menu (`openMenu`, `openContextMenu`, `MenuHost`, `MenuPanel`, `placement.ts`; ADR 0030) |
 | `src/styles/` | Stylesheets in cascade order (`index.ts`); `palettes/` holds every color; `contrast.ts` for the palette tests |
 | `src/test/` | `createApiMock()` and the module-boundary guard |

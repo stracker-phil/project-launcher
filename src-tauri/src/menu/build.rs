@@ -5,7 +5,8 @@ use tauri::menu::{AboutMetadata, Menu, MenuItemBuilder, Submenu, SubmenuBuilder}
 use tauri::{AppHandle, Manager, Wry};
 
 use super::items::{
-    APP_MENU, EDIT_MENU, FILE_MENU, HELP_MENU, Item, MenuDef, VIEW_MENU, WINDOW_TITLE,
+    APP_MENU, EDIT_MENU, FILE_MENU, HELP_MENU, Item, LIBRARY_MENU, MenuDef, PROJECT_MENU,
+    VIEW_MENU, WINDOW_TITLE,
 };
 use super::keys::effective_accelerator;
 use super::{MenuKeys, shown_groups};
@@ -107,6 +108,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .select_all()
         .build()?;
     let view = submenu(&ctx, VIEW_MENU)?.separator().fullscreen().build()?;
+    let library = submenu(&ctx, LIBRARY_MENU)?.build()?;
+    let project = submenu(&ctx, PROJECT_MENU)?.build()?;
     let window = SubmenuBuilder::new(app, WINDOW_TITLE)
         .minimize()
         .maximize()
@@ -114,5 +117,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .bring_all_to_front()
         .build()?;
     let help = submenu(&ctx, HELP_MENU)?.build()?;
-    Menu::with_items(app, &[&launcher, &file, &edit, &view, &window, &help])
+    Menu::with_items(
+        app,
+        &[
+            &launcher, &file, &edit, &view, &library, &project, &window, &help,
+        ],
+    )
 }

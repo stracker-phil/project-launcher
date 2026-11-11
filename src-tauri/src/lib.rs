@@ -15,6 +15,7 @@ mod handlers;
 mod instance;
 pub mod ipc;
 pub mod launch;
+pub mod library;
 pub mod lock;
 pub mod menu;
 pub mod projects;

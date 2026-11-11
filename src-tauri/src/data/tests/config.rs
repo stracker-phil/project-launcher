@@ -633,11 +633,12 @@ fn a_locked_project_can_still_be_starred_archived_and_unlocked() {
     fx.data
         .set_project_meta("p", MetaEdit::Starred(true))
         .unwrap();
+    assert_eq!(fx.file()["meta"]["starred"], json!(true));
     fx.data
         .set_project_meta("p", MetaEdit::Archived(true))
         .unwrap();
-    assert_eq!(fx.file()["meta"]["starred"], json!(true));
     assert_eq!(fx.file()["meta"]["archived"], json!(true));
+    assert_eq!(fx.file()["meta"].get("starred"), None);
     assert_eq!(fx.file()["locked"], json!(true));
 
     fx.data.set_project_locked("p", false).unwrap();

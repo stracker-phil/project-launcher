@@ -30,6 +30,8 @@ pub struct Project {
     pub last_opened_at: Option<i64>,
     /// False when the project's file is missing or broken; the name is then the folder's.
     pub available: bool,
+    /// The details are read-only in the app (`"locked": true`).
+    pub locked: bool,
     /// Why the file can't be used.
     pub file_error: Option<String>,
 }
@@ -76,6 +78,7 @@ pub fn build(known: &KnownProject, file: &FileRead, home: Option<&Path>) -> Proj
         added_at: known.added_at,
         last_opened_at: known.last_opened_at,
         available: object.is_some(),
+        locked: object.is_some_and(|o| o.get("locked") == Some(&Value::Bool(true))),
         file_error,
     }
 }
@@ -197,9 +200,26 @@ mod tests {
                 added_at: 1000,
                 last_opened_at: Some(2000),
                 available: true,
+                locked: false,
                 file_error: None,
             }
         );
+    }
+
+    #[test]
+    fn locked_is_set_only_by_a_file_with_locked_true() {
+        for (file, expected) in [
+            (found(json!({"locked": true})), true),
+            (found(json!({"locked": false})), false),
+            (found(json!({"locked": "true"})), false),
+            (found(json!({"locked": 1})), false),
+            (found(json!({})), false),
+            (FileRead::Missing, false),
+            (FileRead::Broken("broken".into()), false),
+        ] {
+            let project = build(&known("/work/northwind"), &file, None);
+            assert_eq!(project.locked, expected, "{file:?}");
+        }
     }
 
     #[test]
@@ -406,6 +426,7 @@ mod tests {
                 "addedAt": 1000,
                 "lastOpenedAt": 2000,
                 "available": true,
+                "locked": false,
                 "fileError": null,
             })
         );

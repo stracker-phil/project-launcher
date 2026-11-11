@@ -3,13 +3,16 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   ActionDraft,
   ActionSource,
+  AddedProjects,
   AppError,
   AppStatus,
   Appearance,
   Builtin,
   DevMode,
   ErrorKind,
+  Filter,
   LaunchEvent,
+  Library,
   MenuCommand,
   MenuShortcut,
   MetaEdit,
@@ -19,6 +22,7 @@ import type {
 } from "./types.gen";
 
 export type {
+  AddedProjects,
   Action,
   ActionDraft,
   ActionEdit,
@@ -36,13 +40,19 @@ export type {
   DevMode,
   EnvVar,
   ErrorKind,
+  Filter,
   LaunchEvent,
+  Library,
   MenuCommand,
   MenuShortcut,
   MetaEdit,
   Project,
   ProjectConfig,
   ProjectMeta,
+  Row,
+  Section,
+  Sidebar,
+  TagCount,
   RunsAs,
   Settings,
   StateDef,
@@ -100,6 +110,10 @@ export const api = {
   /** Reads every project file from disk again. */
   reloadProjects: () => invoke<void>("reload_projects"),
   addProject: (path: string) => invoke<Project>("add_project", { path }),
+  /** Shows the folder panel and adds the chosen folders in one step; empty when cancelled. */
+  addProjectFolders: () => invoke<AddedProjects>("add_project_folders"),
+  /** The sidebar, title and sections the main window shows for a filter and a search. */
+  library: (filter: Filter, query: string) => invoke<Library>("library", { filter, query }),
   removeProject: (id: string) => invoke<void>("remove_project", { id }),
   /** An empty name falls back to the folder's name. */
   setProjectName: (id: string, name: string) => invoke<void>("set_project_name", { id, name }),

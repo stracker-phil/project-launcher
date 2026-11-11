@@ -5,7 +5,7 @@ mod projects;
 mod settings;
 mod tags;
 
-pub use projects::MetaEdit;
+pub use projects::{AddedProjects, MetaEdit};
 
 use super::Edit;
 use super::ops::Op;

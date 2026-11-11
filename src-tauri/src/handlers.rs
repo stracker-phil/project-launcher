@@ -26,6 +26,8 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::delete_tag,
         data::commands::set_tag_order,
         data::commands::add_project,
+        data::commands::add_project_folders,
+        data::commands::library,
         data::commands::remove_project,
         data::commands::set_project_name,
         data::commands::set_project_meta,

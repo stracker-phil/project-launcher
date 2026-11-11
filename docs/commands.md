@@ -39,6 +39,17 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 | `view.toggleSidebar` | Toggle Sidebar | ⌃⌘S |
 | `view.toggleInspector` | Toggle Inspector | ⌃⌘I |
 | `palette.open` | Command Palette | ⌘K; opens the palette, or closes it when open |
+| `project.new` | New Project… | ⌘N; the folder panel, several folders at once (`add_project_folders`, one undo step) |
+| `tag.new` | New Tag… | ⇧⌘N; a field at the end of the sidebar's tags |
+| `view.search` | Search Projects | ⌘F; focuses the list's search field |
+| `library.all`, `library.starred`, `library.archived` | All Projects, Starred, Archived | ⌘1, ⌘2, ⌘0 |
+| `project.rename`, `project.icon`, `project.notes` | Rename Project, Change Icon & Color…, Edit Note | ⌘E for Rename; the selected project's field in edit mode; off while it is locked |
+| `project.star`, `project.archive` | Star Project, Archive Project | Toggle; starring unarchives and archiving unstars, in one undo step |
+| `project.lock` | Lock Project Details | ⇧⌘L; toggles `"locked"` in the project file |
+| `project.remove` | Remove from List | The toast offers Undo; the folder and its file stay |
+
+The library's and project's commands live in `src/main/libraryCommands.ts`; they act on the project the detail
+shows (`useLibrary` `current`). A row's right-click opens the same choices (`src/main/projectMenu.ts`).
 
 The Settings window has its own (`settingsCommands.ts`):
 
@@ -69,9 +80,11 @@ group without one is dropped. Plain-letter keys never go on menu items.
 | Menu | Items |
 |---|---|
 | Launcher | About · Settings… ⌘, · Services · Hide, Hide Others, Show All · Quit Launcher ⌘Q |
-| File | Close Window ⌘W |
+| File | New Project… ⌘N, New Tag… ⇧⌘N · Close Window ⌘W |
 | Edit | Undo ⌘Z, Redo ⇧⌘Z (`edit:undo`, `edit:redo`, replacing macOS's own) · macOS's Cut, Copy, Paste, Select All |
-| View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
+| View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
+| Library | All Projects ⌘1, Starred ⌘2 · Archived ⌘0 |
+| Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Remove from List |
 | Window | Minimize, Zoom · Bring All to Front |
 | Help | Open Log Folder, Show Data Folder |
 

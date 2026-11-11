@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./api", async (orig) => ({ ...(await orig<object>()), api: (await import("./test/apiMock")).createApiMock() }));
@@ -7,7 +7,9 @@ import { api } from "./api";
 import App from "./App";
 import { clearCommands } from "./commands/registry";
 import { createQueryClient } from "./queries/queryClient";
-import { DEFAULT_SETTINGS, type createApiMock } from "./test/apiMock";
+import { DEFAULT_SETTINGS, EMPTY_LIBRARY, type createApiMock } from "./test/apiMock";
+import { library, project, section } from "./test/library";
+import { resetLibrary } from "./state/library";
 import { resetStore } from "./state/store";
 
 const mocked = vi.mocked(api, true) as ReturnType<typeof createApiMock> & ReturnType<typeof vi.mocked<typeof api>>;
@@ -16,13 +18,27 @@ describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetStore();
+    resetLibrary();
     mocked.takeLaunchEvents.mockResolvedValue([]);
+    mocked.library.mockResolvedValue(EMPTY_LIBRARY);
   });
 
   it("renders the shell with the project detail", () => {
     render(<App />);
 
     expect(screen.getByRole("main", { name: "Project" })).toBeInTheDocument();
+  });
+
+  it("shows the library's title and project rows, and the first project in the detail", async () => {
+    mocked.library.mockResolvedValue(library([section(null, project({ name: "Alpha" }))], { title: "All Projects", countLabel: "1 project" }));
+
+    render(<App client={createQueryClient()} />);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "All Projects" })).toBeInTheDocument();
+    expect(screen.getByText("1 project")).toBeInTheDocument();
+    const row = await screen.findByRole("option", { name: /^Alpha/ });
+    await waitFor(() => expect(row).toHaveAttribute("aria-selected", "true"));
+    expect(within(screen.getByRole("main", { name: "Project" })).getByRole("button", { name: "Project name" })).toHaveTextContent("Alpha");
   });
 
   it("shows an error launch event as an error toast and logs it through api.logError", async () => {

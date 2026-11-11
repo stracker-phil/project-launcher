@@ -8,13 +8,14 @@ mod edits;
 pub mod ops;
 mod undo;
 
-pub use edits::MetaEdit;
+pub use edits::{AddedProjects, MetaEdit};
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::error::AppResult;
+use crate::library::{self, Filter, Library};
 use crate::lock::MutexExt;
 use crate::projects::config::{self, ProjectConfig};
 use crate::projects::{self, FileRead, KnownProject, Project, Registry};
@@ -89,6 +90,17 @@ impl Data {
     pub fn projects(&self) -> Vec<Project> {
         let known = self.registry.read(|r| r.projects.clone());
         known.iter().map(|k| self.view(k)).collect()
+    }
+
+    /// What the main window shows for a sidebar filter and a search.
+    pub fn library(&self, filter: &Filter, query: &str, now_ms: i64) -> Library {
+        library::build(
+            &self.projects(),
+            &self.settings().tags,
+            filter,
+            query,
+            now_ms,
+        )
     }
 
     pub fn project(&self, id: &str) -> AppResult<Project> {

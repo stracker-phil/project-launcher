@@ -46,6 +46,35 @@ pub const VIEW_PANES: &[Item] = &[
         "CmdOrCtrl+Ctrl+I",
     ),
 ];
+pub const NEW: &[Item] = &[
+    item("New Project…", "page:project.new", "CmdOrCtrl+N"),
+    item("New Tag…", "page:tag.new", "CmdOrCtrl+Shift+N"),
+];
+pub const SEARCH: Item = item("Search Projects", "page:view.search", "CmdOrCtrl+F");
+pub const LIBRARY: &[&[Item]] = &[
+    &[
+        item("All Projects", "page:library.all", "CmdOrCtrl+1"),
+        item("Starred", "page:library.starred", "CmdOrCtrl+2"),
+    ],
+    &[item("Archived", "page:library.archived", "CmdOrCtrl+0")],
+];
+pub const PROJECT: &[&[Item]] = &[
+    &[
+        item("Rename Project", "page:project.rename", "CmdOrCtrl+E"),
+        plain("Change Icon & Color…", "page:project.icon"),
+        plain("Edit Note", "page:project.notes"),
+    ],
+    &[
+        plain("Star Project", "page:project.star"),
+        plain("Archive Project", "page:project.archive"),
+        item(
+            "Lock Project Details",
+            "page:project.lock",
+            "CmdOrCtrl+Shift+L",
+        ),
+    ],
+    &[plain("Remove from List", "page:project.remove")],
+];
 pub const PALETTE: Item = item("Command Palette…", "page:palette.open", "CmdOrCtrl+K");
 /// Registered in debug builds only, so release builds leave it out.
 pub const RELOAD: Item = item("Reload", "app:reload", "CmdOrCtrl+Alt+R");
@@ -59,16 +88,26 @@ pub type MenuDef = (&'static str, &'static [&'static [Item]]);
 
 /// macOS's standard items (About, Services, Hide, …) go around these.
 pub const APP_MENU: MenuDef = (crate::APP_NAME, &[&[SETTINGS], &[QUIT]]);
-pub const FILE_MENU: MenuDef = ("File", &[&[CLOSE]]);
+pub const FILE_MENU: MenuDef = ("File", &[NEW, &[CLOSE]]);
 /// Undo and Redo above macOS's Cut, Copy, Paste and Select All.
 pub const EDIT_MENU: MenuDef = ("Edit", &[UNDO_REDO]);
 /// Above macOS's Enter Full Screen.
-pub const VIEW_MENU: MenuDef = ("View", &[VIEW_PANES, &[PALETTE, RELOAD]]);
+pub const VIEW_MENU: MenuDef = ("View", &[VIEW_PANES, &[SEARCH, PALETTE, RELOAD]]);
+pub const LIBRARY_MENU: MenuDef = ("Library", LIBRARY);
+pub const PROJECT_MENU: MenuDef = ("Project", PROJECT);
 pub const HELP_MENU: MenuDef = ("Help", &[HELP]);
 /// A menu of macOS's standard items only.
 pub const WINDOW_TITLE: &str = "Window";
 /// Every menu with items of its own, in menu bar order (Window holds only standard items).
-pub const MENUS: &[MenuDef] = &[APP_MENU, FILE_MENU, EDIT_MENU, VIEW_MENU, HELP_MENU];
+pub const MENUS: &[MenuDef] = &[
+    APP_MENU,
+    FILE_MENU,
+    EDIT_MENU,
+    VIEW_MENU,
+    LIBRARY_MENU,
+    PROJECT_MENU,
+    HELP_MENU,
+];
 
 /// Every item with its menu's title, in menu bar order.
 pub fn menu_items() -> impl Iterator<Item = (&'static str, &'static Item)> {
@@ -203,9 +242,77 @@ mod tests {
         assert_eq!(
             page_commands,
             [
+                "page:library.all",
+                "page:library.archived",
+                "page:library.starred",
                 "page:palette.open",
+                "page:project.archive",
+                "page:project.icon",
+                "page:project.lock",
+                "page:project.new",
+                "page:project.notes",
+                "page:project.remove",
+                "page:project.rename",
+                "page:project.star",
+                "page:tag.new",
+                "page:view.search",
                 "page:view.toggleInspector",
-                "page:view.toggleSidebar"
+                "page:view.toggleSidebar",
+            ]
+        );
+    }
+
+    #[test]
+    fn page_command_ids_are_unique() {
+        let mut seen = std::collections::HashSet::new();
+        for item in all_items() {
+            if item.command.starts_with("page:") {
+                assert!(seen.insert(item.command), "{}", item.command);
+            }
+        }
+    }
+
+    #[test]
+    fn no_two_items_share_an_accelerator() {
+        let mut seen = std::collections::HashMap::new();
+        for item in all_items() {
+            if let Some(accelerator) = item.accelerator
+                && let Some(other) = seen.insert(accelerator, item.command)
+            {
+                panic!("{accelerator}: {other} and {}", item.command);
+            }
+        }
+    }
+
+    #[test]
+    fn the_menus_follow_the_menu_bar_order() {
+        let titles: Vec<&str> = MENUS.iter().map(|(title, _)| *title).collect();
+        assert_eq!(
+            titles,
+            [
+                crate::APP_NAME,
+                "File",
+                "Edit",
+                "View",
+                "Library",
+                "Project",
+                "Help"
+            ]
+        );
+    }
+
+    #[test]
+    fn the_file_menu_starts_with_new_project_and_new_tag() {
+        let found: Vec<_> = menu_items()
+            .filter(|(menu, _)| *menu == "File")
+            .map(|(_, item)| (item.label, item.command, item.accelerator))
+            .collect();
+        assert_eq!(
+            found,
+            [
+                ("New Project…", "page:project.new", Some("CmdOrCtrl+N")),
+                ("New Tag…", "page:tag.new", Some("CmdOrCtrl+Shift+N")),
+                ("Close Window", "window:close", Some("CmdOrCtrl+W")),
             ]
         );
     }

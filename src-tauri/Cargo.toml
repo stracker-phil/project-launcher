@@ -17,6 +17,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-log = "2"
 tauri-plugin-opener = "2"
+# The folder panel for adding projects.
+tauri-plugin-dialog = "2"
 tauri-plugin-deep-link = "2"
 # Launch at login as a LaunchAgent with --hidden (ADR 0034).
 tauri-plugin-autostart = "2"

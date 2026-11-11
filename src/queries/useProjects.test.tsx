@@ -19,6 +19,7 @@ const project: Project = {
   addedAt: 1,
   lastOpenedAt: null,
   available: true,
+  locked: false,
   fileError: null,
 };
 

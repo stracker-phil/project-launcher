@@ -84,6 +84,8 @@ pub enum MetaKey {
     Notes,
     Starred,
     Archived,
+    Url,
+    RepoUrl,
 }
 
 impl MetaKey {
@@ -95,6 +97,8 @@ impl MetaKey {
             MetaKey::Notes => "notes",
             MetaKey::Starred => "starred",
             MetaKey::Archived => "archived",
+            MetaKey::Url => "url",
+            MetaKey::RepoUrl => "repoUrl",
         }
     }
 }
@@ -375,6 +379,8 @@ mod tests {
             (MetaKey::Notes, "notes"),
             (MetaKey::Starred, "starred"),
             (MetaKey::Archived, "archived"),
+            (MetaKey::Url, "url"),
+            (MetaKey::RepoUrl, "repoUrl"),
         ] {
             FileKey::Meta(key).set(&mut file, Some(json!(name)));
             assert_eq!(file["meta"][name], json!(name), "{name}");

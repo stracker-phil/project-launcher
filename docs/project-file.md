@@ -88,6 +88,9 @@ Each action carries `edit`, what the action editor starts from: `source` (list a
 
 ## Editing
 
+Starring a project removes `archived` and archiving removes `starred`, in the same undo step. `set_project_meta`
+also sets `url` and `repoUrl` (the Info section's Website and Repository).
+
 Commands: `save_action(id, source | null, draft, preset | null)`, `remove_action`, `move_action(id, source, to)`,
 `set_builtin_enabled`, `set_project_locked`, `set_dev_mode`, plus `set_project_name` and `set_project_meta` for the
 details. `projects::config::edit::Lists` changes copies of `apps` and `scripts` and returns the lists that changed;

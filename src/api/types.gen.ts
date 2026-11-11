@@ -44,6 +44,11 @@ export type ActionList = "apps" | "scripts";
 export type ActionSource = { list: ActionList, index: number, };
 
 /**
+ * What adding folders did: the new projects' ids, and the ids of folders that were listed already.
+ */
+export type AddedProjects = { added: Array<string>, existing: Array<string>, };
+
+/**
  * The JSON shape of an `AppError`.
  */
 export type AppError = { kind: ErrorKind, message: string, 
@@ -112,9 +117,32 @@ export type EnvVar = { name: string, value: string, };
 export type ErrorKind = "io" | "invalid_input" | "not_found" | "internal";
 
 /**
+ * A sidebar entry. Archived projects show only under `Archived`.
+ */
+export type Filter = { "kind": "all" } | { "kind": "starred" } | { "kind": "untagged" } | { "kind": "archived" } | { "kind": "tag", "tag": string };
+
+/**
  * Something the page acts on once it listens: from the launch that started the app or a later one.
  */
 export type LaunchEvent = { "type": "error", message: string, } | { "type": "activate" };
+
+export type Library = { 
+/**
+ * The filter's title, for the sidebar's header.
+ */
+title: string, 
+/**
+ * "3 projects": how many the filter shows, before searching.
+ */
+countLabel: string, sidebar: Sidebar, 
+/**
+ * "Recent" and "All", each alphabetical; one untitled section when only one kind has projects.
+ */
+sections: Array<Section>, 
+/**
+ * Why the list is empty, when it is.
+ */
+emptyText: string | null, };
 
 export type MenuCommand = { 
 /**
@@ -138,7 +166,7 @@ key: string | null, };
 /**
  * A change to one `meta` key of a project's file; empty text, no note lines and `false` remove the key.
  */
-export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean };
+export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean } | { "field": "url", "value": string | null } | { "field": "repoUrl", "value": string | null };
 
 export type Project = { id: string, 
 /**
@@ -153,6 +181,10 @@ name: string, meta: ProjectMeta, addedAt: number, lastOpenedAt: number | null,
  * False when the project's file is missing or broken; the name is then the folder's.
  */
 available: boolean, 
+/**
+ * The details are read-only in the app (`"locked": true`).
+ */
+locked: boolean, 
 /**
  * Why the file can't be used.
  */
@@ -189,10 +221,18 @@ notes: Array<string>, starred: boolean, archived: boolean, url: string | null, r
  */
 editor: string | null, };
 
+export type Row = { project: Project, 
+/**
+ * The file's problem, else the first note line, else the folder.
+ */
+subtitle: string, };
+
 /**
  * How an action runs; a `script` lives in `scripts`, everything else in `apps`.
  */
 export type RunsAs = "app" | "url" | "terminal" | "script";
+
+export type Section = { title: string | null, rows: Array<Row>, };
 
 export type Settings = { appearance: Appearance, 
 /**
@@ -216,6 +256,12 @@ terminalApp: string,
  */
 configEditor: string, };
 
+export type Sidebar = { all: number, starred: number, 
+/**
+ * Shown only while there are tags and some project has none.
+ */
+untagged: number | null, archived: number, tags: Array<TagCount>, };
+
 /**
  * A state shown on the project: `source` names a provider, or `provider:.path` a value in its JSON output.
  */
@@ -230,3 +276,5 @@ export type StateProvider = { name: string, command: string, };
  * How one output of a state shows; `key` is what `hiddenStates` refers to.
  */
 export type StateValue = { key: string, value: string, label: string, color: string | null, };
+
+export type TagCount = { name: string, count: number, };

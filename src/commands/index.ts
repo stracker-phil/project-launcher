@@ -4,6 +4,7 @@ import { registerCommands, runPageCommand } from "./registry";
 import { useEditRequests } from "./useEditRequests";
 import { useShortcutOverrides } from "./useShortcutOverrides";
 import { useShortcuts } from "./useShortcuts";
+import { LIBRARY_COMMANDS } from "../main/libraryCommands";
 import { MAIN_COMMANDS } from "./mainCommands";
 import { SETTINGS_COMMANDS } from "./settingsCommands";
 
@@ -14,7 +15,7 @@ export function useMainCommands() {
   useShortcutOverrides();
   useEditRequests();
   useEffect(() => {
-    registerCommands(MAIN_COMMANDS);
+    registerCommands([...MAIN_COMMANDS, ...LIBRARY_COMMANDS]);
     const stopListening = api.on("page_command", (id) => void runPageCommand(id));
     return () => void stopListening.then((stop) => stop());
   }, []);

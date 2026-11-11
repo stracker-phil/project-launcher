@@ -15,6 +15,7 @@ use crate::store::{Appearance, Settings};
 use crate::test_support::temp_config_dir;
 
 mod config;
+mod library;
 
 const SETTINGS_ONLY: Changed = Changed {
     settings: true,

@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Api, EventName, EventPayloads, ProjectConfig, Settings } from "../api";
+import type { Api, EventName, EventPayloads, Library, ProjectConfig, Settings } from "../api";
 
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,7 +27,16 @@ export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
   isGitRepo: false,
 };
 
-type Handler = (payload: unknown) => void;
+/** The library of an empty install under the "All Projects" filter. */
+export const EMPTY_LIBRARY: Library = {
+  title: "All Projects",
+  countLabel: "0 projects",
+  sidebar: { all: 0, starred: 0, untagged: null, archived: 0, tags: [] },
+  sections: [],
+  emptyText: "No projects here",
+};
+
+type Handler =(payload: unknown) => void;
 
 /** A fake `api` for UI tests; `emit` plays an event from Rust to the listeners. */
 export function createApiMock(): Api & { emit: <E extends EventName>(event: E, payload: EventPayloads[E]) => void } {
@@ -60,6 +69,8 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     listProjects: vi.fn().mockResolvedValue([]),
     reloadProjects: vi.fn().mockResolvedValue(undefined),
     addProject: vi.fn().mockRejectedValue({ kind: "invalid_input", message: "No folder at this path" }),
+    addProjectFolders: vi.fn().mockResolvedValue({ added: [], existing: [] }),
+    library: vi.fn().mockResolvedValue(EMPTY_LIBRARY),
     removeProject: vi.fn().mockResolvedValue(undefined),
     setProjectName: vi.fn().mockResolvedValue(undefined),
     setProjectMeta: vi.fn().mockResolvedValue(undefined),

@@ -140,7 +140,7 @@ pub(super) fn key_edit(
     edit(label, set_key(id, key, value))
 }
 
-fn set_key(id: &str, key: FileKey, value: Option<Value>) -> Op {
+pub(super) fn set_key(id: &str, key: FileKey, value: Option<Value>) -> Op {
     Op::SetFileKey {
         id: id.to_string(),
         key,

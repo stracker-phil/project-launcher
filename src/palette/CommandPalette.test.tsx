@@ -35,11 +35,15 @@ function Host() {
 
 function renderHost() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <Host />
     </QueryClientProvider>,
   );
+  // useMainCommands also registers the library's commands; the palette's expectations only know the main ones.
+  clearCommands();
+  registerCommands(MAIN_COMMANDS);
+  return view;
 }
 
 const togglePalette = () => act(() => void runPageCommand("palette.open"));

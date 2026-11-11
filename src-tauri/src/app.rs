@@ -27,6 +27,7 @@ pub fn start(
         .manage(menu::MenuKeys::default())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(window::navigation::guard())
         .plugin(tauri_plugin_deep_link::init())
         .on_menu_event(|app, event| menu::clicked(app, event.id().as_ref()))

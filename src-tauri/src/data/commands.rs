@@ -3,14 +3,16 @@
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use super::{Changed, MetaEdit};
-use crate::error::AppResult;
+use super::{AddedProjects, Changed, MetaEdit};
+use crate::error::{AppError, AppResult};
 use crate::events::{PROJECTS_CHANGED_EVENT, SETTINGS_CHANGED_EVENT};
+use crate::library::{Filter, Library};
 use crate::menu;
 use crate::projects::Project;
 use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig};
 use crate::state::AppState;
 use crate::store::{Appearance, Settings};
+use tauri_plugin_dialog::DialogExt;
 
 /// Emits one event per stale read, to every window.
 pub fn announce(app: &AppHandle, changed: Changed) {
@@ -149,6 +151,44 @@ pub async fn set_tag_order(
     tags: Vec<String>,
 ) -> AppResult<()> {
     announced(&app, state.data.set_tag_order(tags))
+}
+
+#[tauri::command]
+pub async fn library(
+    state: State<'_, AppState>,
+    filter: Filter,
+    query: String,
+) -> AppResult<Library> {
+    let now = chrono::Utc::now().timestamp_millis();
+    Ok(state.data.library(&filter, &query, now))
+}
+
+/// Shows the folder panel and adds the chosen folders; nothing when the panel is cancelled.
+#[tauri::command]
+pub async fn add_project_folders(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> AppResult<AddedProjects> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog()
+        .file()
+        .set_title("Add Project")
+        .pick_folders(move |paths| {
+            let _ = tx.send(paths);
+        });
+    let chosen = rx
+        .await
+        .map_err(|_| AppError::Io("The folder panel closed without an answer".into()))?
+        .unwrap_or_default();
+    let paths = chosen
+        .into_iter()
+        .filter_map(|path| path.into_path().ok())
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+    let now = chrono::Utc::now().timestamp_millis();
+    let (added, changed) = state.data.add_projects(&paths, now)?;
+    announce(&app, changed);
+    Ok(added)
 }
 
 /// Returns the added project.
