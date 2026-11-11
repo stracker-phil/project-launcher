@@ -12,6 +12,8 @@ export interface PageCommand {
 const MODIFIERS = ["Mod", "Ctrl", "Alt", "Shift"] as const;
 type Modifier = (typeof MODIFIERS)[number];
 const MOD_LABELS: Record<Modifier, string> = { Mod: "⌘", Ctrl: "⌃", Alt: "⌥", Shift: "⇧" };
+/** macOS shows modifiers as ⌃⌥⇧⌘, as the menu bar does. */
+const LABEL_ORDER: Modifier[] = ["Ctrl", "Alt", "Shift", "Mod"];
 const KEY_LABELS: Record<string, string> = {
   Enter: "↵",
   Escape: "⎋",
@@ -25,7 +27,11 @@ const KEY_LABELS: Record<string, string> = {
   Space: "␣",
 };
 
+/** The owner's keys by command id (`settings.json` `shortcuts`); `null` leaves a command without one. */
+export type Overrides = Record<string, string | null>;
+
 const commands = new Map<string, PageCommand>();
+let overrides: Overrides = {};
 
 /** Adds commands; a later registration of the same id replaces the earlier one. */
 export function registerCommands(list: PageCommand[]) {
@@ -34,6 +40,7 @@ export function registerCommands(list: PageCommand[]) {
 
 export function clearCommands() {
   commands.clear();
+  overrides = {};
 }
 
 export function allCommands(): PageCommand[] {
@@ -86,9 +93,24 @@ export function normalizeBinding(binding: string): string | null {
   return [...MODIFIERS.filter((m) => mods.has(m)), key].join("+");
 }
 
-export function bindingFor(id: string): string | null {
-  const binding = commands.get(id)?.defaultBinding;
+export function setOverrides(next: Overrides) {
+  overrides = { ...next };
+}
+
+/** The owner's key for `id` when set (`null`: none), else `defaultBinding`. */
+export function resolveBinding(id: string, defaultBinding: string | undefined, custom: Overrides = overrides): string | null {
+  const binding = Object.hasOwn(custom, id) ? custom[id] : defaultBinding;
   return binding ? normalizeBinding(binding) : null;
+}
+
+export function bindingFor(id: string): string | null {
+  return resolveBinding(id, commands.get(id)?.defaultBinding);
+}
+
+/** Menu keys need ⌘ or ⌃, so a typed letter never reaches a menu item. */
+export function hasCommandOrControl(binding: string): boolean {
+  const mods = splitBinding(binding).slice(0, -1);
+  return mods.includes("Mod") || mods.includes("Ctrl");
 }
 
 export interface KeyLike {
@@ -151,8 +173,8 @@ export function bindingLabel(binding: string | null): string {
   if (!binding) return "";
   const parts = splitBinding(binding);
   const key = parts[parts.length - 1];
-  const mods = parts.slice(0, -1) as Modifier[];
-  return mods.map((m) => MOD_LABELS[m] ?? m).join("") + (KEY_LABELS[key] ?? key);
+  const mods = new Set(parts.slice(0, -1));
+  return LABEL_ORDER.filter((m) => mods.has(m)).map((m) => MOD_LABELS[m]).join("") + (KEY_LABELS[key] ?? key);
 }
 
 export function isTextInput(target: EventTarget | null): boolean {

@@ -87,6 +87,8 @@
   --settings-text-tertiary: rgba(229, 229, 229, 0.52);
   --settings-field: #262626;
   --settings-field-line: rgba(255, 255, 255, 0.14);
+  --settings-control: #636366;
+  --settings-control-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4);
 
   /* Project colors, picked by name (ADR 0025) */
   --project-blue: #56c2ff;

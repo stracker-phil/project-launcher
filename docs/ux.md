@@ -159,14 +159,27 @@ search field 28px on `--settings-fill`; page body 8/20/24px padding, 24px betwee
 (14px vertical padding); values `--settings-text-secondary`, selectable and cut off with an ellipsis; push
 buttons 28px with 8px radius. The search matches page titles, keywords and row titles; a page found by a row
 names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F focuses the field, ⎋ and ⌘W hide the
-window. Pages so far: Status (version, build, data and log folder, the `launcher` command link) and About
-(version, Show Data Folder, Open Log Folder).
+window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
+`--settings-control` tile with `--settings-control-shadow`. Pages so far:
+
+- Appearance: Automatic / Light / Dark (Segmented); both windows switch at once.
+- Shortcuts: every menu item's key, grouped by menu, then the page keys no menu item holds (Main Window,
+  Settings Window); each row found by the search. A row shows its key in a 7rem recorder field: a click records
+  the next key (the menu's keys are off meanwhile, so ⌘W or ⌘Q reach it), ⌫ leaves the command without one,
+  ⎋ or a click elsewhere cancels; "None" when unbound. The reset button left of it shows only while the key is
+  the owner's own and keeps its slot otherwise. A key another command has asks first ("⌘K is used by “Command
+  Palette”", Reassign), then moves it as one undo step; so does a reset to a default another command has
+  now; menu keys clash with every key, page keys only within
+  their window. A menu key without ⌘ or ⌃ is refused with a toast.
+- Status: version, build, data and log folder, the `launcher` command link.
+- About: version, Show Data Folder, Open Log Folder.
 
 ## Keys
 App actions are Rust commands; page keys live in the page registry, reached from menus as `page:<id>`. Menus
 in Mac order; View holds window appearance only; Help holds Open Log Folder and Show Data Folder. Bare keys
 never fire in text fields (only ⌘/⌃ combinations and Esc); plain letters stay off menu items; one binding per
-command.
+command. The owner's keys (Settings → Shortcuts, `settings.json` `shortcuts`) override the defaults: Rust
+rebuilds the menu bar with them and the page registry uses them for page keys.
 
 ## Palette checks
 `colors.test.ts` keeps literals in palettes and token sets equal; `contrast.test.ts` enforces the contrast

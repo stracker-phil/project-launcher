@@ -101,3 +101,44 @@
 .settings-empty { margin: 0; color: var(--settings-text-tertiary); }
 /* System Settings' push buttons: 28px, an 8px radius. */
 .settings-pane .btn { flex: none; height: 28px; border-radius: 8px; }
+
+/* A segmented control: a fill track, the pressed segment a raised tile. */
+.segmented { display: inline-flex; flex: none; gap: 2px; padding: 2px; border-radius: 8px; background: var(--settings-fill); }
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--settings-text);
+  white-space: nowrap;
+}
+.segmented button:active:not([aria-pressed="true"]) { background: var(--settings-fill); }
+.segmented button[aria-pressed="true"] { background: var(--settings-control); box-shadow: var(--settings-control-shadow); color: var(--settings-text-strong); }
+.segmented button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
+/* Settings → Shortcuts: the reset button keeps its slot; the recorder keeps its width in every state. */
+.shortcut-control { display: flex; flex: none; align-items: center; gap: 6px; }
+.slot-hidden { visibility: hidden; }
+.shortcut-field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7rem;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: var(--settings-field);
+  box-shadow: inset 0 0 0 1px var(--settings-field-line);
+  color: var(--settings-text);
+  font-size: 12px;
+  white-space: nowrap;
+  transition: box-shadow var(--motion-fast) var(--ease-out);
+}
+.shortcut-field:focus-visible,
+.shortcut-field.recording { outline: none; box-shadow: inset 0 0 0 1px var(--settings-field-line), 0 0 0 3px var(--focus-ring); }
+.shortcut-field.recording { color: var(--settings-text-tertiary); }
+.shortcut-field.unbound { color: var(--settings-text-tertiary); }

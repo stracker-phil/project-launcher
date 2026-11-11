@@ -1,17 +1,21 @@
 //! Tauri commands for the data: reads, the writes the page sends, undo and redo. Each write announces what
-//! it changed as events (ADR 0014).
+//! it changed as events (ADR 0014); a settings change also rebuilds the menu bar with the owner's keys.
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::{Changed, MetaEdit};
 use crate::error::AppResult;
 use crate::events::{PROJECTS_CHANGED_EVENT, SETTINGS_CHANGED_EVENT};
+use crate::menu;
 use crate::projects::Project;
 use crate::state::AppState;
 use crate::store::{Appearance, Settings};
 
 /// Emits one event per stale read, to every window.
 pub fn announce(app: &AppHandle, changed: Changed) {
+    if changed.settings {
+        menu::refresh(app);
+    }
     for (stale, event) in [
         (changed.settings, SETTINGS_CHANGED_EVENT),
         (changed.projects, PROJECTS_CHANGED_EVENT),
@@ -77,7 +81,7 @@ pub async fn set_appearance(
     announced(&app, state.data.set_appearance(appearance))
 }
 
-/// `key: null` leaves the command without a key.
+/// `key: null` leaves the command without a key; a menu item's key needs ⌘ or ⌃.
 #[tauri::command]
 pub async fn set_shortcut(
     app: AppHandle,
@@ -85,16 +89,36 @@ pub async fn set_shortcut(
     command: String,
     key: Option<String>,
 ) -> AppResult<()> {
+    let key = menu::shortcuts::checked(&command, key)?;
     announced(&app, state.data.set_shortcut(&command, key))
 }
 
+/// Gives `command` the key `from` has, leaving `from` without one; one step for Undo.
+#[tauri::command]
+pub async fn reassign_shortcut(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    command: String,
+    key: String,
+    from: String,
+) -> AppResult<()> {
+    let key = menu::shortcuts::checked(&command, Some(key))?.unwrap_or_default();
+    announced(&app, state.data.reassign_shortcut(&command, &key, &from))
+}
+
+/// Back to the default key; `from`, when the default is its key now, is left without one in the same step.
 #[tauri::command]
 pub async fn reset_shortcut(
     app: AppHandle,
     state: State<'_, AppState>,
     command: String,
+    from: Option<String>,
 ) -> AppResult<()> {
-    announced(&app, state.data.reset_shortcut(&command))
+    let changed = match from {
+        Some(from) => state.data.reset_shortcut_taking_from(&command, &from),
+        None => state.data.reset_shortcut(&command),
+    };
+    announced(&app, changed)
 }
 
 #[tauri::command]

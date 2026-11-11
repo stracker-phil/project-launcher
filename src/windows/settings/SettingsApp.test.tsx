@@ -36,12 +36,21 @@ afterEach(() => {
 });
 
 describe("SettingsApp", () => {
-  it("lists Status then About and opens on Status", async () => {
+  it("lists Appearance, Shortcuts, Status then About and opens on Appearance", async () => {
     await renderSettings();
 
-    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Status", "About"]);
-    expect(screen.getByRole("heading", { level: 2, name: "Status" })).toBeInTheDocument();
-    expect(within(nav()).getByRole("button", { name: "Status" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Appearance", "Shortcuts", "Status", "About"]);
+    expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
+    expect(within(nav()).getByRole("button", { name: "Appearance" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("shows Shortcuts when it is chosen in the page list", async () => {
+    await renderSettings();
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Shortcuts" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
+    expect(within(nav()).getByRole("button", { name: "Shortcuts" })).toHaveAttribute("aria-current", "page");
   });
 
   it("shows About when it is chosen in the page list", async () => {
@@ -118,6 +127,25 @@ describe("SettingsApp", () => {
 
       expect(within(nav()).getByRole("button", { name: "Status Log folder" })).toBeInTheDocument();
       expect(within(nav()).queryByRole("button", { name: "About" })).not.toBeInTheDocument();
+    });
+
+    describe("with a menu command", () => {
+      afterEach(() => {
+        mocked.menuShortcuts.mockResolvedValue([]);
+        registerCoreSettingsPages();
+      });
+
+      it("finds a menu command's row that arrives after the window rendered", async () => {
+        await renderSettings();
+        mocked.menuShortcuts.mockResolvedValue([{ menu: "File", label: "Quit", command: "app:quit", defaultKey: "Mod+Q", key: "Mod+Q" }]);
+        act(() => registerCoreSettingsPages());
+
+        await userEvent.type(search(), "quit");
+        await screen.findByRole("button", { name: "Shortcuts Quit" });
+        await userEvent.click(within(nav()).getByRole("button", { name: "Shortcuts Quit" }));
+
+        expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
+      });
     });
 
     it("shows No Results when nothing matches", async () => {

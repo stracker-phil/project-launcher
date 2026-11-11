@@ -1,5 +1,6 @@
 /** Settings building blocks: inset groups of rows, label left and control right. */
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { SegmentedControl, type SegmentedControlProps } from "../components/SegmentedControl";
 
 /** The page or row `open_settings` asked for; the group or row with that anchor scrolls into view. */
 export const ScrollTarget = createContext<string | undefined>(undefined);
@@ -42,4 +43,13 @@ export function Row({ label, description, anchor, children }: { label: string; d
 /** A read-only value; selectable, and cut off with an ellipsis (the tooltip shows it whole). */
 export function Value({ children }: { children: ReactNode }) {
   return <span className="settings-value">{children}</span>;
+}
+
+/** A row whose control is a segmented control. */
+export function Segmented<T extends string>({ description, anchor, ...control }: SegmentedControlProps<T> & { description?: ReactNode; anchor?: string }) {
+  return (
+    <Row label={control.label} description={description} anchor={anchor}>
+      <SegmentedControl {...control} />
+    </Row>
+  );
 }

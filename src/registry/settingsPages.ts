@@ -1,5 +1,5 @@
 /** Settings pages by id (ADR 0033). Pages register here before the Settings window renders. */
-import type { ComponentType } from "react";
+import { useSyncExternalStore, type ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
 
 /** A row of a page that the search finds by its title; `open_settings` with its id opens the page there. */
@@ -21,10 +21,24 @@ export interface SettingsPage {
 }
 
 const pages = new Map<string, SettingsPage>();
+const listeners = new Set<() => void>();
+let version = 0;
 
 /** Adds a page, or replaces the one with the same id. */
 export function registerSettingsPage(page: SettingsPage): void {
   pages.set(page.id, page);
+  version += 1;
+  listeners.forEach((notify) => notify());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+/** Re-renders the caller when a page is registered, so a page may register again after the window opened. */
+export function useSettingsPagesVersion(): number {
+  return useSyncExternalStore(subscribe, () => version);
 }
 
 /** Sorted by `order`, ties broken by title. */

@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   allCommands,
   bindingFromEvent,
+  bindingFor,
   bindingLabel,
   clearCommands,
   getCommand,
+  hasCommandOrControl,
   normalizeBinding,
   registerCommands,
+  resolveBinding,
   resolveKeydown,
+  setOverrides,
   runPageCommand,
   type KeyLike,
   type PageCommand,
@@ -138,8 +142,15 @@ describe("bindingFromEvent", () => {
 });
 
 describe("bindingLabel", () => {
-  it("shows modifiers as their Mac symbols", () => {
-    expect(bindingLabel("Mod+Ctrl+Alt+Shift+K")).toBe("⌘⌃⌥⇧K");
+  it("shows modifiers as their Mac symbols in the menu bar's order, ⌘ last", () => {
+    expect(bindingLabel("Mod+Ctrl+Alt+Shift+K")).toBe("⌃⌥⇧⌘K");
+  });
+
+  it.each([
+    ["Mod+Shift+Z", "⇧⌘Z"],
+    ["Mod+Ctrl+S", "⌃⌘S"],
+  ])("puts ⌘ after the other modifiers in %j", (binding, label) => {
+    expect(bindingLabel(binding)).toBe(label);
   });
 
   it.each([
@@ -150,13 +161,100 @@ describe("bindingLabel", () => {
     ["Mod+ArrowLeft", "⌘←"],
     ["Mod+ArrowRight", "⌘→"],
     ["Mod+Space", "⌘␣"],
-    ["Mod+Shift++", "⌘⇧+"],
+    ["Mod+Shift++", "⇧⌘+"],
   ])("labels %j as %j", (binding, label) => {
     expect(bindingLabel(binding)).toBe(label);
   });
 
   it("is empty for no binding", () => {
     expect(bindingLabel(null)).toBe("");
+  });
+});
+
+describe("owner's keys", () => {
+  describe("resolveBinding", () => {
+    it("uses the default when the owner set nothing", () => {
+      expect(resolveBinding("a", "mod+o", {})).toBe("Mod+O");
+    });
+
+    it("prefers the owner's key and normalizes it", () => {
+      expect(resolveBinding("a", "Mod+O", { a: "shift+mod+p" })).toBe("Mod+Shift+P");
+    });
+
+    it("is null when the owner removed the key", () => {
+      expect(resolveBinding("a", "Mod+O", { a: null })).toBeNull();
+    });
+
+    it("is null without an owner's key or a default", () => {
+      expect(resolveBinding("a", undefined, {})).toBeNull();
+    });
+
+    it("is null for an owner's key that cannot be parsed", () => {
+      expect(resolveBinding("a", "Mod+O", { a: "Mod" })).toBeNull();
+    });
+  });
+
+  describe("setOverrides", () => {
+    it("changes the key a command is found under", () => {
+      registerCommands([command({ defaultBinding: "Mod+O" })]);
+
+      setOverrides({ "demo.run": "Mod+P" });
+
+      expect(bindingFor("demo.run")).toBe("Mod+P");
+    });
+
+    it("moves the keydown to the owner's key", () => {
+      const open = command({ defaultBinding: "Mod+O" });
+      registerCommands([open]);
+
+      setOverrides({ "demo.run": "Mod+P" });
+
+      expect(resolveKeydown(key("p", { metaKey: true }))).toBe(open);
+      expect(resolveKeydown(key("o", { metaKey: true }))).toBeNull();
+    });
+
+    it("unbinds a command set to null", () => {
+      registerCommands([command({ defaultBinding: "Mod+O" })]);
+
+      setOverrides({ "demo.run": null });
+
+      expect(bindingFor("demo.run")).toBeNull();
+      expect(resolveKeydown(key("o", { metaKey: true }))).toBeNull();
+    });
+
+    it("replaces the earlier overrides", () => {
+      registerCommands([command({ defaultBinding: "Mod+O" })]);
+      setOverrides({ "demo.run": "Mod+P" });
+
+      setOverrides({});
+
+      expect(bindingFor("demo.run")).toBe("Mod+O");
+    });
+
+    it("is forgotten when the commands are cleared", () => {
+      setOverrides({ "demo.run": "Mod+P" });
+
+      clearCommands();
+      registerCommands([command({ defaultBinding: "Mod+O" })]);
+
+      expect(bindingFor("demo.run")).toBe("Mod+O");
+    });
+  });
+
+  describe("bindingFor", () => {
+    it("is null for an unknown command", () => {
+      expect(bindingFor("nope")).toBeNull();
+    });
+  });
+});
+
+describe("hasCommandOrControl", () => {
+  it.each(["Mod+K", "Ctrl+K", "Mod+Shift+K", "Ctrl+Alt+Space", "Mod++"])("accepts %j", (binding) => {
+    expect(hasCommandOrControl(binding)).toBe(true);
+  });
+
+  it.each(["K", "Shift+K", "Alt+K", "Alt+Shift+ArrowUp", "Escape", "+"])("rejects %j", (binding) => {
+    expect(hasCommandOrControl(binding)).toBe(false);
   });
 });
 

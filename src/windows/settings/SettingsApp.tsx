@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { useSettingsCommands } from "../../commands";
+import { ConfirmHost } from "../../components/ConfirmSheet";
 import { Toasts } from "../../components/Toasts";
 import { TooltipHost } from "../../components/TooltipHost";
 import { useAppearance } from "../../lib/theme";
@@ -31,6 +32,7 @@ function SettingsRoot() {
     <>
       <SettingsWindow target={page} onPage={setPage} />
       <Toasts />
+      <ConfirmHost />
       <TooltipHost />
     </>
   );

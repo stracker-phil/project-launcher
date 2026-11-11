@@ -58,7 +58,7 @@ moved aside as `<name>.<timestamp>.corrupt`, repair on load; [ADR 0013](adr/0013
 | File | Holds |
 |---|---|
 | `projects.json` | `Registry` (`projects/registry.rs`): `{ "projects": [{ id, path, addedAt, lastOpenedAt }] }`, times in UTC ms; nothing else about a project ([ADR 0038](adr/0038-project-details-live-in-the-project-file.md)). Repaired per entry: no id or no absolute path → dropped; a second entry with the same id or path → dropped |
-| `settings.json` | `Settings` (`store/settings.rs`): `appearance`, `tags` (the tag list: order, empty tags), `shortcuts` (overrides by command id; `null` = no key), `defaultEditor`, `gitClient`, `terminalApp`, `configEditor`. `Settings::repaired` falls back per field |
+| `settings.json` | `Settings` (`store/settings.rs`): `appearance`, `tags` (the tag list: order, empty tags), `shortcuts` (overrides by command id in the page's `Mod+Shift+K` notation: a menu item's command such as `page:palette.open`, or a page command's id such as `settings.search`; `null` = no key), `defaultEditor`, `gitClient`, `terminalApp`, `configEditor`. `Settings::repaired` falls back per field |
 | `<project>/.project-launcher.json` | Everything about the project (`projects/file.rs`): `name`, `meta` (icon, color, tag, notes, starred, archived, url, repoUrl, editor), apps, scripts, env, … Read fresh before each change, written read-modify-write (two-space JSON, final newline, its own file mode); unknown keys stay. A missing or broken file is never rewritten: the project shows `available: false` and `fileError` |
 
 `data/` holds the `Data` the commands share (in `AppState`): both stores, the parsed project files cached by folder
@@ -69,7 +69,7 @@ when unset, notes as lines).
 Every change goes through one writer, `Data::change` ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)): `data/edits/` (settings, tags, projects) checks the request against
 the current data and turns it into an `Op` (`data/ops.rs`); applying an op returns its inverse, computed from
 what it replaced, which goes on the bounded (100), non-persisted undo stack (`data/undo.rs`;
-[ADR 0015](adr/0015-writes-are-operations-with-inverses-for-undo.md)). Ops: `SetAppearance`, `SetShortcut`, `ResetShortcut`, `SetTags`, `AddProject`, `RemoveProject` (its inverse
+[ADR 0015](adr/0015-writes-are-operations-with-inverses-for-undo.md)). Ops: `SetAppearance`, `SetShortcut`, `ResetShortcut` (a reassigned key is a batch of two `SetShortcut`, a reset that takes its default from another command a `SetShortcut` and a `ResetShortcut`), `SetTags`, `AddProject`, `RemoveProject` (its inverse
 re-inserts the entry at its place), `SetFileKey` (one key of a project file), `ReplaceFile` (a whole file; refused
 when the file isn't what it was) and `Batch` (one undo step; a failure takes back what was applied). A tag
 rename or delete is a batch of the tag list plus every project file carrying the tag; adding a folder without a
@@ -77,7 +77,9 @@ file is a batch that creates `{ "name": <folder> }` and adds the entry. An undo 
 dropped with its error. Recording a launch (`Data::touch_last_opened`) is not undoable.
 
 Each write returns `Changed`, which `data::commands::announce` emits as `settings_changed` and
-`projects_changed`; `src/queries/useEvents.ts` maps them to the query keys `["settings"]` and `["projects"]`.
+`projects_changed`; `src/queries/useEvents.ts` maps them to the query keys `["settings"]` (plus
+`["menuShortcuts"]`) and `["projects"]`. A settings change, its undo and redo included, also rebuilds the menu bar
+(`menu::refresh`) with the owner's keys.
 
 The debug build writes the demo seed (`test_support/demo.rs`: made-up folders under `<data>/demo-projects/`, each
 with a project file, plus the tag list) when its data folder has no `projects.json`; `launcher dev seed --yes`
@@ -97,7 +99,7 @@ One line per module, added with the code.
 | `src-tauri/src/launch.rs` | Launch events queued for the page (`take_launch_events`) |
 | `src-tauri/src/window/` | Showing and hiding windows, the Dock icon; `settings.rs` opens the Settings window (at a page); `navigation.rs` keeps webviews on app pages |
 | `src-tauri/src/bus/` | The command bus (`CommandBus`, `Command`), the app's commands (`commands.rs`), `run_command` and `spawn` (`app.rs`); ids in [commands.md](commands.md) |
-| `src-tauri/src/menu/` | The menu bar: items per menu (`items.rs`), building it from the bus (`build.rs`), `clicked`; `palette.rs` lists the enabled items for the palette (`menu_commands`) |
+| `src-tauri/src/menu/` | The menu bar: items per menu (`items.rs`), building it from the bus with the owner's keys (`build.rs`), `clicked`, `refresh`, `pause_menu_keys` (`MenuKeys`); `keys.rs` converts `Mod+Shift+K` ↔ `CmdOrCtrl+Shift+K` (`Combo`) and resolves a menu item's key (`effective_accelerator`); `palette.rs` lists the enabled items for the palette (`menu_commands`); `shortcuts.rs` lists every item's default and current key for Settings → Shortcuts (`menu_shortcuts`) and checks a new menu key (`checked`) |
 | `src-tauri/src/tray.rs` | The menu-bar item; its items are bus commands |
 | `src-tauri/src/folders.rs` | Revealing the log and data folders in Finder |
 | `src-tauri/src/status.rs` | `app_status` for Settings → Status: version, build, folders, the `launcher` command link |
@@ -108,17 +110,18 @@ One line per module, added with the code.
 | `src-tauri/src/data/` | `Data`: reads, the one writer (`change`), undo and redo (`mod.rs`, `undo.rs`); ops and inverses (`ops.rs`); the checked edits (`edits/`: `settings.rs`, `tags.rs`, `projects.rs`); Tauri commands and events (`commands.rs`); the Edit menu's Undo and Redo (`edit_menu.rs`) |
 | `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval, demo seed); test fixtures and the demo seed (`demo.rs`) |
 | `src/api/` | The page's only Tauri boundary (`api`, `toAppError`) and the generated types |
-| `src/commands/` | Page commands: the registry and key matching (`registry.ts`), the keydown hook (`useShortcuts.ts`), each window's commands (`mainCommands.ts`, `settingsCommands.ts`), `useMainCommands`, `useSettingsCommands`, the Edit menu's Undo and Redo per window (`useEditRequests.ts`) |
+| `src/commands/` | Page commands: the registry, the owner's overrides and key matching (`registry.ts`), the keydown hook (`useShortcuts.ts`), the overrides from `settings.json` (`useShortcutOverrides.ts`), each window's commands (`mainCommands.ts`, `settingsCommands.ts`), `useMainCommands`, `useSettingsCommands`, the Edit menu's Undo and Redo per window (`useEditRequests.ts`) |
 | `src/windows/settings/` | The Settings window's page (`index.html`, `main.tsx`, `SettingsApp.tsx`), a second Vite entry |
-| `src/registry/settingsPages.ts` | Settings pages by id: title, icon, keywords, searchable rows, component; resolving and searching them |
-| `src/settings/` | The Settings window's layout (`SettingsWindow.tsx`), groups and rows (`controls.tsx`), the core pages (`pages.ts`: Status, About) |
+| `src/registry/settingsPages.ts` | Settings pages by id: title, icon, keywords, searchable rows, component; resolving and searching them; `useSettingsPagesVersion` re-renders the window when a page registers again |
+| `src/settings/` | The Settings window's layout (`SettingsWindow.tsx`), groups, rows and `Segmented` (`controls.tsx`), the core pages (`pages.ts`: Appearance, Shortcuts, Status, About); `shortcuts/` is Settings → Shortcuts (`ShortcutsPage.tsx`, `ShortcutRecorder.tsx`, the rows and conflicts in `rows.ts`) |
 | `src/palette/` | The command palette (`CommandPalette.tsx`, rows in `PaletteRows.tsx`): its sources (`sources.ts`: menu items, page commands, Settings pages, `usePaletteMenu` menus from `menus.ts`), what it shows (`sections.ts`), ranking (`rank.ts`), prefixes (`prefixes.ts`), recent searches in memory (`recent.ts`) |
-| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useProjects`) and `useEvents` (Rust events → query keys) |
+| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useMenuShortcuts`, `useProjects`) and `useEvents` (Rust events → query keys) |
 | `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
+| `src/state/attempt.ts` | `attempt`: a request whose failure shows as an error toast |
 | `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet, the palette's open state, the open menu; `window.launcher` in debug builds |
 | `src/state/menuTypes.ts` | The menu's types (`MenuItem`, `MenuEntry`, `MenuAt`, `OpenMenu`) and `isItem`, shared by the store, `src/components/menu/` and the palette |
 | `src/shell/` | The main window's panes: sidebar, project list, detail, inspector slot |
-| `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet`; `menu/` is the in-page menu (`openMenu`, `openContextMenu`, `MenuHost`, `MenuPanel`, `placement.ts`; ADR 0030) |
+| `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet`; `SegmentedControl`; `menu/` is the in-page menu (`openMenu`, `openContextMenu`, `MenuHost`, `MenuPanel`, `placement.ts`; ADR 0030) |
 | `src/styles/` | Stylesheets in cascade order (`index.ts`); `palettes/` holds every color; `contrast.ts` for the palette tests |
 | `src/test/` | `createApiMock()` and the module-boundary guard |
 

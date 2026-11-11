@@ -70,6 +70,16 @@ pub const WINDOW_TITLE: &str = "Window";
 /// Every menu with items of its own, in menu bar order (Window holds only standard items).
 pub const MENUS: &[MenuDef] = &[APP_MENU, FILE_MENU, EDIT_MENU, VIEW_MENU, HELP_MENU];
 
+/// Every item with its menu's title, in menu bar order.
+pub fn menu_items() -> impl Iterator<Item = (&'static str, &'static Item)> {
+    MENUS.iter().flat_map(|(menu, groups)| {
+        groups
+            .iter()
+            .flat_map(|items| items.iter())
+            .map(move |item| (*menu, item))
+    })
+}
+
 /// The groups as a menu shows them: only items of known commands, and no group left empty.
 pub fn shown_groups(
     groups: &'static [&'static [Item]],

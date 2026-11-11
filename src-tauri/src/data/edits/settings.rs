@@ -30,6 +30,31 @@ impl Data {
         })
     }
 
+    /// Gives `command` the key and leaves `from`, which had it, without one; one undo step.
+    pub fn reassign_shortcut(&self, command: &str, key: &str, from: &str) -> AppResult<Changed> {
+        let command = command_id(command)?;
+        let from = command_id(from)?;
+        let key = required(key, || invalid_field("shortcut", "A shortcut needs a key"))?;
+        if command == from {
+            return self.set_shortcut(&command, Some(key));
+        }
+        self.change(|_| {
+            edit(
+                "Reassign Shortcut",
+                Op::Batch(vec![
+                    Op::SetShortcut {
+                        command: from,
+                        key: None,
+                    },
+                    Op::SetShortcut {
+                        command,
+                        key: Some(key),
+                    },
+                ]),
+            )
+        })
+    }
+
     /// Back to the command's default key.
     pub fn reset_shortcut(&self, command: &str) -> AppResult<Changed> {
         let command = command_id(command)?;
@@ -38,6 +63,27 @@ impl Data {
                 return Ok(None);
             }
             edit("Reset Shortcut", Op::ResetShortcut { command })
+        })
+    }
+
+    /// Back to the command's default key, leaving `from`, which had that key, without one; one undo step.
+    pub fn reset_shortcut_taking_from(&self, command: &str, from: &str) -> AppResult<Changed> {
+        let command = command_id(command)?;
+        let from = command_id(from)?;
+        if command == from {
+            return self.reset_shortcut(&command);
+        }
+        self.change(|_| {
+            edit(
+                "Reset Shortcut",
+                Op::Batch(vec![
+                    Op::SetShortcut {
+                        command: from,
+                        key: None,
+                    },
+                    Op::ResetShortcut { command },
+                ]),
+            )
         })
     }
 }

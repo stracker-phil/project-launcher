@@ -17,6 +17,9 @@ pub enum Appearance {
     Dark,
 }
 
+/// The owner's key per command id; `None` leaves the command without one.
+pub type Shortcuts = BTreeMap<String, Option<String>>;
+
 #[derive(Serialize, Deserialize, TS, Debug, Clone, PartialEq, Eq)]
 #[ts(export, export_to = "src/api/types.gen.ts")]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +28,7 @@ pub struct Settings {
     /// Every tag in the owner's order, including tags no project carries.
     pub tags: Vec<String>,
     /// The owner's key for a command id, overriding its default; `null` leaves the command without one.
-    pub shortcuts: BTreeMap<String, Option<String>>,
+    pub shortcuts: Shortcuts,
     /// The editor for projects that name none; empty uses the system's default app.
     pub default_editor: String,
     pub git_client: String,
@@ -95,7 +98,7 @@ fn repaired_tags(raw: &Value) -> Vec<String> {
 }
 
 /// Entries with a command id and a non-empty key or `null`.
-fn repaired_shortcuts(raw: &Value) -> BTreeMap<String, Option<String>> {
+fn repaired_shortcuts(raw: &Value) -> Shortcuts {
     let empty = Map::new();
     raw.as_object()
         .unwrap_or(&empty)

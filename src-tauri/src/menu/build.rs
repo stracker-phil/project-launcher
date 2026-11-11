@@ -1,5 +1,5 @@
-//! Building the menu bar from the items: only known commands, enabled as the bus says, with macOS's
-//! standard items around them.
+//! Building the menu bar from the items: only known commands, enabled as the bus says, keys with the owner's
+//! overrides, and macOS's standard items around them.
 
 use tauri::menu::{AboutMetadata, Menu, MenuItemBuilder, Submenu, SubmenuBuilder};
 use tauri::{AppHandle, Manager, Wry};
@@ -7,12 +7,24 @@ use tauri::{AppHandle, Manager, Wry};
 use super::items::{
     APP_MENU, EDIT_MENU, FILE_MENU, HELP_MENU, Item, MenuDef, VIEW_MENU, WINDOW_TITLE,
 };
-use super::shown_groups;
+use super::keys::effective_accelerator;
+use super::{MenuKeys, shown_groups};
 use crate::bus::{self, CommandStatus};
+use crate::state::AppState;
+use crate::store::Shortcuts;
 
 struct Ctx<'a> {
     app: &'a AppHandle,
     commands: &'a dyn CommandStatus,
+    /// `None` while Settings → Shortcuts records a key, so the menu doesn't take it.
+    shortcuts: Option<&'a Shortcuts>,
+}
+
+impl Ctx<'_> {
+    fn accelerator(&self, item: &Item) -> Option<String> {
+        self.shortcuts
+            .and_then(|shortcuts| effective_accelerator(item, shortcuts))
+    }
 }
 
 type Builder<'a> = SubmenuBuilder<'a, Wry, AppHandle>;
@@ -23,12 +35,21 @@ fn with_items<'a>(
     items: &[&Item],
 ) -> tauri::Result<Builder<'a>> {
     for item in items {
-        let mut menu_item = MenuItemBuilder::with_id(item.command, item.label)
-            .enabled(ctx.commands.is_enabled(item.command));
-        if let Some(accelerator) = item.accelerator {
-            menu_item = menu_item.accelerator(accelerator);
-        }
-        builder = builder.item(&menu_item.build(ctx.app)?);
+        let menu_item = || {
+            MenuItemBuilder::with_id(item.command, item.label)
+                .enabled(ctx.commands.is_enabled(item.command))
+        };
+        let built = match ctx.accelerator(item) {
+            Some(accelerator) => menu_item()
+                .accelerator(&accelerator)
+                .build(ctx.app)
+                .or_else(|e| {
+                    log::warn!("Menu item {} can't take {accelerator}: {e}", item.command);
+                    menu_item().build(ctx.app)
+                })?,
+            None => menu_item().build(ctx.app)?,
+        };
+        builder = builder.item(&built);
     }
     Ok(builder)
 }
@@ -70,9 +91,11 @@ fn app_submenu(ctx: &Ctx) -> tauri::Result<Submenu<Wry>> {
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let registry = app.state::<bus::Commands>();
     let commands = registry.available(app);
+    let shortcuts = app.state::<AppState>().data.settings().shortcuts;
     let ctx = Ctx {
         app,
         commands: &commands,
+        shortcuts: (!app.state::<MenuKeys>().paused()).then_some(&shortcuts),
     };
     let launcher = app_submenu(&ctx)?;
     let file = submenu(&ctx, FILE_MENU)?.build()?;

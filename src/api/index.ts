@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { AppError, AppStatus, Appearance, ErrorKind, LaunchEvent, MenuCommand, MetaEdit, Project, Settings } from "./types.gen";
+import type { AppError, AppStatus, Appearance, ErrorKind, LaunchEvent, MenuCommand, MenuShortcut, MetaEdit, Project, Settings } from "./types.gen";
 
 export type {
   AppError,
@@ -11,6 +11,7 @@ export type {
   ErrorKind,
   LaunchEvent,
   MenuCommand,
+  MenuShortcut,
   MetaEdit,
   Project,
   ProjectMeta,
@@ -45,12 +46,18 @@ export const api = {
   appStatus: () => invoke<AppStatus>("app_status"),
   /** The menu bar's enabled items, in menu order, for the command palette. */
   menuCommands: () => invoke<MenuCommand[]>("menu_commands"),
+  /** Every menu item of a known command with its default and current key, for Settings → Shortcuts. */
+  menuShortcuts: () => invoke<MenuShortcut[]>("menu_shortcuts"),
+  /** Takes the menu items' keys off while a shortcut is being recorded. */
+  pauseMenuKeys: (paused: boolean) => invoke<void>("pause_menu_keys", { paused }),
   getSettings: () => invoke<Settings>("get_settings"),
   setAppearance: (appearance: Appearance) => invoke<void>("set_appearance", { appearance }),
   /** `key: null` leaves the command without a key. */
   setShortcut: (command: string, key: string | null) => invoke<void>("set_shortcut", { command, key }),
-  /** Back to the command's default key. */
-  resetShortcut: (command: string) => invoke<void>("reset_shortcut", { command }),
+  /** Gives `command` the key `from` has and leaves `from` without one, as one change. */
+  reassignShortcut: (command: string, key: string, from: string) => invoke<void>("reassign_shortcut", { command, key, from }),
+  /** Back to the command's default key; `from`, which has that key now, is left without one, as one change. */
+  resetShortcut: (command: string, from?: string) => invoke<void>("reset_shortcut", { command, from }),
   addTag: (name: string) => invoke<void>("add_tag", { name }),
   /** Also renames the tag in every project file that carries it. */
   renameTag: (from: string, to: string) => invoke<void>("rename_tag", { from, to }),

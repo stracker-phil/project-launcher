@@ -31,8 +31,8 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 ## Page commands
 
 The page's own commands live in `src/commands/` (`registerCommands`, `runPageCommand`). Menus reach them as
-`page:<id>`; a page command with a `defaultBinding` also runs from its key while the window has focus. Bare
-keys (no ⌘ or ⌃) never fire in text fields.
+`page:<id>`; a page command with a `defaultBinding` (or a key the owner gave it) also runs from its key while
+the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 
 | Id | Title | Key (menu) |
 |---|---|---|
@@ -74,6 +74,21 @@ group without one is dropped. Plain-letter keys never go on menu items.
 | View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
 | Window | Minimize, Zoom · Bring All to Front |
 | Help | Open Log Folder, Show Data Folder |
+
+The keys above are the defaults. The owner changes them in Settings → Shortcuts; `settings.json` `shortcuts`
+stores them by command id in the page's notation (`Mod+Shift+K`): a menu item under its command
+(`page:palette.open`, `app:quit`), a page command under its id (`settings.search`). `menu/keys.rs` converts
+between that and Tauri's `CmdOrCtrl+Shift+K` (`Combo`); a menu item's key is the override, else its default
+(`effective_accelerator`; an override the menu can't take keeps the default). Every settings change, its undo
+and redo included, rebuilds the menu bar (`menu::refresh`), and `menu_commands` reports the keys in effect.
+
+| Tauri command | Does |
+|---|---|
+| `menu_shortcuts` | Every menu item of a known command, enabled or not, with `defaultKey` and `key` (in effect) in the page's notation (`MenuShortcut`) |
+| `set_shortcut(command, key)` | Stores the owner's key (`null`: none); a menu item's key needs ⌘ or ⌃ and is stored normalized (`menu::shortcuts::checked`), else `InvalidField` `shortcut` |
+| `reassign_shortcut(command, key, from)` | Gives `command` the key and leaves `from` without one, as one undo step ("Reassign Shortcut") |
+| `reset_shortcut(command, from?)` | Back to the default key; `from`, which has that key now, is left without one in the same undo step ("Reset Shortcut") |
+| `pause_menu_keys(paused)` | Rebuilds the menu bar without (or again with) its keys while Settings → Shortcuts records one |
 
 The tray menu's items are `app:show` and `app:quit`; Tauri hands tray clicks to the same handler
 (`menu::clicked`).

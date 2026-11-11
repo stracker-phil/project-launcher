@@ -5,10 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await import("../test/apiMock")).createApiMock() }));
 
-import { api, type Project } from "../api";
+import { api, type MenuShortcut, type Project } from "../api";
 import { DEFAULT_SETTINGS, type createApiMock } from "../test/apiMock";
 import { createQueryClient } from "./queryClient";
 import { useEvents } from "./useEvents";
+import { useMenuShortcuts } from "./useMenuShortcuts";
 import { useProjects } from "./useProjects";
 import { useSettings } from "./useSettings";
 
@@ -26,6 +27,8 @@ const project = (name: string): Project => ({
   fileError: null,
 });
 
+const menuItem = (key: string): MenuShortcut => ({ menu: "File", label: "Quit", command: "app:quit", defaultKey: "Mod+Q", key });
+
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>;
 }
@@ -34,7 +37,7 @@ function renderReads() {
   return renderHook(
     () => {
       useEvents();
-      return { projects: useProjects().data, settings: useSettings().data };
+      return { projects: useProjects().data, settings: useSettings().data, menu: useMenuShortcuts().data };
     },
     { wrapper },
   );
@@ -45,6 +48,7 @@ describe("useEvents", () => {
     vi.clearAllMocks();
     mocked.listProjects.mockResolvedValue([project("Demo Shop")]);
     mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, tags: ["client"] });
+    mocked.menuShortcuts.mockResolvedValue([menuItem("Mod+Q")]);
   });
 
   it("reads the projects again on projects_changed and leaves the settings alone", async () => {
@@ -71,5 +75,28 @@ describe("useEvents", () => {
 
     await waitFor(() => expect(result.current.settings?.tags).toEqual(["client", "internal"]));
     expect(result.current.projects?.[0].name).toBe("Demo Shop");
+  });
+
+  it("reads the menu's shortcuts again on settings_changed", async () => {
+    const { result } = renderReads();
+    await waitFor(() => expect(result.current.menu?.[0].key).toBe("Mod+Q"));
+    mocked.menuShortcuts.mockResolvedValue([menuItem("Mod+J")]);
+
+    act(() => emit("settings_changed", null));
+
+    await waitFor(() => expect(result.current.menu?.[0].key).toBe("Mod+J"));
+  });
+
+  it("leaves the menu's shortcuts alone on projects_changed", async () => {
+    const { result } = renderReads();
+    await waitFor(() => expect(result.current.menu?.[0].key).toBe("Mod+Q"));
+    await waitFor(() => expect(result.current.projects?.[0].name).toBe("Demo Shop"));
+    mocked.menuShortcuts.mockResolvedValue([menuItem("Mod+J")]);
+    mocked.listProjects.mockResolvedValue([project("Demo Shop Renamed")]);
+
+    act(() => emit("projects_changed", null));
+
+    await waitFor(() => expect(result.current.projects?.[0].name).toBe("Demo Shop Renamed"));
+    expect(result.current.menu?.[0].key).toBe("Mod+Q");
   });
 });

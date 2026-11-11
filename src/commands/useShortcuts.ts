@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { resolveKeydown } from "./registry";
 
-/** A context menu takes its own keys. */
-const inMenu = (target: EventTarget | null) => target instanceof Element && !!target.closest('[role="menu"]');
+/** A context menu and a shortcut recorder take their own keys. */
+const ownsKeys = (target: EventTarget | null) => target instanceof Element && !!target.closest('[role="menu"], [data-recording]');
 
 /** ↵ and Space activate the focused button, link or checkbox rather than a command. */
 function activatesControl(e: KeyboardEvent): boolean {
@@ -11,7 +11,7 @@ function activatesControl(e: KeyboardEvent): boolean {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (activatesControl(e) || inMenu(e.target)) return;
+  if (activatesControl(e) || ownsKeys(e.target)) return;
   const command = resolveKeydown(e);
   if (!command) return;
   e.preventDefault();

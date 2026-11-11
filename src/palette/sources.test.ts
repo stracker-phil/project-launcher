@@ -66,7 +66,7 @@ describe("collectCommands", () => {
     it("shows the command's own key label before the one Rust reports", () => {
       registerCommands([pageCommand({ defaultBinding: "Mod+Shift+G" })]);
 
-      expect(find(collect([pageRow]), "page:demo.go")?.shortcut).toBe("⌘⇧G");
+      expect(find(collect([pageRow]), "page:demo.go")?.shortcut).toBe("⇧⌘G");
     });
 
     it("falls back to the key Rust reports when the command has no binding", () => {

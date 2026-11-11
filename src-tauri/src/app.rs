@@ -24,6 +24,7 @@ pub fn start(
     tauri::Builder::default()
         .manage(state)
         .manage(commands_bus())
+        .manage(menu::MenuKeys::default())
         .plugin(log_plugin())
         .plugin(tauri_plugin_opener::init())
         .plugin(window::navigation::guard())

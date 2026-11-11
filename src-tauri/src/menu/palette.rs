@@ -4,8 +4,11 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use ts_rs::TS;
 
-use super::{MENUS, PALETTE};
+use super::keys::effective_accelerator;
+use super::{PALETTE, menu_items};
 use crate::bus::{self, CommandStatus};
+use crate::state::AppState;
+use crate::store::Shortcuts;
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq, TS)]
 #[ts(export, export_to = "src/api/types.gen.ts")]
@@ -19,22 +22,15 @@ pub struct MenuCommand {
     pub key: Option<String>,
 }
 
-/// Every enabled item of the menus, in menu order; Command Palette… itself is left out.
-pub fn listed(commands: &dyn CommandStatus) -> Vec<MenuCommand> {
-    MENUS
-        .iter()
-        .flat_map(|(menu, groups)| {
-            groups
-                .iter()
-                .flat_map(|items| items.iter())
-                .map(move |item| (*menu, item))
-        })
+/// Every enabled item of the menus, in menu order, with the owner's keys; Command Palette… itself is left out.
+pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuCommand> {
+    menu_items()
         .filter(|(_, item)| item.command != PALETTE.command && commands.is_enabled(item.command))
         .map(|(menu, item)| MenuCommand {
             menu: menu.to_string(),
             label: item.label.to_string(),
             command: item.command.to_string(),
-            key: item.accelerator.map(key_label),
+            key: effective_accelerator(item, shortcuts).as_deref().map(key_label),
         })
         .collect()
 }
@@ -85,7 +81,8 @@ fn key_symbol(key: &str) -> String {
 #[tauri::command]
 pub async fn menu_commands(app: AppHandle) -> Vec<MenuCommand> {
     let registry = app.state::<bus::Commands>();
-    listed(&registry.available(&app))
+    let shortcuts = app.state::<AppState>().data.settings().shortcuts;
+    listed(&registry.available(&app), &shortcuts)
 }
 
 #[cfg(test)]
@@ -144,7 +141,7 @@ mod tests {
 
     #[test]
     fn the_first_item_is_settings_in_the_app_menu_with_its_key() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         assert_eq!(
             listed[0],
             MenuCommand {
@@ -158,7 +155,7 @@ mod tests {
 
     #[test]
     fn items_follow_menu_order_app_file_edit_view_help() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         let mut menus: Vec<&str> = listed.iter().map(|item| item.menu.as_str()).collect();
         menus.dedup();
         assert_eq!(menus, [crate::APP_NAME, "File", "Edit", "View", "Help"]);
@@ -166,7 +163,7 @@ mod tests {
 
     #[test]
     fn the_edit_menu_lists_undo_and_redo_with_their_keys() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         let edit: Vec<(&str, &str, Option<&str>)> = listed
             .iter()
             .filter(|item| item.menu == "Edit")
@@ -183,7 +180,7 @@ mod tests {
 
     #[test]
     fn every_enabled_item_is_listed_in_menu_order() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         assert_eq!(
             commands(&listed),
             [
@@ -203,24 +200,24 @@ mod tests {
 
     #[test]
     fn the_command_palette_item_is_never_listed() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         assert!(!commands(&listed).contains(&"page:palette.open"));
     }
 
     #[test]
     fn disabled_or_unknown_commands_are_left_out() {
-        let listed = listed(&Enabled(&["app:settings", "app:logs", "test:unrelated"]));
+        let listed = listed(&Enabled(&["app:settings", "app:logs", "test:unrelated"]), &Shortcuts::new());
         assert_eq!(commands(&listed), ["app:settings", "app:logs"]);
     }
 
     #[test]
     fn nothing_is_listed_when_no_command_is_enabled() {
-        assert!(listed(&Enabled(&[])).is_empty());
+        assert!(listed(&Enabled(&[]), &Shortcuts::new()).is_empty());
     }
 
     #[test]
     fn the_view_menu_lists_the_pane_toggles_with_their_keys() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         let view: Vec<(&str, &str, Option<&str>)> = listed
             .iter()
             .filter(|item| item.menu == "View" && item.command != "app:reload")
@@ -237,7 +234,7 @@ mod tests {
 
     #[test]
     fn items_without_a_key_equivalent_have_no_key() {
-        let listed = listed(&Enabled(ALL));
+        let listed = listed(&Enabled(ALL), &Shortcuts::new());
         assert_eq!(find(&listed, "app:logs").key, None);
         assert_eq!(find(&listed, "app:data").key, None);
     }
@@ -247,10 +244,49 @@ mod tests {
         let mut bus = CommandBus::<AppHandle>::default();
         bus::register(&mut bus);
 
-        let listed = listed(&Registered(bus));
+        let listed = listed(&Registered(bus), &Shortcuts::new());
 
         assert_eq!(commands(&listed).contains(&"app:reload"), cfg!(debug_assertions));
         assert_eq!(commands(&listed)[0], "app:settings");
+    }
+
+    fn overrides(command: &str, key: Option<&str>) -> Shortcuts {
+        let mut shortcuts = Shortcuts::new();
+        shortcuts.insert(command.to_string(), key.map(str::to_string));
+        shortcuts
+    }
+
+    #[test]
+    fn an_overridden_key_is_shown_as_the_menu_label() {
+        for (override_key, expected) in [
+            ("Mod+Alt+P", "⌥⌘P"),
+            ("cmd+shift+,", "⇧⌘,"),
+            ("CmdOrCtrl+Ctrl+Up", "⌃⌘↑"),
+            ("Ctrl+Esc", "⌃⎋"),
+        ] {
+            let listed = listed(&Enabled(ALL), &overrides("app:quit", Some(override_key)));
+            assert_eq!(find(&listed, "app:quit").key.as_deref(), Some(expected), "{override_key}");
+            assert_eq!(find(&listed, "app:settings").key.as_deref(), Some("⌘,"));
+        }
+    }
+
+    #[test]
+    fn a_null_override_shows_no_key() {
+        let listed = listed(&Enabled(ALL), &overrides("app:quit", None));
+        assert_eq!(find(&listed, "app:quit").key, None);
+        assert_eq!(find(&listed, "edit:undo").key.as_deref(), Some("⌘Z"));
+    }
+
+    #[test]
+    fn an_override_menus_cannot_take_leaves_the_default_key() {
+        let listed = listed(&Enabled(ALL), &overrides("app:quit", Some("Q")));
+        assert_eq!(find(&listed, "app:quit").key.as_deref(), Some("⌘Q"));
+    }
+
+    #[test]
+    fn an_override_gives_a_key_to_an_item_without_one() {
+        let listed = listed(&Enabled(ALL), &overrides("app:logs", Some("Mod+Shift+L")));
+        assert_eq!(find(&listed, "app:logs").key.as_deref(), Some("⇧⌘L"));
     }
 
     #[test]

@@ -83,6 +83,19 @@ describe("useShortcuts", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+  it("leaves the keys to a shortcut recorder that is recording", async () => {
+    render(
+      <Host>
+        <button data-recording>Press keys…</button>
+      </Host>,
+    );
+    screen.getByRole("button", { name: "Press keys…" }).focus();
+
+    await userEvent.keyboard("{Meta>}k{/Meta}");
+
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("stops routing keys once unmounted", async () => {
     const { unmount } = render(<Host />);
     unmount();

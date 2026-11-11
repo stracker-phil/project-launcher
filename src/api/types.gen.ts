@@ -53,6 +53,15 @@ menu: string, label: string, command: string,
 key: string | null, };
 
 /**
+ * A menu item whose key the owner can change; keys in the page's notation (`Mod+Shift+K`).
+ */
+export type MenuShortcut = { menu: string, label: string, command: string, defaultKey: string | null, 
+/**
+ * Effective key, including the owner's override.
+ */
+key: string | null, };
+
+/**
  * A change to one `meta` key of a project's file; empty text, no note lines and `false` remove the key.
  */
 export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean };

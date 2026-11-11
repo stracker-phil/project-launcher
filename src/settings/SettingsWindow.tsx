@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { hasRow, resolveSettingsPage, searchSettingsPages, type SettingsMatch } from "../registry/settingsPages";
+import { hasRow, resolveSettingsPage, searchSettingsPages, useSettingsPagesVersion, type SettingsMatch } from "../registry/settingsPages";
 import { ScrollTarget } from "./controls";
 
 const targetOf = (match: SettingsMatch) => match.row?.id ?? match.page.id;
@@ -47,6 +47,7 @@ function SettingsNav({ current, onPage }: { current: string; onPage: (id: string
 
 /** `target` is a page id or a row id; a row's page opens scrolled to it. */
 export function SettingsWindow({ target, onPage }: { target: string | undefined; onPage: (id: string) => void }) {
+  useSettingsPagesVersion();
   const page = resolveSettingsPage(target);
   if (!page) return null;
   const row = hasRow(page, target) ? target : undefined;

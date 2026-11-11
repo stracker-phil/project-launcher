@@ -229,6 +229,141 @@ fn a_shortcut_without_a_command_or_a_key_is_refused() {
     assert_eq!(undo_label(&fx.data), None);
 }
 
+fn shortcut_of(data: &Data, command: &str) -> Option<Option<String>> {
+    data.settings().shortcuts.get(command).cloned()
+}
+
+#[test]
+fn reassigning_a_shortcut_moves_the_key_and_unbinds_the_command_that_had_it() {
+    let fx = Fixture::new(&[], &[]);
+    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
+
+    assert_eq!(
+        fx.data.reassign_shortcut("project.find", " Cmd+K ", "palette.open").unwrap(),
+        SETTINGS_ONLY
+    );
+
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
+}
+
+#[test]
+fn reassigning_a_shortcut_from_a_command_without_an_override_still_unbinds_it() {
+    let fx = Fixture::new(&[], &[]);
+
+    fx.data.reassign_shortcut("project.find", "Cmd+K", "palette.open").unwrap();
+
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+}
+
+#[test]
+fn a_reassignment_is_one_undo_step_labelled_reassign_shortcut() {
+    let fx = Fixture::new(&[], &[]);
+    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
+    fx.data.reassign_shortcut("project.find", "Cmd+K", "palette.open").unwrap();
+
+    let undone = fx.data.undo().unwrap().unwrap();
+    assert_eq!(undone.label, "Reassign Shortcut");
+    assert_eq!(undone.changed, SETTINGS_ONLY);
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(shortcut_of(&fx.data, "project.find"), None);
+
+    let redone = fx.data.redo().unwrap().unwrap();
+    assert_eq!(redone.label, "Reassign Shortcut");
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Reassign Shortcut"));
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn reassigning_with_a_blank_command_key_or_source_is_refused_and_changes_nothing() {
+    let fx = Fixture::new(&[], &[]);
+    let blank_command = fx.data.reassign_shortcut(" ", "Cmd+K", "palette.open").unwrap_err();
+    assert_eq!(blank_command.kind(), ErrorKind::InvalidInput);
+    let blank_from = fx.data.reassign_shortcut("project.find", "Cmd+K", "").unwrap_err();
+    assert_eq!(blank_from.kind(), ErrorKind::InvalidInput);
+    let blank_key = fx.data.reassign_shortcut("project.find", "  ", "palette.open").unwrap_err();
+    assert_eq!(field_of(&blank_key), Some("shortcut"));
+
+    assert!(fx.data.settings().shortcuts.is_empty());
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn resetting_a_shortcut_taking_it_from_another_command_is_one_undo_step() {
+    let fx = Fixture::new(&[], &[]);
+    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
+    fx.data.set_shortcut("project.find", Some("Cmd+K".into())).unwrap();
+
+    assert_eq!(
+        fx.data.reset_shortcut_taking_from("palette.open", "project.find").unwrap(),
+        SETTINGS_ONLY
+    );
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), None);
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(None));
+
+    let undone = fx.data.undo().unwrap().unwrap();
+    assert_eq!(undone.label, "Reset Shortcut");
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+J".to_string())));
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+
+    let redone = fx.data.redo().unwrap().unwrap();
+    assert_eq!(redone.label, "Reset Shortcut");
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), None);
+    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(None));
+}
+
+#[test]
+fn resetting_taking_from_the_same_command_acts_as_a_plain_reset() {
+    let fx = Fixture::new(&[], &[]);
+    assert_eq!(
+        fx.data.reset_shortcut_taking_from("palette.open", "palette.open").unwrap(),
+        Changed::default()
+    );
+    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
+
+    assert_eq!(
+        fx.data.reset_shortcut_taking_from("palette.open", "palette.open").unwrap(),
+        SETTINGS_ONLY
+    );
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), None);
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Reset Shortcut"));
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
+}
+
+#[test]
+fn resetting_taking_from_with_a_blank_command_is_refused() {
+    let fx = Fixture::new(&[], &[]);
+    for (command, from) in [(" ", "palette.open"), ("palette.open", "")] {
+        let err = fx.data.reset_shortcut_taking_from(command, from).unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::InvalidInput, "{command:?} {from:?}");
+    }
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn reassigning_a_shortcut_to_the_command_that_has_it_acts_as_setting_it() {
+    let fx = Fixture::new(&[], &[]);
+
+    assert_eq!(
+        fx.data.reassign_shortcut("palette.open", " Cmd+J ", "palette.open").unwrap(),
+        SETTINGS_ONLY
+    );
+    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+J".to_string())));
+    assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
+    assert_eq!(undo_label(&fx.data), None);
+
+    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
+    assert_eq!(
+        fx.data.reassign_shortcut("palette.open", "Cmd+J", "palette.open").unwrap(),
+        Changed::default()
+    );
+}
+
 #[test]
 fn adding_a_tag_appends_it_trimmed_and_undo_removes_it() {
     let fx = Fixture::new(&[], &["Client"]);
