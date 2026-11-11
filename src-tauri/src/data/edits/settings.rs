@@ -4,7 +4,7 @@ use super::{edit, invalid_field, required};
 use crate::data::ops::Op;
 use crate::data::{Changed, Data};
 use crate::error::{AppError, AppResult};
-use crate::store::{AppSetting, Appearance};
+use crate::store::{AppSetting, Appearance, DockerManager};
 
 impl Data {
     pub fn set_appearance(&self, appearance: Appearance) -> AppResult<Changed> {
@@ -24,6 +24,15 @@ impl Data {
                 return Ok(None);
             }
             edit(setting.label(), Op::SetApp(setting, value))
+        })
+    }
+
+    pub fn set_docker_manager(&self, manager: DockerManager) -> AppResult<Changed> {
+        self.change(|data| {
+            if data.settings().docker_manager == manager {
+                return Ok(None);
+            }
+            edit("Change Docker App", Op::SetDockerManager(manager))
         })
     }
 

@@ -52,6 +52,7 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 | `project.star`, `project.archive` | Star Project, Archive Project | Toggle; starring unarchives and archiving unstars, in one undo step |
 | `project.lock` | Lock Project Details | ⇧⌘L; toggles `"locked"` in the project file |
 | `project.terminal`, `project.reveal`, `project.copyPath`, `project.editFile` | Open Terminal Here, Reveal in Finder, Copy Path, Edit Project File… | ⌥⌘C for Copy Path; a shell in the folder with the project's env, the folder in Finder, the absolute path on the clipboard, `.project-launcher.json` in the config editor (else the project's or default editor, else the text editor) |
+| `project.database` | Open Database | ⇧⌘D; the project's database in DataBee (`open_database`); a DDEV or wp-env database whose server doesn't run is started first |
 | `project.remove` | Remove from List | The toast offers Undo; the folder and its file stay |
 
 The library's and project's commands live in `src/main/libraryCommands.ts`; they act on the project the detail
@@ -97,7 +98,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 | Edit | Undo ⌘Z, Redo ⇧⌘Z (`edit:undo`, `edit:redo`, replacing macOS's own) · macOS's Cut, Copy, Paste, Select All |
 | View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
 | Library | All Projects ⌘1, Starred ⌘2 · Archived ⌘0 |
-| Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Open Terminal Here, Reveal in Finder, Copy Path ⌥⌘C, Edit Project File… · Remove from List |
+| Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Open Terminal Here, Reveal in Finder, Copy Path ⌥⌘C, Open Database ⇧⌘D, Edit Project File… · Remove from List |
 | Window | Minimize, Zoom · Bring All to Front |
 | Help | Open Log Folder, Show Data Folder |
 
@@ -151,3 +152,15 @@ window shows its project and no text field, menu, sheet or palette has the keys
 | `project_status(id)` | Runs the state providers: the states to show, the actions their `hiddenStates` hide now, the terminal commands still running (`ProjectStatus`) |
 
 Everything but copying the path records the project as opened (`lastOpenedAt`) and announces `projects_changed`.
+
+## Dev environment
+
+| Tauri command | Does |
+|---|---|
+| `dev_status(id)` | `DevStatus`: Docker (running, the step under way, the manager's name) for a project that uses it, the DDEV or wp-env server (state, URL, step under way; `notConfigured` with a hint when the folder lacks its config) and the database (`DatabaseInfo`) |
+| `dev_action(id, action)` | Starts, stops or restarts Docker or the server on a thread of its own (`DevAction`); Docker's stop first runs `ddev poweroff` while DDEV projects run. `dev_changed` follows each change, `dev_failed` (`{ projectId, label, output }`) a failed step |
+| `open_database(id)` | Opens the database in DataBee through its CLI (`databee`, the password in `DATABEE_PASSWORD`); `starting` when the server is started first, then DataBee opens or `dev_failed` reports why not |
+| `set_docker_manager(manager)` | Docker Desktop, OrbStack, Colima or Custom (its start and stop commands through `set_app_setting`) |
+
+Launching an action or a terminal starts the project's environment first, once per session (`DevEnv::prepare`), so
+an environment stopped by hand stays stopped.

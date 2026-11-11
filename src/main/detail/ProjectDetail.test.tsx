@@ -11,7 +11,7 @@ import { Toasts } from "../../components/Toasts";
 import { createQueryClient } from "../../queries/queryClient";
 import { resetLibrary } from "../../state/library";
 import { inspectorShown, resetStore, useStore } from "../../state/store";
-import { EMPTY_LIBRARY, EMPTY_PROJECT_CONFIG, EMPTY_STATUS } from "../../test/apiMock";
+import { EMPTY_DEV_STATUS, EMPTY_LIBRARY, EMPTY_PROJECT_CONFIG, EMPTY_STATUS } from "../../test/apiMock";
 import { action, library, project, section } from "../../test/library";
 import { DetailTools, ProjectDetail } from "./ProjectDetail";
 
@@ -49,6 +49,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocked.projectConfig.mockResolvedValue(EMPTY_PROJECT_CONFIG);
   mocked.projectStatus.mockResolvedValue(EMPTY_STATUS);
+  mocked.devStatus.mockResolvedValue(EMPTY_DEV_STATUS);
   resetStore();
   resetLibrary();
 });
@@ -274,6 +275,27 @@ describe("ProjectDetail", () => {
       await userEvent.keyboard("{Meta>}e{/Meta}");
 
       expect(mocked.launchAction).not.toHaveBeenCalled();
+    });
+
+    it("shows the project's dev environment from its dev status", async () => {
+      mocked.devStatus.mockResolvedValue({
+        docker: { running: true, activity: null, manager: "OrbStack" },
+        server: null,
+        database: { source: "ddev", engine: "MariaDB" },
+      });
+
+      renderDetail(alpha);
+
+      expect(await screen.findByText("OrbStack")).toBeInTheDocument();
+      expect(screen.getByText("MariaDB")).toBeInTheDocument();
+      expect(mocked.devStatus).toHaveBeenCalledWith("alpha");
+    });
+
+    it("shows no dev environment section for a project without one", async () => {
+      renderDetail(alpha);
+      await screen.findByText(NOTHING_YET);
+
+      expect(screen.queryByRole("heading", { name: "Dev Environment" })).not.toBeInTheDocument();
     });
 
     it("offers adding actions while unlocked", async () => {

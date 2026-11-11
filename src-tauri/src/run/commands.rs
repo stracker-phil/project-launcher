@@ -42,11 +42,13 @@ async fn opening<T: Send + 'static>(
 
 #[tauri::command]
 pub async fn launch_action(app: AppHandle, id: String, source: ActionSource) -> AppResult<Outcome> {
+    crate::devenv::commands::prepare_in_background(&app, &id);
     opening(app, move |runner, now| runner.launch(&id, source, now)).await
 }
 
 #[tauri::command]
 pub async fn open_terminal(app: AppHandle, id: String) -> AppResult<()> {
+    crate::devenv::commands::prepare_in_background(&app, &id);
     opening(app, move |runner, now| runner.open_terminal(&id, now)).await
 }
 

@@ -2,7 +2,7 @@
 //! status the detail shows.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -191,6 +191,10 @@ impl System for JobSpy {
 
     fn tool(&self, _program: &str, _args: &[&str]) -> Option<String> {
         None
+    }
+
+    fn inspect(&self, _cwd: Option<&Path>, _program: &str, _args: &[&str]) -> Output {
+        Output::default()
     }
 
     fn copy(&self, _text: &str) -> AppResult<()> {

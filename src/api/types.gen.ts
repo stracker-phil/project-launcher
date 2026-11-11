@@ -44,6 +44,11 @@ export type ActionList = "apps" | "scripts";
 export type ActionSource = { list: ActionList, index: number, };
 
 /**
+ * What is under way right now.
+ */
+export type Activity = "starting" | "stopping" | "restarting";
+
+/**
  * What adding folders did: the new projects' ids, and the ids of folders that were listed already.
  */
 export type AddedProjects = { added: Array<string>, existing: Array<string>, };
@@ -65,7 +70,7 @@ export type AppErrorField = { path: string, message: string, };
 /**
  * The apps Settings → General names: what the built-ins and the project file open with.
  */
-export type AppSetting = "defaultEditor" | "gitClient" | "terminalApp" | "configEditor";
+export type AppSetting = "defaultEditor" | "gitClient" | "terminalApp" | "configEditor" | "dockerStartCommand" | "dockerStopCommand";
 
 /**
  * Paths start with `~` for the home folder.
@@ -107,19 +112,52 @@ export type CliLink = "installed" | "notInstalled" | "notApplicable";
 export type CommandLine = { path: string, link: CliLink, };
 
 /**
+ * What the detail shows: where the database comes from, its engine, `user@host/db` for a URL (never the
+ * password) and why it can't be opened.
+ */
+export type DatabaseInfo = { source: DatabaseSource, engine: string, detail?: string, error?: string, };
+
+/**
  * The file's `database`: absent finds the database in the dev server's setup, `false` hides it, a
  * `mysql://` URL names it. The URL holds a password, so it never reaches the page.
  */
 export type DatabaseSetting = "detect" | "hidden" | "url";
+
+export type DatabaseSource = "ddev" | "wp-env" | "config";
+
+export type DevAction = "dockerStart" | "dockerStop" | "dockerRestart" | "serverStart" | "serverStop" | "serverRestart";
+
+/**
+ * A failed step, for the project's detail.
+ */
+export type DevFailure = { projectId: string, label: string, output: string, };
 
 /**
  * What a project needs running while the owner works on it; `ddev` and `wp-env` run inside Docker.
  */
 export type DevMode = "none" | "docker" | "ddev" | "wp-env";
 
+/**
+ * A project's dev environment as the detail shows it; `docker` only for a project that uses Docker.
+ */
+export type DevStatus = { docker: DockerStatus | null, server: ServerStatus | null, database: DatabaseInfo | null, };
+
+export type DockerManager = "docker-desktop" | "orbstack" | "colima" | "custom";
+
+export type DockerStatus = { running: boolean, activity: Activity | null, 
+/**
+ * The manager's name ("OrbStack").
+ */
+manager: string, };
+
 export type EnvVar = { name: string, value: string, };
 
 export type ErrorKind = "io" | "invalid_input" | "not_found" | "launch" | "internal";
+
+/**
+ * A step that failed: what it was ("Start DDEV") and what it printed.
+ */
+export type Failure = { label: string, output: string, };
 
 /**
  * A sidebar entry. Archived projects show only under `Archived`.
@@ -179,6 +217,11 @@ key: string | null, };
  * A change to one `meta` key of a project's file; empty text, no note lines and `false` remove the key.
  */
 export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean } | { "field": "url", "value": string | null } | { "field": "repoUrl", "value": string | null };
+
+/**
+ * `starting`: the database's server starts first; DataBee opens once it runs.
+ */
+export type OpenedDatabase = "opened" | "starting";
 
 /**
  * What launching an action did: an app, link or terminal opened, or a script ran to its end.
@@ -262,6 +305,15 @@ export type ScriptResult = { ok: boolean, exitCode: number | null, timedOut: boo
 
 export type Section = { title: string | null, rows: Array<Row>, };
 
+/**
+ * A tool that runs a project's local server inside Docker.
+ */
+export type Server = "ddev" | "wp-env";
+
+export type ServerState = "running" | "paused" | "stopped" | "notConfigured" | "unknown";
+
+export type ServerStatus = { server: Server, label: string, state: ServerState, url: string | null, detail: string | null, activity: Activity | null, };
+
 export type Settings = { appearance: Appearance, 
 /**
  * Every tag in the owner's order, including tags no project carries.
@@ -282,7 +334,15 @@ terminalApp: string,
 /**
  * The app that opens `.project-launcher.json`; empty uses the system's default app.
  */
-configEditor: string, };
+configEditor: string, 
+/**
+ * The app that starts and stops Docker.
+ */
+dockerManager: DockerManager, 
+/**
+ * The custom manager's commands.
+ */
+dockerStartCommand: string, dockerStopCommand: string, };
 
 export type Sidebar = { all: number, starred: number, 
 /**

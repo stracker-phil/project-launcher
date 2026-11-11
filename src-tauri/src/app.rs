@@ -57,6 +57,7 @@ pub fn start(
             app.set_menu(menu::build(app.handle())?)?;
             tray::install(app.handle())?;
             window::palette::install(app.handle())?;
+            crate::devenv::commands::attach(app.handle());
             crate::global_shortcut::apply(app.handle());
             app.state::<AppState>().launches.push(initial);
             #[cfg(debug_assertions)]

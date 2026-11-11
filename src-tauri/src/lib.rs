@@ -9,6 +9,7 @@ mod commands;
 pub mod data;
 #[cfg(debug_assertions)]
 mod dev;
+pub mod devenv;
 pub mod error;
 pub mod events;
 mod folders;

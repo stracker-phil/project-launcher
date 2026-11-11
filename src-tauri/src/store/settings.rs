@@ -36,6 +36,23 @@ pub struct Settings {
     pub terminal_app: String,
     /// The app that opens `.project-launcher.json`; empty uses the system's default app.
     pub config_editor: String,
+    /// The app that starts and stops Docker.
+    pub docker_manager: DockerManager,
+    /// The custom manager's commands.
+    pub docker_start_command: String,
+    pub docker_stop_command: String,
+}
+
+#[derive(Serialize, Deserialize, TS, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[ts(export, export_to = "src/api/types.gen.ts")]
+#[serde(rename_all = "kebab-case")]
+pub enum DockerManager {
+    #[default]
+    DockerDesktop,
+    #[serde(rename = "orbstack")]
+    OrbStack,
+    Colima,
+    Custom,
 }
 
 const DEFAULT_TERMINAL: &str = "Terminal";
@@ -49,6 +66,8 @@ pub enum AppSetting {
     GitClient,
     TerminalApp,
     ConfigEditor,
+    DockerStartCommand,
+    DockerStopCommand,
 }
 
 impl AppSetting {
@@ -58,6 +77,8 @@ impl AppSetting {
             AppSetting::GitClient => &mut settings.git_client,
             AppSetting::TerminalApp => &mut settings.terminal_app,
             AppSetting::ConfigEditor => &mut settings.config_editor,
+            AppSetting::DockerStartCommand => &mut settings.docker_start_command,
+            AppSetting::DockerStopCommand => &mut settings.docker_stop_command,
         }
     }
 
@@ -67,6 +88,8 @@ impl AppSetting {
             AppSetting::GitClient => "Change Git Client",
             AppSetting::TerminalApp => "Change Terminal App",
             AppSetting::ConfigEditor => "Change Config Editor",
+            AppSetting::DockerStartCommand => "Change Docker Start Command",
+            AppSetting::DockerStopCommand => "Change Docker Stop Command",
         }
     }
 }
@@ -81,6 +104,9 @@ impl Default for Settings {
             git_client: String::new(),
             terminal_app: DEFAULT_TERMINAL.into(),
             config_editor: String::new(),
+            docker_manager: DockerManager::default(),
+            docker_start_command: String::new(),
+            docker_stop_command: String::new(),
         }
     }
 }
@@ -114,6 +140,12 @@ impl Settings {
             git_client: text("gitClient", defaults.git_client),
             terminal_app,
             config_editor: text("configEditor", defaults.config_editor),
+            docker_manager: v
+                .get("dockerManager")
+                .and_then(|m| DockerManager::deserialize(m).ok())
+                .unwrap_or_default(),
+            docker_start_command: text("dockerStartCommand", defaults.docker_start_command),
+            docker_stop_command: text("dockerStopCommand", defaults.docker_stop_command),
         }
     }
 }
@@ -180,6 +212,9 @@ mod tests {
             "gitClient": "Fork",
             "terminalApp": "Ghostty",
             "configEditor": "TextEdit",
+            "dockerManager": "custom",
+            "dockerStartCommand": "demo-docker up",
+            "dockerStopCommand": "demo-docker down",
         });
 
         assert_eq!(
@@ -195,8 +230,39 @@ mod tests {
                 git_client: "Fork".into(),
                 terminal_app: "Ghostty".into(),
                 config_editor: "TextEdit".into(),
+                docker_manager: DockerManager::Custom,
+                docker_start_command: "demo-docker up".into(),
+                docker_stop_command: "demo-docker down".into(),
             }
         );
+    }
+
+    #[test]
+    fn the_docker_manager_accepts_its_four_values_and_falls_back_to_the_default() {
+        for (input, expected) in [
+            (json!("docker-desktop"), DockerManager::DockerDesktop),
+            (json!("orbstack"), DockerManager::OrbStack),
+            (json!("colima"), DockerManager::Colima),
+            (json!("custom"), DockerManager::Custom),
+            (json!("podman"), DockerManager::DockerDesktop),
+            (json!("OrbStack"), DockerManager::DockerDesktop),
+            (json!(3), DockerManager::DockerDesktop),
+            (json!(null), DockerManager::DockerDesktop),
+        ] {
+            let repaired = Settings::repaired(json!({ "dockerManager": input.clone() }));
+            assert_eq!(repaired.docker_manager, expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn the_docker_commands_are_trimmed_and_may_be_empty() {
+        let repaired = Settings::repaired(json!({
+            "dockerStartCommand": "  demo-docker up  ",
+            "dockerStopCommand": "   ",
+        }));
+
+        assert_eq!(repaired.docker_start_command, "demo-docker up");
+        assert_eq!(repaired.docker_stop_command, "");
     }
 
     #[test]
@@ -322,6 +388,9 @@ mod tests {
                 "gitClient": "",
                 "terminalApp": "Terminal",
                 "configEditor": "",
+                "dockerManager": "docker-desktop",
+                "dockerStartCommand": "",
+                "dockerStopCommand": "",
             })
         );
     }

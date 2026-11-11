@@ -11,7 +11,7 @@ use super::{Changed, Data, MetaEdit};
 use crate::error::{AppError, ErrorKind};
 use crate::projects::file::FILE_NAME;
 use crate::projects::{FileKey, KnownProject, MetaKey, Registry};
-use crate::store::{AppSetting, Appearance, Settings};
+use crate::store::{AppSetting, Appearance, DockerManager, Settings};
 use crate::test_support::temp_config_dir;
 
 mod config;
@@ -164,6 +164,8 @@ fn an_app_setting_is_stored_trimmed_in_its_own_field() {
         (AppSetting::GitClient, "gitClient"),
         (AppSetting::TerminalApp, "terminalApp"),
         (AppSetting::ConfigEditor, "configEditor"),
+        (AppSetting::DockerStartCommand, "dockerStartCommand"),
+        (AppSetting::DockerStopCommand, "dockerStopCommand"),
     ] {
         let fx = Fixture::new(&[], &[]);
         assert_eq!(
@@ -197,6 +199,11 @@ fn an_app_setting_undo_restores_the_previous_value_under_its_label() {
         (AppSetting::GitClient, "Change Git Client"),
         (AppSetting::TerminalApp, "Change Terminal App"),
         (AppSetting::ConfigEditor, "Change Config Editor"),
+        (
+            AppSetting::DockerStartCommand,
+            "Change Docker Start Command",
+        ),
+        (AppSetting::DockerStopCommand, "Change Docker Stop Command"),
     ] {
         let before = app_value(&fx.data, setting);
         fx.data.set_app(setting, "Example App").unwrap();
@@ -246,6 +253,40 @@ fn a_blank_app_setting_clears_it_back_to_the_default() {
         SETTINGS_ONLY
     );
     assert_eq!(app_value(&fx.data, AppSetting::DefaultEditor), "");
+}
+
+#[test]
+fn the_docker_manager_changes_and_undo_and_redo_move_it_back_and_forth() {
+    let fx = Fixture::new(&[], &[]);
+    assert_eq!(
+        fx.data.set_docker_manager(DockerManager::OrbStack).unwrap(),
+        SETTINGS_ONLY
+    );
+    assert_eq!(fx.data.settings().docker_manager, DockerManager::OrbStack);
+
+    let undone = fx.data.undo().unwrap().unwrap();
+    assert_eq!(undone.label, "Change Docker App");
+    assert_eq!(undone.changed, SETTINGS_ONLY);
+    assert_eq!(
+        fx.data.settings().docker_manager,
+        DockerManager::DockerDesktop
+    );
+
+    let redone = fx.data.redo().unwrap().unwrap();
+    assert_eq!(redone.label, "Change Docker App");
+    assert_eq!(fx.data.settings().docker_manager, DockerManager::OrbStack);
+}
+
+#[test]
+fn the_docker_manager_it_already_has_changes_nothing_and_is_not_undoable() {
+    let fx = Fixture::new(&[], &[]);
+    assert_eq!(
+        fx.data
+            .set_docker_manager(DockerManager::DockerDesktop)
+            .unwrap(),
+        Changed::default()
+    );
+    assert_eq!(undo_label(&fx.data), None);
 }
 
 #[test]

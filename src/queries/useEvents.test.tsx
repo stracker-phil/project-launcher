@@ -9,6 +9,7 @@ import { api, type MenuShortcut, type Project } from "../api";
 import { DEFAULT_SETTINGS, EMPTY_STATUS, type createApiMock } from "../test/apiMock";
 import { createQueryClient } from "./queryClient";
 import { useEvents } from "./useEvents";
+import { useDevStatus } from "./useDevStatus";
 import { useMenuCommands } from "./useMenuCommands";
 import { useMenuShortcuts } from "./useMenuShortcuts";
 import { useProjectStatus } from "./useProjectStatus";
@@ -105,6 +106,23 @@ describe("useEvents", () => {
     act(() => emit("projects_changed", null));
 
     await waitFor(() => expect(result.current?.states[0].value).toBe("develop"));
+  });
+
+  it.each(["dev_changed", "projects_changed", "settings_changed"] as const)("reads a project's dev status again on %s", async (event) => {
+    mocked.devStatus.mockResolvedValue({ docker: { running: false, activity: null, manager: "OrbStack" }, server: null, database: null });
+    const { result } = renderHook(
+      () => {
+        useEvents();
+        return useDevStatus("demo-1").data;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current?.docker?.running).toBe(false));
+    mocked.devStatus.mockResolvedValue({ docker: { running: true, activity: null, manager: "OrbStack" }, server: null, database: null });
+
+    act(() => emit(event, null));
+
+    await waitFor(() => expect(result.current?.docker?.running).toBe(true));
   });
 
   it.each(["projects_changed", "settings_changed"] as const)("reads the palette's menu commands again on %s", async (event) => {

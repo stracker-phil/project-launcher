@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use crate::data::Data;
+use crate::devenv::{self, DevEnv};
 use crate::error::AppResult;
 use crate::launch::LaunchQueue;
 use crate::lock::MutexExt;
@@ -18,6 +19,7 @@ pub struct AppState {
     terminal_folder: PathBuf,
     /// The project the main window shows, as its page reports it; the palette and the tray act on it.
     current: Mutex<Option<String>>,
+    pub devenv: DevEnv,
 }
 
 impl AppState {
@@ -25,10 +27,15 @@ impl AppState {
     pub fn open(config_dir: &Path) -> AppResult<Self> {
         #[cfg(debug_assertions)]
         crate::dev::seed_first_run(config_dir)?;
+        let system = system::system();
         Ok(Self {
             launches: LaunchQueue::default(),
             data: Data::open(config_dir),
-            system: system::system(),
+            devenv: DevEnv::new(
+                devenv::tools::tools(system.clone()),
+                Box::new(devenv::commands::announce_change),
+            ),
+            system,
             terminal_folder: config_dir.join("terminal"),
             current: Mutex::new(None),
         })

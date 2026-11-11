@@ -23,11 +23,26 @@ import type {
   ProjectStatus,
   RunsAs,
   Settings,
+  DevFailure,
+  DevStatus,
+  DevAction,
+  OpenedDatabase,
+  DockerManager,
 } from "./types.gen";
 
 export type {
   AddedProjects,
   AppSetting,
+  Activity,
+  DatabaseInfo,
+  DevAction,
+  DevFailure,
+  DevStatus,
+  DockerManager,
+  DockerStatus,
+  OpenedDatabase,
+  ServerState,
+  ServerStatus,
   Action,
   ActionDraft,
   ActionEdit,
@@ -79,6 +94,10 @@ export type EventPayloads = {
   /** The project the main window shows, as the palette opens. */
   palette_opened: string | null;
   palette_closed: null;
+  /** Docker or a server changed, or a step started or ended. */
+  dev_changed: null;
+  /** A dev environment step failed. */
+  dev_failed: DevFailure;
   /** A project for the main window to select, under the filter that shows it. */
   select_project: { id: string; filter: Filter };
   /** A settings page id for the Settings window to show. */
@@ -164,6 +183,12 @@ export const api = {
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   /** Returns whether it is on now. */
   setAutostart: (on: boolean) => invoke<boolean>("set_autostart", { on }),
+  /** Docker, the project's server and its database. */
+  devStatus: (id: string) => invoke<DevStatus>("dev_status", { id }),
+  /** Starts the step in the background; `dev_changed` and `dev_failed` follow. */
+  devAction: (id: string, action: DevAction) => invoke<void>("dev_action", { id, action }),
+  openDatabase: (id: string) => invoke<OpenedDatabase>("open_database", { id }),
+  setDockerManager: (manager: DockerManager) => invoke<void>("set_docker_manager", { manager }),
   undo: () => invoke<string | null>("undo_change"),
   redo: () => invoke<string | null>("redo_change"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>

@@ -3,12 +3,14 @@ import { useMemo } from "react";
 import type { Action, Library, Project, ProjectConfig, ProjectStatus } from "../../api";
 import { InlineText } from "../../components/InlineText";
 import { useProjectConfig } from "../../queries/useProjectConfig";
+import { useDevStatus } from "../../queries/useDevStatus";
 import { useProjectStatus } from "../../queries/useProjectStatus";
 import { useLibrary, type EditField } from "../../state/library";
 import { useStore } from "../../state/store";
 import { addProjects, rename, setLocked, setMeta, toggleStar } from "../actions";
 import { ActionsSection, shownActions } from "./ActionsSection";
 import { IconPicker } from "./IconPicker";
+import { DevSection } from "./DevSection";
 import { EnvSection, InfoSection } from "./InfoSection";
 import { StatesRow } from "./StatesRow";
 import { TagPill } from "./TagPill";
@@ -86,6 +88,7 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
   const shownId = project?.available ? project.id : null;
   const { data: config } = useProjectConfig(shownId);
   const { data: status } = useProjectStatus(shownId);
+  const { data: dev } = useDevStatus(shownId);
   const shortcutActions = useShownActions(config, status);
   useActionShortcuts(shownId ? project : null, shortcutActions);
   if (!project) return <EmptyDetail library={library} />;
@@ -135,6 +138,7 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
       {project.fileError && <div className="callout callout--error">{project.fileError}</div>}
       {status && <StatesRow states={status.states} />}
       {config && <ActionsSection project={project} config={config} status={status} editable={!readOnly} />}
+      <DevSection project={project} status={dev} />
       <InfoSection project={project} config={config} readOnly={readOnly} />
       {config && <EnvSection config={config} />}
     </div>

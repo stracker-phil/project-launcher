@@ -22,3 +22,7 @@ pub const PALETTE_OPENED_EVENT: &str = "palette_opened";
 pub const PALETTE_CLOSED_EVENT: &str = "palette_closed";
 /// `{ id, filter }`: a project for the main window to select, under the filter that shows it (from the palette, the tray or the CLI).
 pub const SELECT_PROJECT_EVENT: &str = "select_project";
+/// No payload; Docker or a project's server changed, or a step started or ended (`["devStatus"]`).
+pub const DEV_CHANGED_EVENT: &str = "dev_changed";
+/// `{ projectId, label, output }`: a dev environment step failed.
+pub const DEV_FAILED_EVENT: &str = "dev_failed";

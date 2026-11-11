@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { api, type AppSetting } from "../api";
+import { api, type AppSetting, type DockerManager } from "../api";
 import { AUTOSTART_KEY, useAutostart } from "../queries/useAutostart";
 import { useSettings } from "../queries/useSettings";
 import { attempt } from "../state/attempt";
-import { Group, Row } from "./controls";
+import { Group, Row, Segmented } from "./controls";
 import { Switch } from "./Switch";
 
 /** The debug app never installs a login item (ADR 0036). */
@@ -37,6 +37,36 @@ function AppField({ setting, label, value, placeholder }: { setting: AppSetting;
   );
 }
 
+const MANAGERS = ["docker-desktop", "orbstack", "colima", "custom"] as const satisfies readonly DockerManager[];
+const MANAGER_LABELS: Record<DockerManager, string> = { "docker-desktop": "Docker Desktop", orbstack: "OrbStack", colima: "Colima", custom: "Custom" };
+
+function DockerGroup() {
+  const { data: settings } = useSettings();
+  const manager = settings?.dockerManager ?? null;
+  return (
+    <Group title="Dev Environment" anchor="docker">
+      <Segmented
+        label="Docker app"
+        description="Starts and stops Docker for projects with a dev environment."
+        options={MANAGERS}
+        labels={MANAGER_LABELS}
+        value={manager}
+        onChange={(next) => void attempt(api.setDockerManager(next), "Couldn’t change the Docker app")}
+      />
+      {manager === "custom" && (
+        <>
+          <Row label="Start command" description="Runs in a login shell.">
+            <AppField setting="dockerStartCommand" label="Start command" value={settings?.dockerStartCommand ?? ""} placeholder="colima start --cpu 4" />
+          </Row>
+          <Row label="Stop command">
+            <AppField setting="dockerStopCommand" label="Stop command" value={settings?.dockerStopCommand ?? ""} placeholder="colima stop" />
+          </Row>
+        </>
+      )}
+    </Group>
+  );
+}
+
 function OpenAtLogin() {
   const client = useQueryClient();
   const { data: on = false } = useAutostart(RELEASE);
@@ -64,6 +94,7 @@ export function GeneralPage() {
           </Row>
         ))}
       </Group>
+      <DockerGroup />
       <Group title="Startup">
         <OpenAtLogin />
       </Group>

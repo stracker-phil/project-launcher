@@ -2,7 +2,7 @@
 //! builds use the `Recorder` unless `LAUNCHER_REAL_LAUNCH=1` (ADR 0022).
 
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -25,6 +25,8 @@ const MAX_OUTPUT: usize = 512 * 1024;
 /// How long a started command may take to fail before it counts as launched.
 const SPAWN_GRACE: Duration = Duration::from_millis(2500);
 const TOOL_TIMEOUT: Duration = Duration::from_secs(5);
+/// `ddev describe` asks Docker and can take a while.
+const INSPECT_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// A command for a login `zsh`, in a folder, with extra env vars.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -58,6 +60,8 @@ pub trait System: Send + Sync {
     fn open(&self, args: &[&str]) -> AppResult<()>;
     /// Runs a program without a shell (`ps`, `osascript`); its stdout when it succeeded.
     fn tool(&self, program: &str, args: &[&str]) -> Option<String>;
+    /// Runs a program without a shell, in `cwd` when given; what it printed, whatever its exit code.
+    fn inspect(&self, cwd: Option<&Path>, program: &str, args: &[&str]) -> Output;
     fn copy(&self, text: &str) -> AppResult<()>;
 }
 
@@ -71,20 +75,30 @@ pub fn system() -> Arc<dyn System> {
 
 pub struct Os;
 
+/// Homebrew's and the system's folders ahead of the inherited PATH.
+fn path() -> String {
+    let inherited = std::env::var("PATH").unwrap_or_default();
+    EXTRA_PATH
+        .iter()
+        .copied()
+        .chain(Some(inherited.as_str()).filter(|p| !p.is_empty()))
+        .collect::<Vec<_>>()
+        .join(":")
+}
+
+fn program(name: &str, args: &[&str]) -> Command {
+    let mut command = Command::new(name);
+    command.args(args).env("PATH", path());
+    command
+}
+
 fn login_shell(job: &Job) -> Command {
     let mut command = Command::new("/bin/zsh");
     command.args(["-l", "-c", &job.command]);
     if let Some(cwd) = &job.cwd {
         command.current_dir(cwd);
     }
-    let inherited = std::env::var("PATH").unwrap_or_default();
-    let path = EXTRA_PATH
-        .iter()
-        .copied()
-        .chain(Some(inherited.as_str()).filter(|p| !p.is_empty()))
-        .collect::<Vec<_>>()
-        .join(":");
-    command.env("PATH", path);
+    command.env("PATH", path());
     command.envs(job.env.iter().map(|(k, v)| (k, v)));
     command
 }
@@ -246,11 +260,17 @@ impl System for Os {
         }
     }
 
-    fn tool(&self, program: &str, args: &[&str]) -> Option<String> {
-        let mut command = Command::new(program);
-        command.args(args);
-        let output = capture(command, TOOL_TIMEOUT);
+    fn tool(&self, name: &str, args: &[&str]) -> Option<String> {
+        let output = capture(program(name, args), TOOL_TIMEOUT);
         output.ok().then_some(output.stdout)
+    }
+
+    fn inspect(&self, cwd: Option<&Path>, name: &str, args: &[&str]) -> Output {
+        let mut command = program(name, args);
+        if let Some(cwd) = cwd {
+            command.current_dir(cwd);
+        }
+        capture(command, INSPECT_TIMEOUT)
     }
 
     fn copy(&self, text: &str) -> AppResult<()> {
@@ -362,10 +382,64 @@ mod recorder {
             self.answer(&call)
         }
 
+        fn inspect(&self, _cwd: Option<&std::path::Path>, program: &str, args: &[&str]) -> Output {
+            let call = std::iter::once(program)
+                .chain(args.iter().copied())
+                .collect::<Vec<_>>()
+                .join(" ");
+            self.record(format!("inspect: {call}"));
+            let stdout = self.answer(&call).unwrap_or_default();
+            Output {
+                code: Some(0),
+                timed_out: false,
+                output: stdout.clone(),
+                stdout,
+            }
+        }
+
         fn copy(&self, text: &str) -> AppResult<()> {
             self.record(format!("copy: {text}"));
             *self.clipboard.lock_unpoisoned() = Some(text.into());
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_recorder_records_an_inspect_and_prints_what_it_was_told_to() {
+        let recorder = Recorder::default();
+        recorder.reply("ddev describe --json-output", "{\"raw\":{}}");
+
+        let output = recorder.inspect(None, "ddev", &["describe", "--json-output"]);
+
+        assert_eq!(
+            output,
+            Output {
+                code: Some(0),
+                timed_out: false,
+                stdout: "{\"raw\":{}}".into(),
+                output: "{\"raw\":{}}".into(),
+            }
+        );
+        assert_eq!(recorder.calls(), ["inspect: ddev describe --json-output"]);
+    }
+
+    #[test]
+    fn the_recorder_answers_an_unknown_inspect_with_an_empty_success() {
+        let recorder = Recorder::default();
+
+        let output = recorder.inspect(Some(Path::new("/tmp/demo")), "ddev", &["list"]);
+
+        assert_eq!(
+            output,
+            Output {
+                code: Some(0),
+                ..Output::default()
+            }
+        );
     }
 }

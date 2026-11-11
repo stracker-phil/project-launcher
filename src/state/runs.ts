@@ -14,6 +14,8 @@ interface Runs {
   start: (projectId: string, source: ActionSource) => void;
   finish: (projectId: string, source: ActionSource, run?: LastRun) => void;
   dismiss: (projectId: string) => void;
+  /** Shows the output of a step that failed and isn't a script, e.g. a dev server that didn't start. */
+  recordFailure: (projectId: string, label: string, output: string) => void;
 }
 
 export const sourceKey = (source: ActionSource) => `${source.list}:${source.index}`;
@@ -30,6 +32,8 @@ export const useRuns = create<Runs>()((set) => ({
       if (!run) return { running };
       return { running, last: { ...s.last, [projectId]: run } };
     }),
+  recordFailure: (projectId, label, output) =>
+    set((s) => ({ last: { ...s.last, [projectId]: { label, result: { ok: false, exitCode: null, timedOut: false, output, durationMs: 0 } } } })),
   dismiss: (projectId) =>
     set((s) => {
       const last = { ...s.last };

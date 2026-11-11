@@ -183,6 +183,19 @@ button.tag-pill:hover { background: var(--fill-hover); }
 .field.mono { font-family: var(--font-mono); font-size: 12px; }
 .field::placeholder { color: var(--text-faint); }
 .field:focus { box-shadow: 0 0 0 3px var(--focus-ring); }
+/* Dev environment */
+.dev-list { display: flex; flex-direction: column; border-radius: 10px; background: var(--fill-subtle); }
+.dev-row { display: flex; gap: 12px; align-items: center; min-height: 40px; padding: 0 8px 0 12px; }
+.dev-row + .dev-row { border-top: 1px solid var(--hairline); }
+.dev-row__label { flex: none; width: 120px; font-weight: 500; white-space: nowrap; }
+.dev-row__state { display: flex; flex: 1; gap: 8px; align-items: center; min-width: 0; color: var(--text-secondary); white-space: nowrap; }
+.dev-row__url, .dev-row__detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dev-row__detail { color: var(--text-muted); font-size: 12px; }
+.dev-row__error { color: var(--danger-text); font-size: 12px; }
+.dev-row__buttons { display: flex; flex: none; gap: 6px; }
+.dev-row__toggle { min-width: 56px; }
+.dev-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); transition: background var(--motion-base) var(--ease-out); }
+.dev-dot--on { background: var(--success-icon); }
 .info { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; align-items: center; margin: 0; }
 .info__label { color: var(--text-muted); }
 .info__value { min-width: 0; margin: 0; }

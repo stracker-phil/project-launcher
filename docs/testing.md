@@ -54,7 +54,8 @@ The debug app, the tests and the README screenshots share one made-up data set i
 `src-tauri/src/test_support/` ([ADR 0022](adr/0022-the-debug-build-is-a-separate-app-on-demo-data.md), [`demo-data.md`](../.claude/rules/demo-data.md)).
 The debug app seeds it on its first launch with an empty data folder; `launcher dev seed --yes` (the debug
 binary) starts over. Every outside source has a fake by default: git, Docker/DDEV/wp-env, the editor, terminal and app
-launchers (recorded, not opened) and DataBee (a stand-in for `databee-debug`). `LAUNCHER_REAL_LAUNCH`, `LAUNCHER_REAL_DOCKER` and `LAUNCHER_REAL_DATABEE` (`=1`)
+launchers and DataBee (recorded, not opened; `run/system.rs` `Recorder`), Docker, DDEV and wp-env (an in-memory stand-in that
+starts and stops after a moment; `devenv/tools.rs` `StandIn`). `LAUNCHER_REAL_LAUNCH` and `LAUNCHER_REAL_DOCKER` (`=1`)
 switches one back to the real source for checking that code path.
 
 ## Driving the app

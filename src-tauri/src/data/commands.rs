@@ -11,7 +11,7 @@ use crate::menu;
 use crate::projects::Project;
 use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig, RunsAs};
 use crate::state::AppState;
-use crate::store::{AppSetting, Appearance, Settings};
+use crate::store::{AppSetting, Appearance, DockerManager, Settings};
 use tauri_plugin_dialog::DialogExt;
 
 /// Emits one event per stale read, to every window.
@@ -96,6 +96,15 @@ pub async fn set_app_setting(
     value: String,
 ) -> AppResult<()> {
     announced(&app, state.data.set_app(setting, &value))
+}
+
+#[tauri::command]
+pub async fn set_docker_manager(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    manager: DockerManager,
+) -> AppResult<()> {
+    announced(&app, state.data.set_docker_manager(manager))
 }
 
 #[tauri::command]

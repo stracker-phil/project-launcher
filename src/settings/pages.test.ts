@@ -24,7 +24,7 @@ describe("registerCoreSettingsPages", () => {
     expect(searchSettingsPages("shortcuts").map((match) => match.page.id)).toContain("shortcuts");
   });
 
-  it.each(["Git client", "Project file editor", "Open at login"])("finds the General page by its %s row", (title) => {
+  it.each(["Git client", "Project file editor", "Docker app", "Open at login"])("finds the General page by its %s row", (title) => {
     registerCoreSettingsPages();
 
     expect(searchSettingsPages(title).map((match) => match.page.id)).toEqual(["general"]);

@@ -211,6 +211,30 @@ describe("commands on the current project", () => {
     });
   });
 
+  describe("project.database", () => {
+    it.each([
+      { why: "an active project", current: alpha },
+      { why: "a locked project", current: project({ locked: true }) },
+    ])("opens the database of $why", ({ current }) => {
+      resetLibrary({ current });
+
+      expect(runPageCommand("project.database")).toBe(true);
+
+      expect(mocked.openDatabase).toHaveBeenCalledWith("alpha");
+    });
+
+    it.each([
+      { why: "there is no current project", current: null },
+      { why: "the current project is unavailable", current: project({ available: false }) },
+    ])("is disabled when $why", ({ current }) => {
+      resetLibrary({ current });
+
+      expect(runPageCommand("project.database")).toBe(false);
+
+      expect(mocked.openDatabase).not.toHaveBeenCalled();
+    });
+  });
+
   describe("project.remove", () => {
     it("removes the current project", () => {
       resetLibrary({ current: alpha });

@@ -9,12 +9,13 @@ use super::{Changed, Data};
 use crate::error::{AppError, AppResult};
 use crate::projects::file::{self, FileObject};
 use crate::projects::{FileKey, FileRead, KnownProject, Registry};
-use crate::store::{AppSetting, Appearance};
+use crate::store::{AppSetting, Appearance, DockerManager};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
     SetAppearance(Appearance),
     SetApp(AppSetting, String),
+    SetDockerManager(DockerManager),
     /// Overrides the command's key; `None` leaves it without one.
     SetShortcut {
         command: String,
@@ -69,6 +70,12 @@ pub fn apply(data: &Data, op: &Op) -> AppResult<Applied> {
                 .settings
                 .update(|s| Ok(std::mem::replace(setting.of(s), value.clone())))?;
             Ok(settings_change(Op::SetApp(*setting, before)))
+        }
+        Op::SetDockerManager(manager) => {
+            let before = data
+                .settings
+                .update(|s| Ok(std::mem::replace(&mut s.docker_manager, *manager)))?;
+            Ok(settings_change(Op::SetDockerManager(before)))
         }
         Op::SetShortcut { command, key } => {
             let before = data

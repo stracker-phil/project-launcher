@@ -28,6 +28,8 @@ struct DemoProject {
     file: Option<Value>,
     /// Another file that makes the folder look like a project.
     manifest: Option<(&'static str, Value)>,
+    /// More files, by path inside the folder.
+    files: &'static [(&'static str, &'static str)],
     added_days_ago: i64,
     opened_minutes_ago: Option<i64>,
 }
@@ -65,6 +67,10 @@ fn projects() -> Vec<DemoProject> {
                 "package.json",
                 json!({ "name": "acme-website", "version": "2.4.0", "private": true }),
             )),
+            files: &[(
+                ".ddev/config.yaml",
+                "name: acme-website\ntype: php\ndatabase:\n  type: mariadb\n  version: \"10.11\"\n",
+            )],
             added_days_ago: 120,
             opened_minutes_ago: Some(12),
         },
@@ -106,6 +112,7 @@ fn projects() -> Vec<DemoProject> {
                 "composer.json",
                 json!({ "name": "orbit/api", "require": { "php": ">=8.2" } }),
             )),
+            files: &[],
             added_days_ago: 90,
             opened_minutes_ago: Some(2 * 24 * 60),
         },
@@ -121,6 +128,7 @@ fn projects() -> Vec<DemoProject> {
                 "package.json",
                 json!({ "name": "pixel-notes", "version": "0.3.1" }),
             )),
+            files: &[],
             added_days_ago: 45,
             opened_minutes_ago: Some(3 * 60),
         },
@@ -133,6 +141,7 @@ fn projects() -> Vec<DemoProject> {
                 "apps": ["editor"]
             })),
             manifest: None,
+            files: &[],
             added_days_ago: 30,
             opened_minutes_ago: None,
         },
@@ -143,6 +152,7 @@ fn projects() -> Vec<DemoProject> {
                 "apps": ["editor", "terminal"]
             })),
             manifest: None,
+            files: &[],
             added_days_ago: 14,
             opened_minutes_ago: Some(8 * 24 * 60),
         },
@@ -154,6 +164,7 @@ fn projects() -> Vec<DemoProject> {
                 "apps": ["editor"]
             })),
             manifest: None,
+            files: &[],
             added_days_ago: 400,
             opened_minutes_ago: None,
         },
@@ -161,6 +172,7 @@ fn projects() -> Vec<DemoProject> {
             slug: "scratchpad",
             file: None,
             manifest: None,
+            files: &[],
             added_days_ago: 3,
             opened_minutes_ago: None,
         },
@@ -184,6 +196,13 @@ pub fn write(config_dir: &Path, now_ms: i64) -> AppResult<Seed> {
         }
         if let Some((name, manifest)) = demo.manifest {
             fs::write(dir.join(name), serde_json::to_vec_pretty(&manifest)?)?;
+        }
+        for (path, text) in demo.files {
+            let file = dir.join(path);
+            if let Some(folder) = file.parent() {
+                fs::create_dir_all(folder)?;
+            }
+            fs::write(file, text)?;
         }
         known.push(KnownProject {
             id: format!("demo{:08}", n + 1),
@@ -266,6 +285,23 @@ mod tests {
         let acme = config.path().join(DEMO_FOLDER).join("acme-website");
         assert!(acme.join("package.json").is_file());
         assert!(acme.join(file::FILE_NAME).is_file());
+    }
+
+    #[test]
+    fn the_acme_website_is_a_ddev_project_with_a_mariadb_database() {
+        let config = temp_config_dir();
+        write(config.path(), NOW).unwrap();
+
+        let ddev_config = config
+            .path()
+            .join(DEMO_FOLDER)
+            .join("acme-website")
+            .join(".ddev/config.yaml");
+
+        assert_eq!(
+            fs::read_to_string(ddev_config).unwrap(),
+            "name: acme-website\ntype: php\ndatabase:\n  type: mariadb\n  version: \"10.11\"\n"
+        );
     }
 
     #[test]

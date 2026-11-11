@@ -53,6 +53,26 @@ describe("useRuns", () => {
     expect(useRuns.getState().last.alpha.label).toBe("Lint");
   });
 
+  it("recording a failure sets a failed last run with the output, without marking anything as running", () => {
+    useRuns.getState().recordFailure("alpha", "Start DDEV", "port 80 is in use");
+
+    expect(useRuns.getState().last.alpha).toEqual({
+      label: "Start DDEV",
+      result: { ok: false, exitCode: null, timedOut: false, output: "port 80 is in use", durationMs: 0 },
+    });
+    expect(useRuns.getState().running).toEqual({});
+  });
+
+  it("a recorded failure replaces the project's last run and leaves other projects alone", () => {
+    useRuns.getState().finish("alpha", build, { label: "Build site", result });
+    useRuns.getState().finish("beta", build, { label: "Build site", result });
+
+    useRuns.getState().recordFailure("alpha", "Start DDEV", "boom");
+
+    expect(useRuns.getState().last.alpha.label).toBe("Start DDEV");
+    expect(useRuns.getState().last.beta.label).toBe("Build site");
+  });
+
   it("dismissing removes one project's last run only", () => {
     useRuns.getState().finish("alpha", build, { label: "Build site", result });
     useRuns.getState().finish("beta", build, { label: "Build site", result });

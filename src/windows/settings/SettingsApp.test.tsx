@@ -172,6 +172,14 @@ describe("SettingsApp", () => {
       expect(within(nav()).getByRole("button", { name: "General Open at login" })).toBeInTheDocument();
     });
 
+    it("finds General by its Docker app row", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "docker app");
+
+      expect(within(nav()).getByRole("button", { name: "General Docker app" })).toBeInTheDocument();
+    });
+
     it("shows No Results when nothing matches", async () => {
       await renderSettings();
 

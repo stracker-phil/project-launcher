@@ -34,6 +34,9 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 url = "2"
+# wp-env names its Compose project after the md5 of its config path.
+md5 = "0.8"
+percent-encoding = "2"
 ts-rs = { version = "12", features = ["serde-compat", "serde-json-impl", "no-serde-warnings"] }
 libc = "0.2"
 # The palette as a non-activating NSPanel (ADR 0037).

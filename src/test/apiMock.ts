@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Api, EventName, EventPayloads, Library, ProjectConfig, ProjectStatus, Settings } from "../api";
+import type { Api, DevStatus, EventName, EventPayloads, Library, ProjectConfig, ProjectStatus, Settings } from "../api";
 
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -10,7 +10,13 @@ export const DEFAULT_SETTINGS: Settings = {
   gitClient: "",
   terminalApp: "Terminal",
   configEditor: "",
+  dockerManager: "docker-desktop",
+  dockerStartCommand: "",
+  dockerStopCommand: "",
 };
+
+/** The dev status of a project without Docker, a server or a database. */
+export const EMPTY_DEV_STATUS: DevStatus = { docker: null, server: null, database: null };
 
 /** The config of a project whose file sets nothing up. */
 export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
@@ -91,6 +97,10 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     copyProjectPath: vi.fn().mockResolvedValue(undefined),
     editProjectFile: vi.fn().mockResolvedValue(undefined),
     projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
+    devStatus: vi.fn().mockResolvedValue(EMPTY_DEV_STATUS),
+    devAction: vi.fn().mockResolvedValue(undefined),
+    openDatabase: vi.fn().mockResolvedValue("opened"),
+    setDockerManager: vi.fn().mockResolvedValue(undefined),
     setAppSetting: vi.fn().mockResolvedValue(undefined),
     setCurrentProject: vi.fn().mockResolvedValue(undefined),
     paletteShown: vi.fn().mockResolvedValue(undefined),
