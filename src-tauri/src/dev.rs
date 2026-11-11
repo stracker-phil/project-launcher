@@ -29,7 +29,8 @@ pub fn seed(app: &tauri::AppHandle, yes: bool) -> AppResult<()> {
     use tauri::Manager;
     if !yes {
         return Err(AppError::InvalidInput(
-            "This replaces the debug build's projects and settings with the demo seed; pass --yes".into(),
+            "This replaces the debug build's projects and settings with the demo seed; pass --yes"
+                .into(),
         ));
     }
     let seed = demo::write(&crate::config_dir(), now_ms())?;
@@ -112,7 +113,10 @@ mod tests {
         assert!(config.path().join(demo::DEMO_FOLDER).is_dir());
         let data = crate::data::Data::open_with_home(config.path(), None);
         assert_eq!(data.projects().len(), 7);
-        assert_eq!(data.settings().tags, ["Client", "Personal", "Experiments", "Ideas"]);
+        assert_eq!(
+            data.settings().tags,
+            ["Client", "Personal", "Experiments", "Ideas"]
+        );
     }
 
     #[test]

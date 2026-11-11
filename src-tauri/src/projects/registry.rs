@@ -115,8 +115,18 @@ mod tests {
 
     #[test]
     fn anything_but_an_object_with_a_projects_list_is_empty() {
-        for raw in [json!(null), json!([]), json!({}), json!({"projects": "x"}), json!({"projects": {}})] {
-            assert_eq!(Registry::repaired(raw.clone()), Registry::default(), "{raw}");
+        for raw in [
+            json!(null),
+            json!([]),
+            json!({}),
+            json!({"projects": "x"}),
+            json!({"projects": {}}),
+        ] {
+            assert_eq!(
+                Registry::repaired(raw.clone()),
+                Registry::default(),
+                "{raw}"
+            );
         }
     }
 
@@ -204,7 +214,11 @@ mod tests {
 
         assert_eq!(
             projects,
-            [known("a", "/work/a"), known("b", "/work/b"), known("c", "/work/c")]
+            [
+                known("a", "/work/a"),
+                known("b", "/work/b"),
+                known("c", "/work/c")
+            ]
         );
     }
 

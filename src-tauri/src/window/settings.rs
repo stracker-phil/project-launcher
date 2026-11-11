@@ -70,8 +70,14 @@ mod tests {
     fn the_url_carries_a_page_only_when_given() {
         for (page, expected) in [
             (None, "src/windows/settings/index.html"),
-            (Some("status"), "src/windows/settings/index.html?page=status"),
-            (Some("a b&c"), "src/windows/settings/index.html?page=a%20b%26c"),
+            (
+                Some("status"),
+                "src/windows/settings/index.html?page=status",
+            ),
+            (
+                Some("a b&c"),
+                "src/windows/settings/index.html?page=a%20b%26c",
+            ),
         ] {
             assert_eq!(url(page), expected, "{page:?}");
         }

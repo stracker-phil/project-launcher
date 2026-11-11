@@ -224,7 +224,10 @@ mod tests {
             keys(find(&listed, "page:palette.open")),
             (Some("Mod+K"), Some("Mod+Alt+P"))
         );
-        assert_eq!(keys(find(&listed, "app:quit")), (Some("Mod+Q"), Some("Mod+Q")));
+        assert_eq!(
+            keys(find(&listed, "app:quit")),
+            (Some("Mod+Q"), Some("Mod+Q"))
+        );
     }
 
     #[test]
@@ -236,12 +239,18 @@ mod tests {
     #[test]
     fn an_override_menus_cannot_take_shows_the_default_as_current() {
         let listed = listed(&KnownButDisabled(ALL), &overrides("app:quit", Some("Q")));
-        assert_eq!(keys(find(&listed, "app:quit")), (Some("Mod+Q"), Some("Mod+Q")));
+        assert_eq!(
+            keys(find(&listed, "app:quit")),
+            (Some("Mod+Q"), Some("Mod+Q"))
+        );
     }
 
     #[test]
     fn an_override_gives_a_key_to_an_item_without_a_default() {
-        let listed = listed(&KnownButDisabled(ALL), &overrides("app:logs", Some("Ctrl+L")));
+        let listed = listed(
+            &KnownButDisabled(ALL),
+            &overrides("app:logs", Some("Ctrl+L")),
+        );
         assert_eq!(keys(find(&listed, "app:logs")), (None, Some("Ctrl+L")));
     }
 

@@ -30,7 +30,9 @@ pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuCo
             menu: menu.to_string(),
             label: item.label.to_string(),
             command: item.command.to_string(),
-            key: effective_accelerator(item, shortcuts).as_deref().map(key_label),
+            key: effective_accelerator(item, shortcuts)
+                .as_deref()
+                .map(key_label),
         })
         .collect()
 }
@@ -48,7 +50,10 @@ fn key_label(accelerator: &str) -> String {
         (&["Ctrl", "Control"][..], '⌃'),
         (&["Alt", "Option"][..], '⌥'),
         (&["Shift"][..], '⇧'),
-        (&["CmdOrCtrl", "CommandOrControl", "Cmd", "Command", "Super"][..], '⌘'),
+        (
+            &["CmdOrCtrl", "CommandOrControl", "Cmd", "Command", "Super"][..],
+            '⌘',
+        ),
     ] {
         if has(names) {
             label.push(symbol);
@@ -167,7 +172,13 @@ mod tests {
         let edit: Vec<(&str, &str, Option<&str>)> = listed
             .iter()
             .filter(|item| item.menu == "Edit")
-            .map(|item| (item.label.as_str(), item.command.as_str(), item.key.as_deref()))
+            .map(|item| {
+                (
+                    item.label.as_str(),
+                    item.command.as_str(),
+                    item.key.as_deref(),
+                )
+            })
             .collect();
         assert_eq!(
             edit,
@@ -206,7 +217,10 @@ mod tests {
 
     #[test]
     fn disabled_or_unknown_commands_are_left_out() {
-        let listed = listed(&Enabled(&["app:settings", "app:logs", "test:unrelated"]), &Shortcuts::new());
+        let listed = listed(
+            &Enabled(&["app:settings", "app:logs", "test:unrelated"]),
+            &Shortcuts::new(),
+        );
         assert_eq!(commands(&listed), ["app:settings", "app:logs"]);
     }
 
@@ -221,7 +235,13 @@ mod tests {
         let view: Vec<(&str, &str, Option<&str>)> = listed
             .iter()
             .filter(|item| item.menu == "View" && item.command != "app:reload")
-            .map(|item| (item.label.as_str(), item.command.as_str(), item.key.as_deref()))
+            .map(|item| {
+                (
+                    item.label.as_str(),
+                    item.command.as_str(),
+                    item.key.as_deref(),
+                )
+            })
             .collect();
         assert_eq!(
             view,
@@ -246,7 +266,10 @@ mod tests {
 
         let listed = listed(&Registered(bus), &Shortcuts::new());
 
-        assert_eq!(commands(&listed).contains(&"app:reload"), cfg!(debug_assertions));
+        assert_eq!(
+            commands(&listed).contains(&"app:reload"),
+            cfg!(debug_assertions)
+        );
         assert_eq!(commands(&listed)[0], "app:settings");
     }
 
@@ -265,7 +288,11 @@ mod tests {
             ("Ctrl+Esc", "⌃⎋"),
         ] {
             let listed = listed(&Enabled(ALL), &overrides("app:quit", Some(override_key)));
-            assert_eq!(find(&listed, "app:quit").key.as_deref(), Some(expected), "{override_key}");
+            assert_eq!(
+                find(&listed, "app:quit").key.as_deref(),
+                Some(expected),
+                "{override_key}"
+            );
             assert_eq!(find(&listed, "app:settings").key.as_deref(), Some("⌘,"));
         }
     }

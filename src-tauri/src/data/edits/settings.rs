@@ -89,5 +89,7 @@ impl Data {
 }
 
 fn command_id(raw: &str) -> AppResult<String> {
-    required(raw, || AppError::InvalidInput("A shortcut needs a command".into()))
+    required(raw, || {
+        AppError::InvalidInput("A shortcut needs a command".into())
+    })
 }

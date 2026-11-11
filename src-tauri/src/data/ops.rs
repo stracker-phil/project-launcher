@@ -58,9 +58,9 @@ pub struct Applied {
 pub fn apply(data: &Data, op: &Op) -> AppResult<Applied> {
     match op {
         Op::SetAppearance(appearance) => {
-            let before = data.settings.update(|s| {
-                Ok(std::mem::replace(&mut s.appearance, *appearance))
-            })?;
+            let before = data
+                .settings
+                .update(|s| Ok(std::mem::replace(&mut s.appearance, *appearance)))?;
             Ok(settings_change(Op::SetAppearance(before)))
         }
         Op::SetShortcut { command, key } => {
@@ -116,7 +116,8 @@ fn shortcut_restore(command: &str, before: Option<Option<String>>) -> Op {
 fn add_project(data: &Data, project: &KnownProject, index: usize) -> AppResult<Applied> {
     data.registry.update(|r| {
         ensure_not_listed(r, project)?;
-        r.projects.insert(index.min(r.projects.len()), project.clone());
+        r.projects
+            .insert(index.min(r.projects.len()), project.clone());
         Ok(())
     })?;
     Ok(projects_change(Op::RemoveProject {
@@ -174,7 +175,11 @@ fn apply_batch(data: &Data, ops: &[Op]) -> AppResult<Applied> {
     })
 }
 
-fn replace_file(dir: &Path, before: Option<&FileObject>, after: Option<&FileObject>) -> AppResult<()> {
+fn replace_file(
+    dir: &Path,
+    before: Option<&FileObject>,
+    after: Option<&FileObject>,
+) -> AppResult<()> {
     let current = match file::read(dir) {
         FileRead::Found(object) => Some(object),
         FileRead::Missing => None,

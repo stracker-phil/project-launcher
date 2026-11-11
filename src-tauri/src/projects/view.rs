@@ -152,7 +152,12 @@ mod tests {
     }
 
     fn meta_of_file(meta: Value) -> ProjectMeta {
-        build(&known("/work/northwind"), &found(json!({ "meta": meta })), None).meta
+        build(
+            &known("/work/northwind"),
+            &found(json!({ "meta": meta })),
+            None,
+        )
+        .meta
     }
 
     #[test]
@@ -212,7 +217,12 @@ mod tests {
 
     #[test]
     fn a_file_without_meta_shows_the_default_icon_and_colour() {
-        let meta = build(&known("/work/northwind"), &found(json!({"name": "A"})), None).meta;
+        let meta = build(
+            &known("/work/northwind"),
+            &found(json!({"name": "A"})),
+            None,
+        )
+        .meta;
 
         assert_eq!(
             meta,
@@ -228,7 +238,11 @@ mod tests {
     fn blank_or_non_string_icon_and_colour_fall_back_to_the_defaults() {
         for value in [json!(""), json!("  "), json!(3), json!(null)] {
             let meta = meta_of_file(json!({"icon": value.clone(), "color": value.clone()}));
-            assert_eq!((meta.icon.as_str(), meta.color.as_str()), ("Folder", "Blue"), "{value}");
+            assert_eq!(
+                (meta.icon.as_str(), meta.color.as_str()),
+                ("Folder", "Blue"),
+                "{value}"
+            );
         }
     }
 
@@ -291,7 +305,11 @@ mod tests {
             (json!(null), false),
         ] {
             let meta = meta_of_file(json!({"starred": value.clone(), "archived": value.clone()}));
-            assert_eq!((meta.starred, meta.archived), (expected, expected), "{value}");
+            assert_eq!(
+                (meta.starred, meta.archived),
+                (expected, expected),
+                "{value}"
+            );
         }
     }
 
@@ -300,7 +318,10 @@ mod tests {
         let project = build(&known("/work/northwind"), &FileRead::Missing, None);
 
         assert!(!project.available);
-        assert_eq!(project.file_error.as_deref(), Some(".project-launcher.json is missing"));
+        assert_eq!(
+            project.file_error.as_deref(),
+            Some(".project-launcher.json is missing")
+        );
         assert_eq!(project.name, "northwind");
         assert_eq!(project.meta.icon, "Folder");
         assert_eq!(project.meta.color, "Blue");
@@ -318,7 +339,10 @@ mod tests {
             Some(".project-launcher.json must hold a JSON object")
         );
         assert_eq!(project.name, "northwind");
-        assert_eq!(project.meta, build(&known("/work/northwind"), &FileRead::Missing, None).meta);
+        assert_eq!(
+            project.meta,
+            build(&known("/work/northwind"), &FileRead::Missing, None).meta
+        );
     }
 
     #[test]
@@ -346,7 +370,11 @@ mod tests {
 
     #[test]
     fn without_a_home_folder_the_path_is_shown_whole() {
-        let project = build(&known("/Users/demo/code/northwind"), &found(json!({})), None);
+        let project = build(
+            &known("/Users/demo/code/northwind"),
+            &found(json!({})),
+            None,
+        );
         assert_eq!(project.path, "/Users/demo/code/northwind");
     }
 

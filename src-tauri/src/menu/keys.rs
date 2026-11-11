@@ -200,7 +200,11 @@ mod tests {
     #[test]
     fn both_notations_parse_to_the_same_combination() {
         let expected = combo(true, false, false, true, "K");
-        for text in ["Mod+Shift+K", "CmdOrCtrl+Shift+K", "CommandOrControl+Shift+K"] {
+        for text in [
+            "Mod+Shift+K",
+            "CmdOrCtrl+Shift+K",
+            "CommandOrControl+Shift+K",
+        ] {
             assert_eq!(Combo::parse(text), Some(expected.clone()), "{text}");
         }
     }
@@ -256,7 +260,11 @@ mod tests {
             ("Mod+k", "K"),
             ("Mod+5", "5"),
         ] {
-            assert_eq!(Combo::parse(text).map(|c| c.key), Some(key.to_string()), "{text}");
+            assert_eq!(
+                Combo::parse(text).map(|c| c.key),
+                Some(key.to_string()),
+                "{text}"
+            );
         }
     }
 
@@ -455,7 +463,10 @@ mod tests {
 
     #[test]
     fn a_null_override_leaves_the_item_without_a_key() {
-        assert_eq!(effective_accelerator(&TOGGLE, &overrides("test:toggle", None)), None);
+        assert_eq!(
+            effective_accelerator(&TOGGLE, &overrides("test:toggle", None)),
+            None
+        );
     }
 
     #[test]

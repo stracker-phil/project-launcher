@@ -100,7 +100,9 @@ mod tests {
             ("edit:undo", "Undo", false, false),
             ("edit:redo", "Redo", false, false),
         ] {
-            let info = bus.info(id).unwrap_or_else(|| panic!("{id} is not registered"));
+            let info = bus
+                .info(id)
+                .unwrap_or_else(|| panic!("{id} is not registered"));
             assert_eq!(info.title, title, "{id}");
             assert_eq!(info.hidden, hidden, "{id}");
             assert_eq!(info.quits, quits, "{id}");

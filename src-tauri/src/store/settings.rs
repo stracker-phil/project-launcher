@@ -75,7 +75,10 @@ impl Settings {
                 .and_then(|a| Appearance::deserialize(a).ok())
                 .unwrap_or_default(),
             tags: v.get("tags").map(repaired_tags).unwrap_or_default(),
-            shortcuts: v.get("shortcuts").map(repaired_shortcuts).unwrap_or_default(),
+            shortcuts: v
+                .get("shortcuts")
+                .map(repaired_shortcuts)
+                .unwrap_or_default(),
             default_editor: text("defaultEditor", defaults.default_editor),
             git_client: text("gitClient", defaults.git_client),
             terminal_app,
@@ -123,7 +126,11 @@ mod tests {
     #[test]
     fn a_non_object_loads_the_defaults() {
         for raw in [json!(null), json!([]), json!("dark"), json!(7)] {
-            assert_eq!(Settings::repaired(raw.clone()), Settings::default(), "{raw}");
+            assert_eq!(
+                Settings::repaired(raw.clone()),
+                Settings::default(),
+                "{raw}"
+            );
         }
     }
 
@@ -264,7 +271,12 @@ mod tests {
     #[test]
     fn unknown_keys_are_dropped_on_the_next_serialization() {
         let repaired = Settings::repaired(json!({ "future": true, "gitClient": "Fork" }));
-        assert!(serde_json::to_value(&repaired).unwrap().get("future").is_none());
+        assert!(
+            serde_json::to_value(&repaired)
+                .unwrap()
+                .get("future")
+                .is_none()
+        );
     }
 
     #[test]

@@ -85,7 +85,11 @@ pub fn build_status(
         }
         None => CommandLine {
             path: format!("~/{CLI_LINK}"),
-            link: if debug { CliLink::NotApplicable } else { CliLink::NotInstalled },
+            link: if debug {
+                CliLink::NotApplicable
+            } else {
+                CliLink::NotInstalled
+            },
         },
     };
     AppStatus {
@@ -130,7 +134,11 @@ mod tests {
         let home = Path::new("/Users/demo");
         for (path, home, expected) in [
             ("/Users/demo", Some(home), "~"),
-            ("/Users/demo/.local/bin/launcher", Some(home), "~/.local/bin/launcher"),
+            (
+                "/Users/demo/.local/bin/launcher",
+                Some(home),
+                "~/.local/bin/launcher",
+            ),
             ("/opt/tools/launcher", Some(home), "/opt/tools/launcher"),
             ("/Users/demo2/notes", Some(home), "/Users/demo2/notes"),
             ("/Users/demo/notes", None, "/Users/demo/notes"),
@@ -153,7 +161,12 @@ mod tests {
         let other = dir.join("other-bin");
         fs::write(&exe, "exe").unwrap();
         fs::write(&other, "other").unwrap();
-        Fixture { _dir: tmp, exe, other, dir }
+        Fixture {
+            _dir: tmp,
+            exe,
+            other,
+            dir,
+        }
     }
 
     #[test]
@@ -162,7 +175,10 @@ mod tests {
         let link = f.dir.join("link");
         symlink(&f.exe, &link).unwrap();
         assert_eq!(cli_link(&link, &f.exe, true), CliLink::NotApplicable);
-        assert_eq!(cli_link(&f.dir.join("missing"), &f.exe, true), CliLink::NotApplicable);
+        assert_eq!(
+            cli_link(&f.dir.join("missing"), &f.exe, true),
+            CliLink::NotApplicable
+        );
     }
 
     #[test]
@@ -191,7 +207,11 @@ mod tests {
         symlink(&f.other, &elsewhere).unwrap();
         symlink(f.dir.join("gone"), &dangling).unwrap();
         for link in [elsewhere, f.dir.join("missing"), dangling] {
-            assert_eq!(cli_link(&link, &f.exe, false), CliLink::NotInstalled, "{link:?}");
+            assert_eq!(
+                cli_link(&link, &f.exe, false),
+                CliLink::NotInstalled,
+                "{link:?}"
+            );
         }
     }
 
@@ -296,7 +316,10 @@ mod tests {
             (CliLink::NotInstalled, "notInstalled"),
             (CliLink::NotApplicable, "notApplicable"),
         ] {
-            assert_eq!(serde_json::to_value(link).unwrap(), serde_json::json!(expected));
+            assert_eq!(
+                serde_json::to_value(link).unwrap(),
+                serde_json::json!(expected)
+            );
         }
     }
 }

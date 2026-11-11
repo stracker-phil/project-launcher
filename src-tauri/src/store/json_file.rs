@@ -155,7 +155,10 @@ mod tests {
         let path = dir.path().join("settings.json");
         fs::write(&path, r#"{"tags": ["client"]}"#).unwrap();
 
-        assert_eq!(JsonFile::new(&path).load(), Some(json!({"tags": ["client"]})));
+        assert_eq!(
+            JsonFile::new(&path).load(),
+            Some(json!({"tags": ["client"]}))
+        );
     }
 
     #[test]
@@ -173,7 +176,10 @@ mod tests {
             "{}",
             names[0]
         );
-        assert_eq!(fs::read_to_string(dir.path().join(&names[0])).unwrap(), "{ not json");
+        assert_eq!(
+            fs::read_to_string(dir.path().join(&names[0])).unwrap(),
+            "{ not json"
+        );
     }
 
     #[test]

@@ -216,7 +216,11 @@ fn dev_seed_without_yes_still_parses_and_leaves_the_refusal_to_the_app() {
 #[cfg(debug_assertions)]
 #[test]
 fn dev_without_a_known_tool_is_a_usage_error() {
-    for args in [&["dev"][..], &["dev", "frobnicate"], &["dev", "seed", "--force"]] {
+    for args in [
+        &["dev"][..],
+        &["dev", "frobnicate"],
+        &["dev", "seed", "--force"],
+    ] {
         assert_eq!(exit_code(parse_args(args)), 2, "{args:?}");
     }
 }
