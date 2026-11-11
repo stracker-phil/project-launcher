@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Every release build gets a new version (ADR 0020): release.sh major|minor|patch|X.Y.Z.
+# Every release build gets a new version (ADR 0020, 0039): release.sh major|minor|patch|X.Y.Z.
 # Writes the version into package.json, tauri.conf.json, Cargo.toml and Cargo.lock, builds the release app,
 # installs it (scripts/install.sh), then commits "Release X.Y.Z" and tags vX.Y.Z locally. A failed build puts
 # the version files back, so no version is used twice or skipped. Needs a clean working tree.
@@ -9,7 +9,7 @@ cd "$ROOT"
 export PATH=/opt/homebrew/opt/rustup/bin:$PATH
 FILES=(package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock)
 
-usage() { echo "Usage: bun run release major|minor|patch|X.Y.Z (ADR 0020)"; exit 1; }
+usage() { echo "Usage: bun run release major|minor|patch|X.Y.Z (ADR 0020, 0039)"; exit 1; }
 [[ $# -eq 1 ]] || usage
 [[ -z "$(git status --porcelain)" ]] || { echo "Commit or stash the changes first: a release is built from a commit"; exit 1; }
 

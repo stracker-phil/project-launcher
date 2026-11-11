@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-11-11). Inherited from the family catalog (app-blueprint: `release-versions`); reference implementation: Taskboard ADR 0054.
+Accepted (2026-11-11). Superseded in part by [0039](0039-a-major-version-needs-the-owners-approval.md) (the bump rule). Inherited from the family catalog (app-blueprint: `release-versions`); reference implementation: Taskboard ADR 0054.
 
 ## Context
 

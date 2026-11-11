@@ -86,8 +86,10 @@ Test, lint and format-check commands run through the `ci` agent, never in the ma
 - `bun run lint`: IPC types drift check, tsc, ESLint and clippy on production code (warnings are errors)
 - `bun run release major|minor|patch`: bumps the version, builds the signed release `.app` and `.dmg`, installs
   it (`scripts/install.sh`), commits "Release X.Y.Z", tags it and cleans the build folder (`scripts/release.sh`,
-  `scripts/clean-build.sh`, [ADR 0020](docs/adr/0020-every-release-build-gets-a-new-version.md))
+  `scripts/clean-build.sh`, [ADR 0020](docs/adr/0020-every-release-build-gets-a-new-version.md)); major only with the
+  owner's approval ([ADR 0039](docs/adr/0039-a-major-version-needs-the-owners-approval.md))
 - `bun run build:app` + `scripts/dev/launch.sh`: debug build, restarted next to the terminal without stealing focus
+- `scripts/stop-app.sh <debug CLI path>`: whoever launches the debug app for a check quits it when done
 - `scripts/dev/js.sh` / `scripts/dev/screenshot.sh`: drive (store: `window.launcher`) and capture the running
   debug window in the background; `scripts/dev/e2e.sh` checks that nothing jumps
 - Signing prefers an Apple Development certificate (Xcode, free Apple ID; [ADR 0019](docs/adr/0019-builds-are-signed-with-an-apple-development-certificate.md)); without one,

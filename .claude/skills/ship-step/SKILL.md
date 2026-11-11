@@ -17,14 +17,17 @@ description: Finish a development step in Launcher - clean up and review the cod
    Drive the UI with `scripts/dev/js.sh '<js>'` (fire-and-forget; wrap code in an IIFE, the store is
    `window.launcher`) and check it with `scripts/dev/screenshot.sh <png>`. For UI changes, run
    `scripts/dev/e2e.sh`: it fails when the panel, toolbar, first row or a clicked control moved. Never use
-   AppleScript clicks or keystrokes; they need focus.
+   AppleScript clicks or keystrokes; they need focus. When the checks are done, quit the debug app fully
+   (`scripts/stop-app.sh` with the CLI path above).
 5. Update the affected `docs/` page if behavior, commands, files or extension points changed; add an ADR for
    a new decision. Check that no real data slipped into code, docs or screenshots (`.claude/rules/demo-data.md`).
 6. Stage the step's files by path (check `git status` for stray files), then commit following
    `.claude/rules/commits.md`. Never push.
 7. Choose the bump from `git log v<last>..HEAD` (`git describe --tags --abbrev=0` names the last; with no
-   tag yet, from the commit "Set the version to 1.0.0") per ADR 0020: major if existing use breaks, minor for
-   new features or visible behavior, patch otherwise. Run `bun run release major|minor|patch` (in the
+   tag yet, from the commit "Set the version to 1.0.0") per ADR 0039: minor for new features, visible behavior
+   and changes that break existing use, patch otherwise. Major only with the owner's explicit approval, asked
+   first. A changed `launcher list --json` shape goes into the report, since Daybook reads it. Run
+   `bun run release major|minor|patch` (in the
    background; it takes minutes): `scripts/install.sh` installs the release build as
    `~/Applications/Launcher.app` and `launcher`, and restarts the running app on it, so the user's app
    always matches the last commit; then the script commits "Release X.Y.Z" and tags `vX.Y.Z` (never pushed).

@@ -30,7 +30,7 @@ Context, Decision, Consequences.
 | [0017](0017-hardened-runtime-strict-csp-and-no-navigation.md) | Hardened runtime, strict CSP and no navigation | Accepted (2026-11-11) |
 | [0018](0018-outside-content-is-shown-as-text-and-run-only-by-id.md) | Outside content is shown as text and actions run only by id | Accepted (2026-11-11) |
 | [0019](0019-builds-are-signed-with-an-apple-development-certificate.md) | Builds are signed with an Apple Development certificate | Accepted (2026-11-11) |
-| [0020](0020-every-release-build-gets-a-new-version.md) | Every release build gets a new version | Accepted (2026-11-11) |
+| [0020](0020-every-release-build-gets-a-new-version.md) | Every release build gets a new version | Accepted (2026-11-11); bump rule superseded by 0039 |
 | [0021](0021-test-doubles-compile-only-behind-test-util.md) | Test doubles compile only behind test-util | Accepted (2026-11-11) |
 | [0022](0022-the-debug-build-is-a-separate-app-on-demo-data.md) | The debug build is a separate app on demo data | Accepted (2026-11-11) |
 | [0023](0023-debug-builds-carry-hooks-for-driving-the-app.md) | Debug builds carry hooks for driving the app without focus | Accepted (2026-11-11) |
@@ -49,3 +49,4 @@ Context, Decision, Consequences.
 | [0036](0036-global-shortcuts-only-in-release-builds.md) | Global shortcuts are registered only by release builds | Accepted (2026-11-11) |
 | [0037](0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md) | The palette is a floating panel on a native window layer | Accepted (2026-11-11) |
 | [0038](0038-project-details-live-in-the-project-file.md) | Every project detail lives in the project's own file | Accepted (2026-11-11) |
+| [0039](0039-a-major-version-needs-the-owners-approval.md) | A major version needs the owner's approval | Accepted (2026-11-11) |
