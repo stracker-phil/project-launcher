@@ -75,7 +75,6 @@
   gap: 24px;
   min-height: 0;
   padding: 8px 20px 24px;
-  scrollbar-gutter: stable;
 }
 
 /* An inset group: heading above, a quiet fill, no border, hairlines between rows. */
