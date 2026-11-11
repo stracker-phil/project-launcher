@@ -1,6 +1,6 @@
 [package]
 name = "launcher"
-version = "0.10.0"
+version = "0.11.0"
 description = "List, search and launch your coding projects"
 authors = ["Philipp Stracker <info@philippstracker.com>"]
 edition = "2024"
