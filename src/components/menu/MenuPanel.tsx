@@ -1,0 +1,239 @@
+import { Check, ChevronRight, Search } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { isEnabled, matching, sectionsOf, type Section } from "./entries";
+import { place, type Placement } from "./placement";
+import { isItem, type MenuEntry, type MenuItem } from "../../state/menuTypes";
+
+interface Props {
+  entries: MenuEntry[];
+  label: string;
+  /** A search field's placeholder (`openMenu`'s `search`). */
+  search?: string;
+  placement: Placement;
+  /** Opened from the keyboard or a button: the first row starts highlighted. */
+  highlightFirst: boolean;
+  /** Closes every panel, then runs the row. */
+  onChoose: (item: MenuItem) => void;
+  /** A submenu's ←: back to its parent row. */
+  onBack?: () => void;
+}
+
+/** One menu panel: its rows, the keys that move through them, and the submenu of the highlighted row. */
+export function MenuPanel({ entries: all, label, search, placement, highlightFirst, onChoose, onBack }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const entries = search ? matching(all, query) : all;
+  const enabled = entries.flatMap((entry, index) => (isEnabled(entry) ? [index] : []));
+  const [active, setActive] = useState(highlightFirst || search ? (enabled[0] ?? -1) : -1);
+  // The width it opened with, so narrowing the rows doesn't make it jump.
+  const [width, setWidth] = useState<number | null>(null);
+  const [submenu, setSubmenu] = useState<{ index: number; placement: Placement; focused: boolean } | null>(null);
+  const [position, setPosition] = useState<CSSProperties>({ left: 0, top: 0, visibility: "hidden" });
+
+  useLayoutEffect(() => {
+    const panel = ref.current;
+    if (!panel) return;
+    const size = { width: panel.offsetWidth, height: panel.offsetHeight };
+    setPosition(place(placement, size, { width: window.innerWidth, height: window.innerHeight }));
+    setWidth(panel.offsetWidth);
+  }, [placement]);
+
+  // The focus follows the highlight, unless a submenu opened from the keyboard holds it, or the search field. The
+  // panel is hidden until it is placed, and a hidden element takes no focus, so it focuses again once placed.
+  useEffect(() => {
+    if (search) {
+      field.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (submenu?.focused) return;
+    const row = active >= 0 ? ref.current?.querySelector<HTMLElement>(`[data-index="${active}"]`) : null;
+    (row ?? ref.current)?.focus({ preventScroll: true });
+  }, [active, submenu, search, position]);
+
+  const narrow = (text: string) => {
+    setQuery(text);
+    setActive(matching(all, text).findIndex(isEnabled));
+  };
+
+  const rowOf = (index: number) => ref.current?.querySelector<HTMLElement>(`[data-index="${index}"]`);
+
+  const openSubmenu = (index: number, focused: boolean) => {
+    const row = rowOf(index);
+    if (!row) return;
+    const { left, top, right, bottom } = row.getBoundingClientRect();
+    setSubmenu({ index, placement: { beside: { left, top, right, bottom } }, focused });
+  };
+
+  const choose = (index: number) => {
+    const entry = entries[index];
+    if (!isEnabled(entry) || !isItem(entry)) return;
+    if (entry.items) openSubmenu(index, true);
+    else onChoose(entry);
+  };
+
+  const hover = (index: number) => {
+    const entry = entries[index];
+    if (!isEnabled(entry)) return;
+    setActive(index);
+    if (isItem(entry) && entry.items) openSubmenu(index, false);
+    else setSubmenu(null);
+  };
+
+  const step = (by: 1 | -1) => {
+    if (enabled.length === 0) return;
+    const at = enabled.indexOf(active);
+    const next = at === -1 ? (by === 1 ? 0 : enabled.length - 1) : (at + by + enabled.length) % enabled.length;
+    setActive(enabled[next]);
+  };
+
+  const jumpTo = (letter: string) => {
+    const from = enabled.indexOf(active);
+    const order = [...enabled.slice(from + 1), ...enabled.slice(0, from + 1)];
+    const match = order.find((index) => (entries[index] as MenuItem).text.toLowerCase().startsWith(letter.toLowerCase()));
+    if (match !== undefined) setActive(match);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const entry = entries[active];
+    // In the search field only the keys that move through the rows or choose one belong to the menu.
+    if (search && !["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) return;
+    switch (e.key) {
+      case "ArrowDown":
+        step(1);
+        break;
+      case "ArrowUp":
+        step(-1);
+        break;
+      case "Home":
+        if (enabled.length) setActive(enabled[0]);
+        break;
+      case "End":
+        if (enabled.length) setActive(enabled[enabled.length - 1]);
+        break;
+      case "Enter":
+      case " ":
+        if (active >= 0) choose(active);
+        break;
+      case "ArrowRight":
+        if (entry && isItem(entry) && entry.items) openSubmenu(active, true);
+        break;
+      case "ArrowLeft":
+        onBack?.();
+        break;
+      case "Tab":
+        break;
+      default:
+        if (e.key.length !== 1 || e.metaKey || e.ctrlKey || e.altKey) return;
+        jumpTo(e.key);
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const subEntry = submenu ? entries[submenu.index] : undefined;
+  return (
+    <>
+      <div
+        ref={ref}
+        className="popover menu"
+        role="menu"
+        aria-label={label}
+        tabIndex={-1}
+        style={width ? { ...position, width } : position}
+        onKeyDown={onKeyDown}
+        onMouseLeave={() => {
+          // With a search field the highlight stays for ↩.
+          if (!submenu && !search) setActive(-1);
+        }}
+      >
+        {search && (
+          <label className="menu__search">
+            <Search size={13} strokeWidth={2} aria-hidden="true" />
+            <input ref={field} aria-label={search} placeholder={search} value={query} onChange={(e) => narrow(e.target.value)} />
+          </label>
+        )}
+        {sectionsOf(entries).map((section, at) => (
+          <MenuSection key={at} section={section} active={active} openIndex={submenu?.index ?? null} onHover={hover} onChoose={choose} />
+        ))}
+        {search && entries.length === 0 && <div className="menu__empty">No match for “{query.trim()}”</div>}
+      </div>
+      {submenu && subEntry && isItem(subEntry) && subEntry.items && (
+        <MenuPanel
+          key={submenu.index}
+          entries={subEntry.items}
+          label={subEntry.text}
+          placement={submenu.placement}
+          highlightFirst={submenu.focused}
+          onChoose={onChoose}
+          onBack={() => setSubmenu(null)}
+        />
+      )}
+    </>
+  );
+}
+
+interface SectionProps {
+  section: Section;
+  active: number;
+  openIndex: number | null;
+  onHover: (index: number) => void;
+  onChoose: (index: number) => void;
+}
+
+function MenuSection({ section, active, openIndex, onHover, onChoose }: SectionProps) {
+  const rows = section.entries.map(([entry, index]) =>
+    isItem(entry) ? (
+      <MenuRow key={index} item={entry} index={index} active={index === active} open={index === openIndex} onHover={onHover} onChoose={onChoose} />
+    ) : (
+      <div key={index} className="menu__separator" role="separator" />
+    ),
+  );
+  if (section.caption === undefined) return <>{rows}</>;
+  return (
+    <div className="menu__group" role="group" aria-label={section.caption}>
+      <span className="popover__caps" aria-hidden="true">
+        {section.caption}
+      </span>
+      {rows}
+    </div>
+  );
+}
+
+interface RowProps {
+  item: MenuItem;
+  index: number;
+  active: boolean;
+  open: boolean;
+  onHover: (index: number) => void;
+  onChoose: (index: number) => void;
+}
+
+function MenuRow({ item, index, active, open, onHover, onChoose }: RowProps) {
+  const choice = item.checked !== undefined;
+  const role = !choice ? "menuitem" : item.toggle ? "menuitemcheckbox" : "menuitemradio";
+  const disabled = item.enabled === false;
+  return (
+    <button
+      type="button"
+      role={role}
+      tabIndex={-1}
+      data-index={index}
+      className={item.danger ? "menu__item menu__item--danger" : "menu__item"}
+      data-active={active || undefined}
+      aria-checked={choice ? item.checked : undefined}
+      aria-disabled={disabled || undefined}
+      aria-haspopup={item.items ? "menu" : undefined}
+      aria-expanded={item.items ? open : undefined}
+      onMouseEnter={() => onHover(index)}
+      onClick={() => onChoose(index)}
+    >
+      {item.icon && <span className="menu__icon">{item.icon}</span>}
+      <span className="menu__text">{item.text}</span>
+      {item.hint && <span className="menu__hint">{item.hint}</span>}
+      {item.shortcut && <kbd className="menu__shortcut">{item.shortcut}</kbd>}
+      {item.checked && <Check className="menu__mark" size={14} strokeWidth={2.2} aria-hidden="true" />}
+      {item.items && <ChevronRight className="menu__mark" size={14} strokeWidth={2} aria-hidden="true" />}
+    </button>
+  );
+}

@@ -78,7 +78,7 @@ One line per module, added with the code.
 | `src-tauri/src/launch.rs` | Launch events queued for the page (`take_launch_events`) |
 | `src-tauri/src/window/` | Showing and hiding windows, the Dock icon; `settings.rs` opens the Settings window (at a page); `navigation.rs` keeps webviews on app pages |
 | `src-tauri/src/bus/` | The command bus (`CommandBus`, `Command`), the app's commands (`commands.rs`), `run_command` and `spawn` (`app.rs`); ids in [commands.md](commands.md) |
-| `src-tauri/src/menu/` | The menu bar: items per menu (`items.rs`), building it from the bus (`build.rs`), `clicked` |
+| `src-tauri/src/menu/` | The menu bar: items per menu (`items.rs`), building it from the bus (`build.rs`), `clicked`; `palette.rs` lists the enabled items for the palette (`menu_commands`) |
 | `src-tauri/src/tray.rs` | The menu-bar item; its items are bus commands |
 | `src-tauri/src/folders.rs` | Revealing the log and data folders in Finder |
 | `src-tauri/src/status.rs` | `app_status` for Settings → Status: version, build, folders, the `launcher` command link |
@@ -90,11 +90,13 @@ One line per module, added with the code.
 | `src/windows/settings/` | The Settings window's page (`index.html`, `main.tsx`, `SettingsApp.tsx`), a second Vite entry |
 | `src/registry/settingsPages.ts` | Settings pages by id: title, icon, keywords, searchable rows, component; resolving and searching them |
 | `src/settings/` | The Settings window's layout (`SettingsWindow.tsx`), groups and rows (`controls.tsx`), the core pages (`pages.ts`: Status, About) |
+| `src/palette/` | The command palette (`CommandPalette.tsx`, rows in `PaletteRows.tsx`): its sources (`sources.ts`: menu items, page commands, Settings pages, `usePaletteMenu` menus from `menus.ts`), what it shows (`sections.ts`), ranking (`rank.ts`), prefixes (`prefixes.ts`), recent searches in memory (`recent.ts`) |
 | `src/queries/` | TanStack Query: `createQueryClient` (one per window) and the read hooks (`useAppStatus`) |
 | `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
-| `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet; `window.launcher` in debug builds |
+| `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet, the palette's open state, the open menu; `window.launcher` in debug builds |
+| `src/state/menuTypes.ts` | The menu's types (`MenuItem`, `MenuEntry`, `MenuAt`, `OpenMenu`) and `isItem`, shared by the store, `src/components/menu/` and the palette |
 | `src/shell/` | The main window's panes: sidebar, project list, detail, inspector slot |
-| `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet` |
+| `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet`; `menu/` is the in-page menu (`openMenu`, `openContextMenu`, `MenuHost`, `MenuPanel`, `placement.ts`; ADR 0030) |
 | `src/styles/` | Stylesheets in cascade order (`index.ts`); `palettes/` holds every color; `contrast.ts` for the palette tests |
 | `src/test/` | `createApiMock()` and the module-boundary guard |
 

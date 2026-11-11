@@ -2,9 +2,12 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { applyInitialLook } from "./lib/theme";
+import { registerCoreSettingsPages } from "./settings/pages";
 import { useStore } from "./state/store";
 import "./styles";
 
+// The palette lists the Settings pages.
+registerCoreSettingsPages();
 applyInitialLook();
 
 // Lets scripts/dev/js.sh drive the debug build; release builds don't hand the whole store to the page.

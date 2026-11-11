@@ -19,6 +19,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
       logFolder: "~/Library/Logs/com.example.launcher",
       commandLine: { path: "~/.local/bin/launcher", link: "installed" },
     }),
+    menuCommands: vi.fn().mockResolvedValue([]),
     on: vi.fn(async (event: string, handler: Handler) => {
       const handlers = byEvent.get(event) ?? new Set<Handler>();
       handlers.add(handler);

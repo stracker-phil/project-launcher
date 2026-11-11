@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { AppError, AppStatus, ErrorKind, LaunchEvent } from "./types.gen";
+import type { AppError, AppStatus, ErrorKind, LaunchEvent, MenuCommand } from "./types.gen";
 
-export type { AppError, AppStatus, CliLink, CommandLine, ErrorKind, LaunchEvent } from "./types.gen";
+export type { AppError, AppStatus, CliLink, CommandLine, ErrorKind, LaunchEvent, MenuCommand } from "./types.gen";
 
 /** Every event Rust emits to the page (`src-tauri/src/events.rs`), with its payload. */
 export type EventPayloads = {
@@ -24,6 +24,8 @@ export const api = {
   runCommand: (id: string) => invoke<void>("run_command", { id }),
   /** Settings → Status: version, build, folders and the command line link. */
   appStatus: () => invoke<AppStatus>("app_status"),
+  /** The menu bar's enabled items, in menu order, for the command palette. */
+  menuCommands: () => invoke<MenuCommand[]>("menu_commands"),
   on: <E extends EventName>(event: E, handler: (payload: EventPayloads[E]) => void): Promise<UnlistenFn> =>
     listen<EventPayloads[E]>(event, (e) => handler(e.payload)),
 };

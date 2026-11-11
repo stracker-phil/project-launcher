@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "../api";
+import type { MenuAt, MenuEntry, MenuOptions, OpenMenu } from "./menuTypes";
 
 export interface Toast {
   id: number;
@@ -46,10 +47,25 @@ export interface Store {
   confirmation: Confirmation | null;
   /** Shows the sheet; resolves true when the owner confirms, false on Cancel or Escape. */
   confirm: (question: Omit<Confirmation, "answer">) => Promise<boolean>;
+
+  /** The command palette (⌘K) is open. */
+  paletteOpen: boolean;
+  setPaletteOpen: (open: boolean) => void;
+
+  menu: OpenMenu | null;
+  /** Shows a menu, replacing an open one; opening it again on the same element closes it. */
+  openMenu: (entries: MenuEntry[], at: MenuAt, label?: string, options?: MenuOptions) => void;
+  closeMenu: () => void;
 }
 
 const MAX_TOASTS = 5;
 let nextToastId = 1;
+let nextMenuId = 1;
+
+function focusedElement(): HTMLElement | null {
+  const focused = document.activeElement;
+  return focused instanceof HTMLElement && focused !== document.body ? focused : null;
+}
 
 const layoutOf = (s: Pick<Store, "sidebarHidden">): keyof InspectorOpen => (s.sidebarHidden ? "withoutSidebar" : "withSidebar");
 
@@ -88,6 +104,20 @@ export const useStore = create<Store>()((set, get) => ({
         },
       });
     }),
+
+  paletteOpen: false,
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+
+  menu: null,
+  openMenu: (entries, at, label = "Menu", options = {}) => {
+    if (at instanceof HTMLElement && get().menu?.at === at) {
+      set({ menu: null });
+      return;
+    }
+    const opener = at instanceof HTMLElement ? at : focusedElement();
+    set({ menu: { id: nextMenuId++, entries, at, label, opener, search: options.search } });
+  },
+  closeMenu: () => set({ menu: null }),
 }));
 
 const initialState = useStore.getState();

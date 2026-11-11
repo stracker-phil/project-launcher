@@ -36,3 +36,13 @@ export type ErrorKind = "io" | "invalid_input" | "not_found" | "internal";
  * Something the page acts on once it listens: from the launch that started the app or a later one.
  */
 export type LaunchEvent = { "type": "error", message: string, } | { "type": "activate" };
+
+export type MenuCommand = { 
+/**
+ * The menu's title, the palette's section.
+ */
+menu: string, label: string, command: string, 
+/**
+ * The key equivalent as the menu shows it (`⌃⌘S`).
+ */
+key: string | null, };

@@ -1,16 +1,22 @@
 import { useCallback } from "react";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { type LaunchEvent } from "./api";
 import { useMainCommands } from "./commands";
 import { ConfirmHost } from "./components/ConfirmSheet";
+import { MenuHost } from "./components/menu";
 import { Toasts } from "./components/Toasts";
 import { TooltipHost } from "./components/TooltipHost";
 import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
+import { CommandPalette } from "./palette/CommandPalette";
+import { createQueryClient } from "./queries/queryClient";
 import { Shell } from "./shell/Shell";
 import { useStore } from "./state/store";
 
-/** The main window: the panes, and the overlays every window has. */
-export default function App() {
+const windowClient = createQueryClient();
+
+/** The main window: the panes, the palette, and the overlays every window has. */
+function MainWindow() {
   useAppearance();
   useMainCommands();
   const onLaunch = useCallback((event: LaunchEvent) => {
@@ -20,9 +26,20 @@ export default function App() {
   return (
     <>
       <Shell />
+      <CommandPalette />
+      <MenuHost />
       <Toasts />
       <ConfirmHost />
       <TooltipHost />
     </>
+  );
+}
+
+/** Tests pass a fresh client. */
+export default function App({ client = windowClient }: { client?: QueryClient }) {
+  return (
+    <QueryClientProvider client={client}>
+      <MainWindow />
+    </QueryClientProvider>
   );
 }

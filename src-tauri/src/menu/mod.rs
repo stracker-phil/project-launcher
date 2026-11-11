@@ -5,6 +5,7 @@
 
 mod build;
 mod items;
+pub mod palette;
 
 use tauri::{AppHandle, Manager};
 

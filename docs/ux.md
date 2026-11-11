@@ -113,6 +113,10 @@ second press on the button closes. Keys: ↑↓ wrapping, Home/End, ↩/Space, l
 command keys are off while a menu has focus. Long lists get a search field. ARIA `menu`/`menuitem`/
 `menuitemradio`/`menuitemcheckbox`.
 
+Launcher's values (`src/components/menu/`, `src/styles/menu.css`): 200–400px wide, keeps its opening width
+while a search narrows it; 6px from the window's edges, 4px below its button; a submenu lines up with its row;
+rises in and fades out (`usePresence`, inert while leaving).
+
 ## Tooltips (`tooltip-host`)
 One host per window; `title` becomes `data-tooltip` (icon-only controls keep `aria-label`); 450ms, instant
 within 600ms, on focus; below or above, ≤420px, line breaks kept; ends with the current binding
@@ -131,6 +135,14 @@ why in few words and offer one button per narrowing to clear it. Reverting a rem
 ⌘K; panel 640px, 16px radius, `--shadow-palette`, 110px from the top, over `--scrim`; input row 56px with a
 17px field; prefixes shown as footer buttons; recent searches; rows show the current key and a check for
 checked options; ↑↓ wrap, ↩ runs, Esc closes.
+
+Launcher's values (`src/styles/palette.css`, `src/palette/`): for now an overlay in the main window (it moves
+into its own panel, [ADR 0037](adr/0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md)); scrim fades in, panel rises in. Rows 40px, 9px
+radius, 14px text, the active row `--hover-bg`; a muted key chip at the right; caps section headings (11px)
+with a hairline between sections. Empty, it shows the recent searches (this session only, five at most) and
+every command under its menu; with a query, one list ranked: label starts with → a word starts with → every
+word → letters in order, ties in menu order. Only prefixes with something to find get a footer button (`>`
+so far). ⌘K or a click on the scrim closes it as well; the focus returns to where it was.
 
 ## Settings (`settings-window`)
 Own window in System Settings layout: 190px page list on `--settings-chrome` with drag strip and search;

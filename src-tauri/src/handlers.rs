@@ -2,7 +2,7 @@
 
 use tauri::ipc::Invoke;
 
-use crate::{bus, commands, status};
+use crate::{bus, commands, menu, status};
 
 pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -10,6 +10,7 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         commands::take_launch_events,
         commands::log_frontend_error,
         bus::app::run_command,
+        menu::palette::menu_commands,
         status::app_status,
     ]
 }

@@ -36,6 +36,7 @@ keys (no ⌘ or ⌃) never fire in text fields.
 |---|---|---|
 | `view.toggleSidebar` | Toggle Sidebar | ⌃⌘S |
 | `view.toggleInspector` | Toggle Inspector | ⌃⌘I |
+| `palette.open` | Command Palette | ⌘K; opens the palette, or closes it when open |
 
 The Settings window has its own (`settingsCommands.ts`):
 
@@ -43,6 +44,20 @@ The Settings window has its own (`settingsCommands.ts`):
 |---|---|---|
 | `settings.close` | Close Settings | ⎋ (not while a text field or sheet has focus); runs `window:close` |
 | `settings.search` | Search Settings | ⌘F |
+
+## The palette
+
+The command palette (`src/palette/`, [ADR 0031](adr/0031-the-palette-runs-the-menus.md)) lists, when it opens:
+
+- every enabled menu-bar item from `MENUS` except Command Palette… itself, in menu order, from the Tauri command
+  `menu_commands` (`src-tauri/src/menu/palette.rs`: `MenuCommand` with menu title, label, command id and the key
+  as the menu shows it, `⌃⌘S`). A `page:<id>` item runs the page command directly (and is left out when that
+  can't run now); any other item runs through `api.runCommand`;
+- the page commands with a title that no menu item runs (matched on `page:<id>`), under "Window";
+- the rows of menus a component offers while on screen (`usePaletteMenu`), as "Title: Item › Subitem";
+- each Settings page as "Settings: <page>", which runs `app:settings:<id>`.
+
+A failure shows as an error toast.
 
 ## Menus
 
