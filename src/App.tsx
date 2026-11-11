@@ -1,12 +1,26 @@
 import { useCallback } from "react";
-import { api, type LaunchEvent } from "./api";
+import { type LaunchEvent } from "./api";
+import { ConfirmHost } from "./components/ConfirmSheet";
+import { Toasts } from "./components/Toasts";
+import { TooltipHost } from "./components/TooltipHost";
+import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
+import { Shell } from "./shell/Shell";
+import { useStore } from "./state/store";
 
-/** The main window. Until the shell arrives it is an empty window whose top strip drags it. */
+/** The main window: the panes, and the overlays every window has. */
 export default function App() {
+  useAppearance();
   const onLaunch = useCallback((event: LaunchEvent) => {
-    if (event.type === "error") void api.logError(event.message);
+    if (event.type === "error") useStore.getState().toast("error", event.message);
   }, []);
   useLaunchEvents(onLaunch);
-  return <div data-tauri-drag-region style={{ height: 52 }} aria-label="Launcher" />;
+  return (
+    <>
+      <Shell />
+      <Toasts />
+      <ConfirmHost />
+      <TooltipHost />
+    </>
+  );
 }

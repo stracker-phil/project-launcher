@@ -1,0 +1,84 @@
+/* The dark palette: the same tokens as light.css (docs/ux.md → Tokens). */
+:root[data-scheme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --window-bg: #161617;
+  --panel-bg: #1c1c1e;
+  --panel-subtle-bg: #202022;
+  --fill-subtle: #2a2a2d;
+  --fill-hover: #333336;
+  --segmented-bg: #2a2a2d;
+  --hover-bg: #2a2a2d;
+  --row-hover-bg: #232325;
+  --scrim: rgba(0, 0, 0, 0.5);
+
+  /* Text */
+  --text: #f4f4f5;
+  --text-secondary: #d4d4d8;
+  --text-tertiary: #b4b4bb;
+  --text-muted: #9a9aa2;
+  --text-faint: #63636b;
+  --danger-text: #ff6b6b;
+  --text-on-accent: #ffffff;
+  --link: var(--accent-text);
+
+  /* Lines */
+  --border: #333336;
+  --border-strong: #45454a;
+  --hairline: #2a2a2d;
+
+  /* Accent and selection */
+  --accent: #0a64d6;
+  --accent-text: #6cb4ff;
+  --selection-bg: color-mix(in srgb, var(--accent) 24%, var(--panel-bg));
+  --selection-text: #b4d8ff;
+  --button-primary-bg: var(--accent);
+  --button-primary-text: #ffffff;
+  --focus-ring: color-mix(in srgb, var(--accent) 70%, transparent);
+
+  /* Controls (AppKit bezels) */
+  --control-bg: #3a3a3c;
+  --control-pressed: #48484a;
+  --control-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --field-bg: #2a2a2d;
+  --field-line: rgba(255, 255, 255, 0.12);
+
+  /* Messages */
+  --banner-info-bg: #172338;
+  --banner-info-text: #93c5fd;
+  --banner-warn-bg: #2d2410;
+  --banner-warn-text: #fcd34d;
+  --banner-error-bg: #331a1a;
+  --banner-error-text: #fca5a5;
+  --banner-error-dot: #ff6b6b;
+  --success-icon: #4ade80;
+
+  /* Shadows */
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 8px 28px rgba(0, 0, 0, 0.5);
+  --shadow-palette: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 24px 64px rgba(0, 0, 0, 0.6);
+
+  /* Tooltip: small and dark in both schemes */
+  --tooltip-bg: #3a3a3c;
+  --tooltip-text: #fafafa;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
+
+  /* Sidebar: dark in both schemes */
+  --sidebar-bg: #212121;
+  --sidebar-text: #ffffff;
+  --sidebar-text-tertiary: #b1b1b1;
+  --sidebar-hover-bg: #2c2c2c;
+  --sidebar-selection-bg: #383838;
+  --sidebar-border: #2e2e30;
+
+  /* Project colors, picked by name (ADR 0025) */
+  --project-blue: #56c2ff;
+  --project-green: #59d499;
+  --project-magenta: #cf2f98;
+  --project-orange: #ff9217;
+  --project-purple: #a485ff;
+  --project-red: #ff6363;
+  --project-yellow: #ffc531;
+}

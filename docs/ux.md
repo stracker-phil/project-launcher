@@ -24,6 +24,10 @@ the family language below.
 - **Inspector** (right, toggle ⌃⌘I): overview, languages, git activity, recently edited files and package
   scripts; slow parts load on their own.
 - No status bar ([ADR 0035](adr/0035-no-status-bar.md)).
+- Pane widths (from the prototype): sidebar 240px, list 300px, detail at least 380px, inspector 280px; each
+  pane's 52px top strip drags the window. Hiding the sidebar also hides the list and leaves room for the
+  traffic lights in the detail's strip. The inspector remembers open or closed for each layout: closed
+  beside the sidebar, open without it until changed (`src/state/store.ts`).
 
 ### Command palette
 A floating panel, not part of the main window ([ADR 0037](adr/0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md)): centred over the main window,
@@ -78,7 +82,14 @@ Palettes define the same token set (`color-palettes`); groups: Surfaces (`--wind
 (`--border`, `--border-strong`, `--hairline`), Accent (`--accent`, `--selection-*`, `--button-primary-*`,
 `--focus-ring`), Messages (`--banner-{info,warn,error}-*`), Shadows (`--shadow-{panel,popover,palette,…}`),
 Hover (`--hover-bg`, `--row-hover-bg`), Settings (`--settings-*`), Tooltip (`--tooltip-bg`). The text
-contrast checks: 4.5:1 body, 3:1 meta and large text. An app using the scheme-per-mode option
+contrast checks: 4.5:1 body, 3:1 meta and large text.
+
+Launcher's palettes (`src/styles/palettes/`) also define Controls (`--control-bg`, `--control-pressed`,
+`--control-shadow`, `--field-bg`, `--field-line`), Sidebar tokens that are the same in both schemes
+(`--sidebar-bg` #212121, `--sidebar-text`, `--sidebar-text-tertiary` for headings, `--sidebar-hover-bg`,
+`--sidebar-selection-bg`, `--sidebar-border`) and the seven project colors by name (`--project-blue`,
+`-green`, `-magenta`, `-orange`, `-purple`, `-red`, `-yellow`). One accent (`--accent`), no accent choice.
+Body text is 13px. An app using the scheme-per-mode option
 (`appearance`) also has sidebar tokens and opacity levels (`--o2` 68%, `--o3` 52%; see Daybook `docs/ux.md`
 → Surfaces, Opacity levels).
 
@@ -137,4 +148,4 @@ command.
 
 ## Palette checks
 `colors.test.ts` keeps literals in palettes and token sets equal; `contrast.test.ts` enforces the contrast
-targets; `scripts/dev/screenshot-looks.sh` captures each look for review.
+targets; `scripts/dev/screenshot-looks.sh <dir>` captures the window in both palettes for review.

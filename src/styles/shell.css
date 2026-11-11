@@ -1,0 +1,28 @@
+/* The main window: sidebar, project list, detail and the inspector slot (docs/ux.md → Main window). Widths follow
+   the prototype. Hiding the sidebar also hides the list, leaving the project. */
+.shell {
+  --sidebar-width: 240px;
+  --list-width: 300px;
+  --detail-min-width: 380px;
+  --inspector-width: 280px;
+  --strip-height: 52px;
+  /* Room for the traffic lights when no sidebar sits under them. */
+  --traffic-lights-width: 84px;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) var(--list-width) minmax(var(--detail-min-width), 1fr);
+  height: 100%;
+  background: var(--panel-bg);
+}
+.shell--inspector { grid-template-columns: var(--sidebar-width) var(--list-width) minmax(var(--detail-min-width), 1fr) var(--inspector-width); }
+.shell--no-sidebar { grid-template-columns: minmax(var(--detail-min-width), 1fr); }
+.shell--no-sidebar.shell--inspector { grid-template-columns: minmax(var(--detail-min-width), 1fr) var(--inspector-width); }
+
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* The empty top strip of every pane drags the window. */
+.pane__strip { flex: none; display: flex; align-items: center; gap: 8px; height: var(--strip-height); padding: 0 12px; }
+.pane__body { flex: 1; min-height: 0; }
+
+.sidebar { background: var(--sidebar-bg); color: var(--sidebar-text); border-right: 1px solid var(--sidebar-border); }
+.list-pane { border-right: 1px solid var(--hairline); }
+.shell--no-sidebar .detail-pane .pane__strip { padding-left: var(--traffic-lights-width); }
+.inspector-pane { border-left: 1px solid var(--hairline); background: var(--panel-subtle-bg); animation: fade-in var(--motion-base) var(--ease-out); }

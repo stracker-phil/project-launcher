@@ -1,0 +1,63 @@
+/* Motion (docs/ux.md → Motion): nothing jumps between states. Components use only these tokens. */
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 150ms;
+  --motion-slow: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Movement and size changes become instant; fades stay, short. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-base: var(--motion-fast);
+    --motion-slow: 0ms;
+  }
+}
+
+/* Popovers rise in and fade out (`usePresence` keeps them mounted for the exit). */
+.fading { display: contents; }
+.fading > .popover { animation: rise-in var(--motion-slow) var(--ease-out); transform-origin: top center; }
+.fading--leaving > .popover {
+  opacity: 0; transform: translateY(-4px) scale(0.98);
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+/* Hover and press: a short tint change on every interactive element. */
+.btn, .icon-btn, .link-btn {
+  transition: background-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+/* A view switch shows the next view at once, without its controls' transitions. */
+.motion-off, .motion-off * { transition: none !important; }
+
+/* The app's tooltip (components/TooltipHost.tsx): small and dark in both schemes, rising in. */
+.tooltip {
+  /* Its own width wherever it starts, so a control at the window's edge doesn't squeeze it before TooltipHost
+     moves it inside. */
+  position: fixed; z-index: 100; width: max-content; max-width: min(420px, calc(100vw - 16px)); padding: 4px 8px; border-radius: 6px; transform: translateX(-50%);
+  border: 1px solid var(--tooltip-border); background: var(--tooltip-bg); color: var(--tooltip-text);
+  box-shadow: var(--shadow-raised);
+  font-size: 12px; font-weight: 500; line-height: 1.35; pointer-events: none; white-space: pre-line;
+  animation: tooltip-in var(--motion-fast) var(--ease-out);
+}
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-2px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+.tooltip--above { animation-name: tooltip-in-above; }
+@keyframes tooltip-in-above {
+  from { opacity: 0; transform: translateX(-50%) translateY(2px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+
+/* The scheme is switching (lib/theme.ts): nothing transitions, so every color takes the new value. */
+.restyling, .restyling *, .restyling *::before, .restyling *::after { transition: none !important; }

@@ -82,7 +82,11 @@ One line per module, added with the code.
 | `src-tauri/src/error.rs`, `lock.rs`, `events.rs`, `state.rs`, `store/` | `AppError`, poison-tolerant locks, event names, `AppState`, private folders |
 | `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval); test fixtures |
 | `src/api/` | The page's only Tauri boundary (`api`, `toAppError`) and the generated types |
-| `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`) |
+| `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
+| `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet; `window.launcher` in debug builds |
+| `src/shell/` | The main window's panes: sidebar, project list, detail, inspector slot |
+| `src/components/` | Overlays every window has: `TooltipHost`, `Toasts`, `Modal`, `ConfirmSheet` |
+| `src/styles/` | Stylesheets in cascade order (`index.ts`); `palettes/` holds every color; `contrast.ts` for the palette tests |
 | `src/test/` | `createApiMock()` and the module-boundary guard |
 
 ## Webview hardening

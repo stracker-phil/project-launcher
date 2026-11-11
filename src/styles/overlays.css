@@ -1,0 +1,68 @@
+/* Sheets and toasts, in every window. */
+/* A sheet (`Modal`) over the scrim: a padded panel for messages and confirmations. */
+.overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--scrim); animation: fade-in var(--motion-base) var(--ease-out); }
+.dialog.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-size: 13px;
+  animation: rise-in var(--motion-slow) var(--ease-out);
+}
+.dialog.sheet h2 { margin: 0; font-size: 13px; font-weight: 700; }
+.dialog.sheet p { margin: 0; line-height: 1.4; color: var(--text-secondary); }
+.dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.dialog .actions .btn { min-width: 70px; height: 28px; border-radius: 8px; }
+
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 420px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-popover);
+  color: var(--text);
+  font-size: 13px;
+  animation: toast-in var(--motion-base) var(--ease-out);
+}
+.toast.error svg:first-child { color: var(--banner-error-dot); }
+.toast.success svg:first-child { color: var(--success-icon); }
+.toast.info svg:first-child { color: var(--accent-text); }
+.toast .text { flex: 1; line-height: 1.35; user-select: text; -webkit-user-select: text; }
+.toast-count { color: var(--text-muted); }
+.toast-action { flex: none; font-weight: 600; }
+.toast-title { display: block; margin-bottom: 2px; }
+.toast-details {
+  margin: 4px 0 0;
+  max-height: 130px;
+  overflow: auto;
+  isolation: isolate;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-muted);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: scale(0.97); }
+}
