@@ -2,9 +2,10 @@
 
 Launcher is a menu-bar app that lists, searches and manages the owner's coding projects and launches what each
 one needs: its editor, terminal, git client, URLs, Claude Code, scripts, its local dev server (Docker, DDEV,
-wp-env) and its database in DataBee. Each project's launch config stays in the hand-editable
-`.project-launcher.json` in its root; Launcher's own metadata (name, icon, colour, tag, notes, starred,
-archived) lives in its data folder. It does not edit code, sync anything or reach the network. It replaces a
+wp-env) and its database in DataBee. Everything about a project (name, icon, colour, tag, notes,
+starred, archived and its launch config) lives in the hand-editable `.project-launcher.json` in its root;
+Launcher's data folder keeps only its settings, the tag list and the list of known project files with their
+last-opened times ([ADR 0038](docs/adr/0038-project-details-live-in-the-project-file.md)). It does not edit code, sync anything or reach the network. It replaces a
 prototype built on Glaze (Electron); that prototype is the mockup and the source of the logic to migrate. The
 step plan and migration notes live in `docs/plan/` (gitignored); build only what the current step asks for.
 
@@ -65,7 +66,8 @@ Document by file and symbol, never by line number.
   ([ADR 0024](docs/adr/0024-native-look-with-the-main-window-following-the-prototype.md), `docs/ux.md`).
 - Debug builds: `Launcher (Debug)`, `com.philippstracker.launcher.debug`, own data and socket, demo seed, dev
   hooks; never installed ([ADR 0022](docs/adr/0022-the-debug-build-is-a-separate-app-on-demo-data.md)).
-- Data is JSON files only (`projects.json`, `settings.json` through `JsonStore`; [ADR 0012](docs/adr/0012-json-files-only-no-database.md)); every
+- Data is JSON files only (`projects.json`, `settings.json` through `JsonStore`; [ADR 0012](docs/adr/0012-json-files-only-no-database.md)); project details live in
+  each project's `.project-launcher.json` ([ADR 0038](docs/adr/0038-project-details-live-in-the-project-file.md)); every
   write, including to a project's `.project-launcher.json`, goes through one writer ([ADR 0007](docs/adr/0007-one-write-path-for-app-data-and-project-files.md))
   as an op with an inverse, so ⌘Z undoes it ([ADR 0015](docs/adr/0015-writes-are-operations-with-inverses-for-undo.md)).
 - Page reads go through TanStack Query; Rust events invalidate query keys ([ADR 0014](docs/adr/0014-page-reads-go-through-tanstack-query.md)).

@@ -48,3 +48,4 @@ Context, Decision, Consequences.
 | [0035](0035-no-status-bar.md) | Launcher has no status bar | Accepted (2026-11-11) |
 | [0036](0036-global-shortcuts-only-in-release-builds.md) | Global shortcuts are registered only by release builds | Accepted (2026-11-11) |
 | [0037](0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md) | The palette is a floating panel on a native window layer | Accepted (2026-11-11) |
+| [0038](0038-project-details-live-in-the-project-file.md) | Every project detail lives in the project's own file | Accepted (2026-11-11) |

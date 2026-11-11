@@ -22,7 +22,7 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 | `page:<command>` | Window Action | Hidden. Shows the main window and emits `page_command` with `<command>` |
 | `window:close` | Close Window | Hidden. Hides the window in front (⌘W) |
 | `app:logs` | Open Log Folder | Help menu |
-| `app:data` | Show Data Folder | Help menu; the config folder with `settings.json` and `projects.json` |
+| `app:data` | Show Data Folder | Help menu; the config folder with `settings.json` and `projects.json` (the list of known project files) |
 | `app:quit` | Quit Launcher | Quits; tray and ⌘Q |
 | `app:reload` | Reload | Debug builds only; reloads the focused window (⌥⌘R) |
 

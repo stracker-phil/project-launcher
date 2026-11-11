@@ -56,9 +56,9 @@ for missing files, unparsable files moved aside; [ADR 0013](adr/0013-json-stores
 
 | File | Holds |
 |---|---|
-| `projects.json` | The registry: id, path, created and last-opened times, and Launcher-only metadata (name, icon, colour, tag, notes, starred, archived) |
-| `settings.json` | `Settings`: default editor, git client, terminal app, tags, Docker manager, appearance, shortcuts |
-| `<project>/.project-launcher.json` | Owned by the owner: apps, scripts, env, states, dev services, database. Launcher edits it read-modify-write and keeps unknown keys |
+| `projects.json` | The known project files: id, folder path, added and last-opened times; nothing else about a project ([ADR 0038](adr/0038-project-details-live-in-the-project-file.md)) |
+| `settings.json` | `Settings`: default editor, git client, terminal app, the tag list (order, empty tags), Docker manager, appearance, shortcuts |
+| `<project>/.project-launcher.json` | Everything about the project: `name`, `meta` (icon, colour, tag, notes, starred, archived, URLs, editor), apps, scripts, env, states, dev services, database, locked. Launcher edits it read-modify-write and keeps unknown keys |
 
 Every change goes through one writer ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)) as an op with a computed inverse; the bounded,
 non-persisted undo stack lives in `AppState` ([ADR 0015](adr/0015-writes-are-operations-with-inverses-for-undo.md)). Each write emits an event (`projects_changed`,
