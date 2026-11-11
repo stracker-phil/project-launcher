@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { restoreFocus } from "../lib/focus";
 
 interface Props {
   value: string;
@@ -22,7 +23,8 @@ export function InlineText({ value, placeholder, label, onSave, multiline, readO
   const isEditing = !readOnly && (editing ?? ownEditing);
   const [draft, setDraft] = useState(value);
   const field = useRef<HTMLInputElement & HTMLTextAreaElement>(null); // one of the two, whichever renders
-  const cancelled = useRef(false);
+  /** How Enter or Escape ended the edit; `null` while typing, or when the field lost the keys. */
+  const exit = useRef<"save" | "cancel" | null>(null);
 
   const setEditing = (on: boolean) => {
     setOwnEditing(on);
@@ -31,7 +33,7 @@ export function InlineText({ value, placeholder, label, onSave, multiline, readO
 
   useEffect(() => {
     if (!isEditing) return;
-    cancelled.current = false;
+    exit.current = null;
     setDraft(value);
     requestAnimationFrame(() => {
       field.current?.focus();
@@ -54,17 +56,22 @@ export function InlineText({ value, placeholder, label, onSave, multiline, readO
   }
 
   const finish = () => {
-    if (!cancelled.current && draft.trimEnd() !== value) onSave(draft.trimEnd());
+    // Switching apps or opening the palette blurs the field too; it stays open for the return.
+    if (exit.current === null && !document.hasFocus()) return;
+    if (exit.current !== "cancel" && draft.trimEnd() !== value) onSave(draft.trimEnd());
     setEditing(false);
+    restoreFocus();
   };
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      cancelled.current = true;
+      exit.current = "cancel";
       field.current?.blur();
     } else if (e.key === "Enter" && (!multiline || e.metaKey)) {
       e.preventDefault();
+      exit.current = "save";
       field.current?.blur();
     }
   };

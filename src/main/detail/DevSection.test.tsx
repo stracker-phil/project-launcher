@@ -58,8 +58,8 @@ describe("DevSection", () => {
       renderSection({ docker: docker() });
 
       expect(screen.getByRole("heading", { name: "Dev Environment" })).toBeInTheDocument();
-      expect(screen.getByText("OrbStack")).toBeInTheDocument();
-      expect(screen.getByText("Running")).toBeInTheDocument();
+      expect(screen.getByText("Docker")).toBeInTheDocument();
+      expect(screen.getByText("Running · OrbStack")).toBeInTheDocument();
       expect(button("Stop")).toBeEnabled();
       expect(button("Restart")).toBeEnabled();
     });
@@ -67,7 +67,7 @@ describe("DevSection", () => {
     it("shows that Docker is stopped, offering Start and a disabled Restart", () => {
       renderSection({ docker: docker({ running: false }) });
 
-      expect(screen.getByText("Stopped")).toBeInTheDocument();
+      expect(screen.getByText("Stopped · OrbStack")).toBeInTheDocument();
       expect(button("Start")).toBeEnabled();
       expect(button("Restart")).toBeDisabled();
     });
@@ -113,20 +113,31 @@ describe("DevSection", () => {
   });
 
   describe("server row", () => {
-    it("shows the server's label, state and URL", () => {
+    it("shows the server's label and, while running with a URL, the URL's host", () => {
       renderSection({ server: server() });
 
       expect(screen.getByText("DDEV")).toBeInTheDocument();
-      expect(screen.getByText("Running")).toBeInTheDocument();
-      expect(button("https://alpha.ddev.site")).toBeInTheDocument();
+      expect(screen.getByText("Running · alpha.ddev.site")).toBeInTheDocument();
     });
 
-    it("opens the URL through api.openUrl", async () => {
+    it("shows a plain Running for a running server without a URL", () => {
+      renderSection({ server: server({ url: null }) });
+
+      expect(screen.getByText("Running")).toBeInTheDocument();
+    });
+
+    it("opens the URL through api.openUrl from the Open in Browser button", async () => {
       renderSection({ server: server() });
 
-      await userEvent.click(button("https://alpha.ddev.site"));
+      await userEvent.click(button("Open in Browser"));
 
       expect(mocked.openUrl).toHaveBeenCalledWith("https://alpha.ddev.site");
+    });
+
+    it("lists Open in Browser, Restart and Stop in that order", () => {
+      renderSection({ server: server() });
+
+      expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["Open in Browser", "Restart", "Stop"]);
     });
 
     it.each([
@@ -141,10 +152,10 @@ describe("DevSection", () => {
       expect(button("Restart")).toBeDisabled();
     });
 
-    it("shows no URL button for a server without a URL", () => {
+    it("disables Open in Browser for a server without a URL", () => {
       renderSection({ server: server({ state: "stopped", url: null }) });
 
-      expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Start", "Restart"]);
+      expect(button("Open in Browser")).toBeDisabled();
     });
 
     it.each([
@@ -201,8 +212,18 @@ describe("DevSection", () => {
       renderSection({ database: database({ detail: "db@127.0.0.1/alpha" }) });
 
       expect(screen.getByText("Database")).toBeInTheDocument();
-      expect(screen.getByText("MariaDB")).toBeInTheDocument();
+      expect(screen.getByText("MariaDB · DDEV")).toBeInTheDocument();
       expect(screen.getByText("db@127.0.0.1/alpha")).toBeInTheDocument();
+    });
+
+    it.each([
+      { source: "ddev", text: "MariaDB · DDEV" },
+      { source: "wp-env", text: "MariaDB · wp-env" },
+      { source: "config", text: "MariaDB · Project file" },
+    ] as const)("names $source databases as '$text'", ({ source, text }) => {
+      renderSection({ database: database({ source }) });
+
+      expect(screen.getByText(text)).toBeInTheDocument();
     });
 
     it("opens the database in DataBee", async () => {

@@ -121,7 +121,12 @@ fn describe_text(d: &Description) -> String {
         lines.push(format!("{title}:"));
         let rows: Vec<Vec<String>> = entries
             .iter()
-            .map(|(label, what)| vec![format!("  {label}"), what.clone()])
+            .map(|(label, what)| {
+                vec![
+                    format!("  {label}"),
+                    crate::status::tilde_in(what, std::env::home_dir().as_deref()),
+                ]
+            })
             .collect();
         lines.push(table(&rows));
     }

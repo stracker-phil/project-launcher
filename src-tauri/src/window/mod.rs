@@ -42,6 +42,10 @@ pub fn show_main(app: &AppHandle) {
 pub fn show_main_in_background(app: &AppHandle) {
     let opening = !main_visible(app);
     set_dock_icon(app, true);
+    // A hidden app shows no window, even a shown one.
+    if let Err(e) = app.show() {
+        log::warn!("Couldn't unhide Launcher: {e}");
+    }
     if let Some(window) = app.get_webview_window(MAIN)
         && let Err(e) = window.show()
     {

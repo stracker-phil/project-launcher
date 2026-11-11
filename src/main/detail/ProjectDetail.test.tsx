@@ -13,6 +13,7 @@ import { resetLibrary } from "../../state/library";
 import { inspectorShown, resetStore, useStore } from "../../state/store";
 import { EMPTY_DEV_STATUS, EMPTY_LIBRARY, EMPTY_PROJECT_CONFIG, EMPTY_STATUS } from "../../test/apiMock";
 import { action, library, project, section } from "../../test/library";
+import { gitStats, quickStats } from "../../test/stats";
 import { DetailTools, ProjectDetail } from "./ProjectDetail";
 
 const mocked = vi.mocked(api, true);
@@ -50,6 +51,7 @@ beforeEach(() => {
   mocked.projectConfig.mockResolvedValue(EMPTY_PROJECT_CONFIG);
   mocked.projectStatus.mockResolvedValue(EMPTY_STATUS);
   mocked.devStatus.mockResolvedValue(EMPTY_DEV_STATUS);
+  mocked.quickStats.mockResolvedValue(quickStats({ git: null }));
   resetStore();
   resetLibrary();
 });
@@ -91,6 +93,21 @@ describe("ProjectDetail", () => {
 
       expect(screen.getByRole("button", { name: "Add Tag" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Notes" })).toHaveTextContent("Add a note…");
+    });
+
+    it("shows the git branch as a pill", async () => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ branch: "feature/demo" }) }));
+
+      renderDetail(alpha);
+
+      expect(await screen.findByTitle("Git branch")).toHaveTextContent("feature/demo");
+    });
+
+    it("shows no branch pill for a folder that is not a git repository", async () => {
+      renderDetail(alpha);
+      await screen.findByText(NOTHING_YET);
+
+      expect(screen.queryByTitle("Git branch")).not.toBeInTheDocument();
     });
 
     it("shows an Archived badge for an archived project", () => {
@@ -200,7 +217,7 @@ describe("ProjectDetail", () => {
       await screen.findByText("Open in Editor");
       expect(screen.getByRole("heading", { name: "Open" })).toBeInTheDocument();
       expect(screen.getByText("Terminal")).toBeInTheDocument();
-      expect(screen.getByText("⌘E")).toBeInTheDocument();
+      expect(screen.getByLabelText("⌘E")).toBeInTheDocument();
     });
 
     it("lists the scripts with their commands", async () => {
@@ -286,9 +303,19 @@ describe("ProjectDetail", () => {
 
       renderDetail(alpha);
 
-      expect(await screen.findByText("OrbStack")).toBeInTheDocument();
-      expect(screen.getByText("MariaDB")).toBeInTheDocument();
+      expect(await screen.findByText("Running · OrbStack")).toBeInTheDocument();
+      expect(screen.getByText("MariaDB · DDEV")).toBeInTheDocument();
       expect(mocked.devStatus).toHaveBeenCalledWith("alpha");
+    });
+
+    it("puts the dev environment before the Open section", async () => {
+      mocked.devStatus.mockResolvedValue({ docker: { running: true, activity: null, manager: "OrbStack" }, server: null, database: null });
+
+      renderDetail(alpha);
+
+      const dev = await screen.findByRole("heading", { name: "Dev Environment" });
+      const open = screen.getByRole("heading", { name: "Open" });
+      expect(dev.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("shows no dev environment section for a project without one", async () => {
@@ -340,6 +367,37 @@ describe("ProjectDetail", () => {
       await edit(label, "https://example.com/demo");
 
       expect(mocked.setProjectMeta).toHaveBeenCalledWith("alpha", { field, value: "https://example.com/demo" });
+    });
+
+    it.each([
+      { name: "Open Website", meta: { url: "https://example.com" }, opens: "https://example.com" },
+      { name: "Open Repository", meta: { repoUrl: "https://git.example.com/alpha" }, opens: "https://git.example.com/alpha" },
+    ])("opens the link with $name", async ({ name, meta, opens }) => {
+      renderDetail(project({ meta }));
+
+      await userEvent.click(screen.getByRole("button", { name }));
+
+      expect(mocked.openUrl).toHaveBeenCalledWith(opens);
+    });
+
+    it.each(["Open Website", "Open Repository"])("disables %s while the link is empty", (name) => {
+      renderDetail(alpha);
+
+      expect(screen.getByRole("button", { name })).toBeDisabled();
+    });
+
+    it("turns the Website value into its field with Edit Links", async () => {
+      renderDetail(alpha);
+
+      await userEvent.click(screen.getByRole("button", { name: "Edit Links" }));
+
+      expect(screen.getByRole("textbox", { name: "Website" })).toBeInTheDocument();
+    });
+
+    it("offers no Edit Links for a locked project", () => {
+      renderDetail(project({ locked: true }));
+
+      expect(screen.queryByRole("button", { name: "Edit Links" })).not.toBeInTheDocument();
     });
 
     it("removes the link when its field is cleared", async () => {

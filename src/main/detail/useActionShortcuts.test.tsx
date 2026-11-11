@@ -82,9 +82,19 @@ describe("useActionShortcuts", () => {
       expect(mocked.launchAction).not.toHaveBeenCalled();
     });
 
-    it("launches on a ⌘ combination", async () => {
+    it("does not launch on a ⌘ combination either", async () => {
       render(<Detail shown={alpha} />);
       await userEvent.click(screen.getByRole("textbox", { name: "Search" }));
+
+      await userEvent.keyboard("{Meta>}o{/Meta}");
+
+      expect(mocked.launchAction).not.toHaveBeenCalled();
+    });
+
+    it("launches on a ⌘ combination once the focus is elsewhere", async () => {
+      render(<Detail shown={alpha} />);
+      await userEvent.click(screen.getByRole("textbox", { name: "Search" }));
+      await userEvent.click(document.body);
 
       await userEvent.keyboard("{Meta>}o{/Meta}");
 

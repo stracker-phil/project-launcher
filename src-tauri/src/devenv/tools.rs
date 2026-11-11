@@ -1,13 +1,13 @@
 //! The port to Docker, DDEV and wp-env. `Real` runs them through the `System` port; debug builds use `Stand-in`
 //! unless `LAUNCHER_REAL_DOCKER=1`, so the debug app never starts or stops the owner's containers (ADR 0022).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use super::docker::{self, Manager};
-use super::{Connection, Described, Failure, Server, ddev, wpenv};
+use super::{Connection, Described, Failure, Server, ServerState, ddev, wpenv};
 use crate::run::system::{Job, System};
 
 const DOCKER_START_TIMEOUT: Duration = Duration::from_secs(3 * 60);
@@ -39,6 +39,8 @@ pub trait Tools: Send + Sync {
     ) -> Result<(), Failure>;
     /// Stops every DDEV project; they need a clean shutdown before Docker goes.
     fn stop_ddev_projects(&self) -> Result<(), Failure>;
+    /// The folders among `servers` whose server runs, asked in one go; only asked while Docker runs.
+    fn running_servers(&self, servers: &[(Server, PathBuf)]) -> Vec<PathBuf>;
 }
 
 /// The tools the app runs on.
@@ -131,6 +133,28 @@ impl Real {
 }
 
 impl Tools for Real {
+    fn running_servers(&self, servers: &[(Server, PathBuf)]) -> Vec<PathBuf> {
+        let has = |kind: Server| servers.iter().any(|(server, _)| *server == kind);
+        let ddev: Vec<PathBuf> = if has(Server::Ddev) {
+            ddev::running_paths(&self.ddev(None, &["list"]))
+        } else {
+            Vec::new()
+        };
+        let compose = if has(Server::WpEnv) {
+            self.compose_services()
+        } else {
+            Vec::new()
+        };
+        servers
+            .iter()
+            .filter(|(server, dir)| match server {
+                Server::Ddev => ddev.contains(dir),
+                Server::WpEnv => wpenv::described(dir, &compose).state == ServerState::Running,
+            })
+            .map(|(_, dir)| dir.clone())
+            .collect()
+    }
+
     fn docker_running(&self) -> bool {
         self.system
             .tool("docker", &["info", "--format", "{{.ServerVersion}}"])
@@ -300,6 +324,15 @@ mod stand_in {
             }
         }
 
+        fn running_servers(&self, servers: &[(Server, PathBuf)]) -> Vec<PathBuf> {
+            let running = self.running.lock_unpoisoned();
+            servers
+                .iter()
+                .filter(|(_, dir)| running.contains(dir))
+                .map(|(_, dir)| dir.clone())
+                .collect()
+        }
+
         fn connection(&self, _: Server, _: &Path) -> Result<Connection, String> {
             Ok(Connection {
                 host: "127.0.0.1".into(),
@@ -347,5 +380,42 @@ mod stand_in {
         fn stop_ddev_projects(&self) -> Result<(), Failure> {
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_stand_in_reports_only_the_servers_that_were_started() {
+        let tools = StandIn::instant();
+        let first = PathBuf::from("/work/first-site");
+        let second = PathBuf::from("/work/second-site");
+        let servers = [
+            (Server::Ddev, first.clone()),
+            (Server::WpEnv, second.clone()),
+        ];
+        assert_eq!(tools.running_servers(&servers), Vec::<PathBuf>::new());
+
+        tools.start_server(Server::WpEnv, &second, &[]).unwrap();
+
+        assert_eq!(tools.running_servers(&servers), [second.clone()]);
+
+        tools.start_server(Server::Ddev, &first, &[]).unwrap();
+        tools.stop_server(Server::WpEnv, &second, &[]).unwrap();
+
+        assert_eq!(tools.running_servers(&servers), [first]);
+    }
+
+    #[test]
+    fn the_stand_in_ignores_started_folders_it_is_not_asked_about() {
+        let tools = StandIn::instant();
+        let started = PathBuf::from("/work/first-site");
+        tools.start_server(Server::Ddev, &started, &[]).unwrap();
+
+        let asked = [(Server::Ddev, PathBuf::from("/work/other-site"))];
+
+        assert_eq!(tools.running_servers(&asked), Vec::<PathBuf>::new());
     }
 }

@@ -28,6 +28,8 @@ pub struct QuickStats {
     /// "WordPress plugin · v3.1.2".
     pub kind: Option<String>,
     pub requirements: Vec<String>,
+    /// "43 npm · 20 composer".
+    pub packages: Option<String>,
     pub scripts: Vec<PackageScript>,
     pub git: Option<GitStats>,
     #[ts(type = "number")]
@@ -66,6 +68,7 @@ pub fn quick(dir: &Path, now_ms: i64) -> QuickStats {
     QuickStats {
         kind,
         requirements: facts.requirements,
+        packages: facts.packages,
         scripts: facts.scripts,
         git: git::stats(dir, now_ms),
         computed_at_ms: now_ms,
@@ -176,6 +179,27 @@ mod tests {
     }
 
     #[test]
+    fn quick_stats_carry_the_package_counts_of_the_manifests() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"dependencies":{"react":"^19"}}"#,
+        )
+        .unwrap();
+        fs::write(dir.path().join("yarn.lock"), "").unwrap();
+        fs::write(
+            dir.path().join("composer.json"),
+            r#"{"require":{"monolog/monolog":"^3","php":">=8.2"}}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            quick(dir.path(), NOW).packages.as_deref(),
+            Some("1 yarn · 1 composer")
+        );
+    }
+
+    #[test]
     fn a_plain_folder_has_quick_stats_without_kind_scripts_or_git() {
         let dir = tempfile::tempdir().unwrap();
 
@@ -184,6 +208,7 @@ mod tests {
             QuickStats {
                 kind: None,
                 requirements: vec![],
+                packages: None,
                 scripts: vec![],
                 git: None,
                 computed_at_ms: NOW,
@@ -275,6 +300,7 @@ mod tests {
             serde_json::json!({
                 "kind": null,
                 "requirements": [],
+                "packages": null,
                 "scripts": [],
                 "git": null,
                 "computedAtMs": NOW,

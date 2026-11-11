@@ -20,6 +20,13 @@ function SettingsNav({ current, onPage }: { current: string; onPage: (id: string
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && matches[0]) onPage(targetOf(matches[0]));
+          // A first Escape clears the search; with nothing to clear it closes Settings.
+          if (e.key === "Escape" && query) {
+            e.stopPropagation();
+            setQuery("");
+          } else if (e.key === "Escape") {
+            e.currentTarget.blur();
+          }
         }}
       />
       <div className="settings-nav-list scroller">

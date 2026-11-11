@@ -17,12 +17,20 @@ the family language below.
 - **Project list**: a full-width search field on top; sections "Recent" (opened in the last 72 hours) and
   "All", both alphabetical, so rows never re-sort while the list is open. The selected row takes the
   project's colour. Right-click opens the project menu.
-- **Detail**: icon and colour, name, tag and notes, all edited in place (no dialogs); an Open grid (editor,
-  terminal, git client, URLs, Claude Code, custom apps); Scripts with Run and the last run's output; Info
-  (website, repository, location, git, editor, config file); Dev Environment (Docker, DDEV or wp-env, and
-  the database that opens in DataBee). Locked projects show everything read-only.
-- **Inspector** (right, toggle ⌃⌘I): overview, languages, git activity, recently edited files and package
-  scripts; slow parts load on their own.
+- **Detail**: icon and colour, name, the tag pill and the git branch pill, and notes, all edited in place (no
+  dialogs); then, in this order: Dev Environment (a status dot, Docker and the DDEV or wp-env server with
+  "Running · Docker Desktop" / "Running · <host>", a globe button for the site, Restart then Start/Stop, and the
+  database that opens in DataBee); an Open grid (each action's icon on a tile in its colour, what it opens, its
+  key as keycaps); Scripts (icon, label, the command in mono, a Run button) with the last run's output; Info
+  (website and repository with open buttons and a pencil that edits them, dev mode, location, editor). Section
+  titles are small and muted; content sits in outlined cards (hairline border, 12px radius). The toolbar's
+  lock, star and inspector buttons are round and filled. Locked projects show everything read-only. Paths in
+  the home folder show from `~`.
+- **Project list rows** carry a green dot while the project's dev server runs, beside the star.
+- **Inspector** (right, toggle ⌃⌘I): "Details" with a round Refresh button; Overview (Type, Requires, Packages,
+  Files, Lines, sizes, Last edited), Languages as a table, Git (branch, changes, remote, commits, started, latest
+  tag, last commit, twelve weeks of green activity bars), Recently Edited and Package Scripts, each section
+  folding with its chevron; slow parts load on their own.
 - No status bar ([ADR 0035](adr/0035-no-status-bar.md)).
 - Pane widths (from the prototype): sidebar 240px, list 300px, detail at least 380px, inspector 280px; each
   pane's 52px top strip drags the window. Hiding the sidebar also hides the list and leaves room for the

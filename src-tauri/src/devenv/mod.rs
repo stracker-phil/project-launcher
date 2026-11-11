@@ -119,6 +119,23 @@ impl DevEnv {
         }
     }
 
+    /// The ids of the targets whose server runs; none while Docker doesn't.
+    pub fn running(&self, targets: &[Target]) -> Vec<String> {
+        let servers: Vec<(Server, PathBuf)> = targets
+            .iter()
+            .filter_map(|t| Some((t.server()?, t.dir.clone())))
+            .collect();
+        if servers.is_empty() || !self.tools.docker_running() {
+            return Vec::new();
+        }
+        let running = self.tools.running_servers(&servers);
+        targets
+            .iter()
+            .filter(|t| running.contains(&t.dir))
+            .map(|t| t.id.clone())
+            .collect()
+    }
+
     /// Starts Docker unless it runs; callers at the same time share the one start.
     fn ensure_docker(&self, settings: &Settings) -> Result<(), Failure> {
         let _starting = self.docker_start.lock_unpoisoned();
@@ -535,6 +552,65 @@ mod tests {
         assert_eq!(server.url.as_deref(), Some("https://demo-site.ddev.site"));
         assert_eq!(server.activity, None);
         assert!(fx.changes() > 0);
+    }
+
+    #[test]
+    fn running_lists_the_targets_whose_server_was_started_in_target_order() {
+        let fx = Fx::new();
+        let first = fx.project(
+            "first-site",
+            DevMode::Ddev,
+            &[(".ddev/config.yaml", DDEV_CONFIG)],
+            None,
+        );
+        let idle = fx.project(
+            "idle-site",
+            DevMode::Ddev,
+            &[(".ddev/config.yaml", DDEV_CONFIG)],
+            None,
+        );
+        let shop = fx.project("demo-shop", DevMode::WpEnv, &[(".wp-env.json", "{}")], None);
+        let targets = [first, idle, shop];
+        assert_eq!(fx.dev.running(&targets), Vec::<String>::new());
+
+        fx.act(&targets[2], DevAction::ServerStart).unwrap();
+        fx.act(&targets[0], DevAction::ServerStart).unwrap();
+
+        assert_eq!(fx.dev.running(&targets), ["first-site", "demo-shop"]);
+
+        fx.act(&targets[0], DevAction::ServerStop).unwrap();
+
+        assert_eq!(fx.dev.running(&targets), ["demo-shop"]);
+    }
+
+    #[test]
+    fn running_ignores_targets_without_a_dev_server() {
+        let fx = Fx::new();
+        let targets = [
+            fx.project("compose-site", DevMode::Docker, &[], None),
+            fx.ddev(),
+            fx.project("plain-site", DevMode::None, &[], None),
+        ];
+        fx.act(&targets[1], DevAction::ServerStart).unwrap();
+
+        assert_eq!(fx.dev.running(&targets), ["demo-site"]);
+        assert_eq!(fx.dev.running(&targets[..1]), Vec::<String>::new());
+        assert_eq!(fx.dev.running(&[]), Vec::<String>::new());
+    }
+
+    #[test]
+    fn nothing_runs_while_docker_is_stopped() {
+        let fx = Fx::new();
+        let target = fx.ddev();
+        fx.act(&target, DevAction::ServerStart).unwrap();
+        assert_eq!(fx.dev.running(std::slice::from_ref(&target)), ["demo-site"]);
+
+        fx.act(&target, DevAction::DockerStop).unwrap();
+
+        assert_eq!(
+            fx.dev.running(std::slice::from_ref(&target)),
+            Vec::<String>::new()
+        );
     }
 
     #[test]

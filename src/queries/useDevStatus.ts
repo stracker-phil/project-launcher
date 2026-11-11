@@ -6,6 +6,17 @@ export const DEV_STATUS_KEY = ["devStatus"] as const;
 
 const REFRESH_MS = 5000;
 
+const RUNNING_REFRESH_MS = 15000;
+
+/** The ids of the projects whose dev server runs; under the same key, so the same events read it again. */
+export function useDevRunning() {
+  return useQuery({
+    queryKey: [...DEV_STATUS_KEY, "running"],
+    queryFn: () => api.devRunning(),
+    refetchInterval: RUNNING_REFRESH_MS,
+  });
+}
+
 /** Docker, the project's server and its database; off while no project is given. */
 export function useDevStatus(id: string | null) {
   return useQuery({

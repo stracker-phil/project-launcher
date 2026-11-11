@@ -111,6 +111,13 @@ impl Data {
         Ok(self.view(&known))
     }
 
+    /// The launch config as the page shows it ([`ProjectConfig::with_home_shown`]).
+    pub fn project_config_shown(&self, id: &str) -> AppResult<ProjectConfig> {
+        Ok(self
+            .project_config(id)?
+            .with_home_shown(self.home.as_deref()))
+    }
+
     /// The project's launch config, resolved; refused while its file is missing or broken.
     pub fn project_config(&self, id: &str) -> AppResult<ProjectConfig> {
         let dir = self.project_dir(id)?;

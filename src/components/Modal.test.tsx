@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
@@ -40,6 +40,36 @@ describe("Modal", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+
+  it("returns the focus to the project list when the opener is gone", async () => {
+    function MenuRowHost() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <div role="listbox" aria-label="Projects" tabIndex={0} />
+          {!open && (
+            <button type="button" onClick={() => setOpen(true)}>
+              Menu row
+            </button>
+          )}
+          {open && (
+            <Modal labelledBy="t" onClose={() => setOpen(false)}>
+              <h2 id="t">Rename</h2>
+              <button type="button">Save</button>
+            </Modal>
+          )}
+        </>
+      );
+    }
+    render(<MenuRowHost />);
+    await userEvent.click(screen.getByRole("button", { name: "Menu row" }));
+
+    await userEvent.keyboard("{Escape}");
+    await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
   });
 
   it("closes when the scrim is pressed", async () => {

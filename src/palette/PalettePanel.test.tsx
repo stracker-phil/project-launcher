@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PalettePanel } from "./PalettePanel";
@@ -170,6 +170,22 @@ describe("PalettePanel", () => {
       await userEvent.keyboard(keys);
 
       expect(calls).toEqual(["close"]);
+    });
+  });
+
+  describe("mouse", () => {
+    it("keeps the focus in the search field when a press lands elsewhere in the panel", () => {
+      renderPanel();
+
+      const notPrevented = fireEvent.mouseDown(screen.getByRole("heading", { name: "Projects" }));
+
+      expect(notPrevented).toBe(false);
+    });
+
+    it("leaves a press on the search field itself alone", () => {
+      renderPanel();
+
+      expect(fireEvent.mouseDown(field())).toBe(true);
     });
   });
 

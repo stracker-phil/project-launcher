@@ -5,6 +5,7 @@ import { openContextMenu } from "../components/menu";
 import { attempt } from "../state/attempt";
 import { sameFilter, useLibrary, type TagEdit } from "../state/library";
 import { useStore } from "../state/store";
+import { restoreFocus } from "../lib/focus";
 import { addProjects } from "./actions";
 
 function FilterRow({ filter, icon, title, count, onContextMenu, onDoubleClick }: {
@@ -49,6 +50,7 @@ function TagField({ initial, onDone }: { initial: string; onDone: (name: string 
     done.current = true;
     const trimmed = value?.trim() ?? "";
     onDone(trimmed && trimmed !== initial ? trimmed : null);
+    restoreFocus();
   };
   return (
     <div className="sidebar-row sidebar-row--editing">
@@ -60,8 +62,9 @@ function TagField({ initial, onDone }: { initial: string; onDone: (name: string 
         placeholder="Tag name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        onBlur={() => finish(name)}
+        onBlur={() => document.hasFocus() && finish(name)}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter") finish(name);
           if (e.key === "Escape") {
             e.stopPropagation();

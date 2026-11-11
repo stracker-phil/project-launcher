@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InlineText } from "./InlineText";
@@ -76,7 +76,9 @@ describe("InlineText", () => {
 
       await userEvent.clear(field);
       await userEvent.type(field, "Sample App");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
       await userEvent.tab();
+      hasFocus.mockRestore();
 
       expect(onSave).toHaveBeenCalledWith("Sample App");
     });
@@ -129,6 +131,48 @@ describe("InlineText", () => {
       const again = await startEditing();
 
       expect(again).toHaveValue("Demo Site");
+    });
+  });
+
+  describe("focus", () => {
+    const withList = () => render(<div role="listbox" aria-label="Projects" tabIndex={-1} />);
+
+    it.each([
+      { key: "{Enter}", why: "Enter" },
+      { key: "{Escape}", why: "Escape" },
+    ])("hands the keys to the project list after $why", async ({ key }) => {
+      withList();
+      renderText();
+      await startEditing();
+
+      await userEvent.keyboard(key);
+      await nextFrame();
+
+      expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
+    });
+
+    it("keeps the field open and saves nothing when it blurs while the document has no focus", async () => {
+      const { onSave } = renderText();
+      const field = await startEditing();
+      await userEvent.type(field, " draft");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+
+      fireEvent.blur(field);
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Demo Site draft");
+      hasFocus.mockRestore();
+    });
+
+    it("does not save on Enter while an input method is composing", async () => {
+      const { onSave } = renderText();
+      const field = await startEditing();
+      fireEvent.change(field, { target: { value: "Sample" } });
+
+      fireEvent.keyDown(field, { key: "Enter", isComposing: true });
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(screen.getByRole("textbox", { name: "Name" })).toBeInTheDocument();
     });
   });
 

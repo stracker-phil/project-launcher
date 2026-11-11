@@ -30,14 +30,21 @@ pub enum Manager {
 }
 
 impl Manager {
+    fn tool(self) -> &'static str {
+        match self {
+            Manager::Npm => "npm",
+            Manager::Pnpm => "pnpm",
+            Manager::Yarn => "yarn",
+            Manager::Bun => "bun",
+            Manager::Composer => "composer",
+        }
+    }
+
     /// The shell command that runs one of its scripts.
     pub fn command(self, script: &str) -> String {
         match self {
             Manager::Composer => format!("composer run-script {script}"),
-            Manager::Npm => format!("npm run {script}"),
-            Manager::Pnpm => format!("pnpm run {script}"),
-            Manager::Yarn => format!("yarn run {script}"),
-            Manager::Bun => format!("bun run {script}"),
+            node => format!("{} run {script}", node.tool()),
         }
     }
 }
@@ -62,6 +69,8 @@ pub struct Facts {
     /// "PHP ≥ 7.4", "Node 20".
     pub requirements: Vec<String>,
     pub scripts: Vec<PackageScript>,
+    /// The dependencies each manifest names, as "43 npm · 20 composer".
+    pub packages: Option<String>,
 }
 
 fn read_json(file: &Path) -> Option<Map<String, Value>> {
@@ -113,6 +122,33 @@ fn scripts_of(manifest: Option<&Map<String, Value>>, manager: Manager) -> Vec<Pa
             command: manager.command(name),
         })
         .collect()
+}
+
+fn dependencies<'a>(
+    manifest: Option<&'a Map<String, Value>>,
+    keys: [&str; 2],
+) -> impl Iterator<Item = &'a String> {
+    keys.into_iter()
+        .filter_map(move |key| field(manifest, key))
+        .flat_map(|deps| deps.keys())
+}
+
+/// "43 npm · 20 composer"; Composer's platform requirements (`php`, `ext-…`) aren't packages.
+fn package_summary(
+    package: Option<&Map<String, Value>>,
+    composer: Option<&Map<String, Value>>,
+    node: Manager,
+) -> Option<String> {
+    let node_count = dependencies(package, ["dependencies", "devDependencies"]).count();
+    let composer_count = dependencies(composer, ["require", "require-dev"])
+        .filter(|name| *name != "php" && !name.starts_with("ext-"))
+        .count();
+    let parts: Vec<String> = [(node_count, node), (composer_count, Manager::Composer)]
+        .into_iter()
+        .filter(|(count, _)| *count > 0)
+        .map(|(count, manager)| format!("{count} {}", manager.tool()))
+        .collect();
+    (!parts.is_empty()).then(|| parts.join(" · "))
 }
 
 fn node_manager(dir: &Path) -> Manager {
@@ -249,13 +285,15 @@ pub fn facts(dir: &Path) -> Facts {
         .and_then(|w| w.version.clone())
         .or_else(|| text(package.as_ref()?.get("version")))
         .or_else(|| text(composer.as_ref()?.get("version")));
-    let mut scripts = scripts_of(package.as_ref(), node_manager(dir));
+    let node = node_manager(dir);
+    let mut scripts = scripts_of(package.as_ref(), node);
     scripts.extend(scripts_of(composer.as_ref(), Manager::Composer));
     Facts {
         kind,
         version,
         requirements,
         scripts,
+        packages: package_summary(package.as_ref(), composer.as_ref(), node),
     }
 }
 
@@ -306,6 +344,7 @@ mod tests {
                     script(Manager::Npm, "build", "vite build", "npm run build"),
                     script(Manager::Npm, "dev", "vite", "npm run dev"),
                 ],
+                packages: None,
             }
         );
     }
@@ -397,6 +436,7 @@ mod tests {
                         "composer run-script test"
                     ),
                 ],
+                packages: None,
             }
         );
     }
@@ -447,6 +487,7 @@ mod tests {
                 version: Some("3.1.2".into()),
                 requirements: vec!["PHP ≥ 7.4".into(), "WordPress ≥ 6.0".into()],
                 scripts: vec![],
+                packages: None,
             }
         );
     }
@@ -465,6 +506,7 @@ mod tests {
                 version: Some("1.2.0".into()),
                 requirements: vec!["WordPress ≥ 6.1".into()],
                 scripts: vec![],
+                packages: None,
             }
         );
     }
@@ -501,6 +543,82 @@ mod tests {
         let dir = folder(&[("package.json", "[1, 2]"), ("composer.json", "not json")]);
 
         assert_eq!(facts(dir.path()), Facts::default());
+    }
+
+    #[test]
+    fn node_dependencies_are_counted_under_the_manager_of_the_lock_file() {
+        let package = json!({
+            "dependencies": { "react": "^19", "zustand": "^5" },
+            "devDependencies": { "vite": "^7" },
+        })
+        .to_string();
+        for (lock, expected) in [
+            ("package-lock.json", "3 npm"),
+            ("pnpm-lock.yaml", "3 pnpm"),
+            ("yarn.lock", "3 yarn"),
+            ("bun.lock", "3 bun"),
+            ("bun.lockb", "3 bun"),
+        ] {
+            let dir = folder(&[("package.json", &package), (lock, "")]);
+
+            assert_eq!(
+                facts(dir.path()).packages.as_deref(),
+                Some(expected),
+                "{lock}"
+            );
+        }
+    }
+
+    #[test]
+    fn composer_packages_leave_out_the_php_version_and_extensions() {
+        let dir = folder(&[(
+            "composer.json",
+            &json!({
+                "require": { "php": ">=8.2", "ext-json": "*", "monolog/monolog": "^3" },
+                "require-dev": { "phpunit/phpunit": "^11", "ext-xdebug": "*" },
+            })
+            .to_string(),
+        )]);
+
+        assert_eq!(facts(dir.path()).packages.as_deref(), Some("2 composer"));
+    }
+
+    #[test]
+    fn packages_of_both_manifests_are_joined_node_first() {
+        let dir = folder(&[
+            (
+                "package.json",
+                r#"{"dependencies":{"react":"^19"},"devDependencies":{"vite":"^7"}}"#,
+            ),
+            (
+                "composer.json",
+                r#"{"require":{"php":">=8.2","monolog/monolog":"^3"}}"#,
+            ),
+            ("pnpm-lock.yaml", ""),
+        ]);
+
+        assert_eq!(
+            facts(dir.path()).packages.as_deref(),
+            Some("2 pnpm · 1 composer")
+        );
+    }
+
+    #[test]
+    fn a_manifest_without_dependencies_is_left_out_of_the_packages() {
+        let dir = folder(&[
+            (
+                "package.json",
+                r#"{"dependencies":{},"scripts":{"dev":"vite"}}"#,
+            ),
+            ("composer.json", r#"{"require":{"php":">=8.2"}}"#),
+        ]);
+        assert_eq!(facts(dir.path()).packages, None);
+
+        let dir = folder(&[
+            ("package.json", "{}"),
+            ("composer.json", r#"{"require":{"monolog/monolog":"^3"}}"#),
+        ]);
+        assert_eq!(facts(dir.path()).packages.as_deref(), Some("1 composer"));
     }
 
     #[test]

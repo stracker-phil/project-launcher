@@ -12,7 +12,7 @@ export function useActionShortcuts(project: Project | null, actions: Action[]) {
       if (e.defaultPrevented || e.repeat) return;
       const { menu, confirmation } = useStore.getState();
       if (menu || confirmation) return;
-      if (isTextInput(e.target) && !e.metaKey && !e.ctrlKey) return;
+      if (isTextInput(e.target)) return;
       if (e.target instanceof Element && e.target.closest(".popover, [data-recording]")) return;
       const pressed = normalizeBinding(bindingFromEvent(e) ?? "");
       if (!pressed) return;

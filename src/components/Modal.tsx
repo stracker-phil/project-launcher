@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { restoreFocus } from "../lib/focus";
 
 interface Props {
   onClose: () => void;
@@ -35,7 +36,10 @@ export function Modal({ onClose, role = "dialog", labelledBy, describedBy, class
     return () => {
       const active = document.activeElement;
       const focusLost = !active || active === document.body || !!sheet?.contains(active);
-      if (focusLost && opener?.isConnected) opener.focus();
+      if (!focusLost) return;
+      // A menu row that opened the sheet is gone by now.
+      if (opener?.isConnected) opener.focus();
+      else restoreFocus();
     };
   }, [opener]);
 

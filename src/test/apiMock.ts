@@ -37,7 +37,7 @@ export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
 export const EMPTY_STATUS: ProjectStatus = { states: [], hidden: [], running: [] };
 
 /** The quick stats of a folder with no manifest and no git. */
-export const EMPTY_QUICK_STATS: QuickStats = { kind: null, requirements: [], scripts: [], git: null, computedAtMs: 0 };
+export const EMPTY_QUICK_STATS: QuickStats = { kind: null, requirements: [], scripts: [], git: null, packages: null, computedAtMs: 0 };
 
 /** The file stats of an empty folder. */
 export const EMPTY_FILE_STATS: FileStats = {
@@ -117,6 +117,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     openProjectFile: vi.fn().mockResolvedValue(undefined),
     projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
     devStatus: vi.fn().mockResolvedValue(EMPTY_DEV_STATUS),
+    devRunning: vi.fn().mockResolvedValue([]),
     devAction: vi.fn().mockResolvedValue(undefined),
     openDatabase: vi.fn().mockResolvedValue("opened"),
     setDockerManager: vi.fn().mockResolvedValue(undefined),

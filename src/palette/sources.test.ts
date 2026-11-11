@@ -35,14 +35,18 @@ describe("menuCommands", () => {
     expect(mocked.runCommand).toHaveBeenCalledWith("app:new");
   });
 
-  it("leaves out the Project menu's items and the palette's own command", () => {
-    const commands = menuCommands([
-      menuRow(),
-      menuRow({ menu: "Project", label: "Reveal in Finder", command: "app:reveal" }),
-      menuRow({ menu: "View", label: "Command Palette", command: "app:palette" }),
-    ]);
+  it("leaves out the Project menu's items", () => {
+    const commands = menuCommands([menuRow(), menuRow({ menu: "Project", label: "Reveal in Finder", command: "app:reveal" })]);
 
     expect(commands.map((c) => c.id)).toEqual(["app:new"]);
+  });
+
+  it.each([
+    { menu: "View", label: "Command Palette", command: "app:palette" },
+    { menu: "File", label: "Close Window", command: "window:close" },
+    { menu: "View", label: "Reload", command: "app:reload" },
+  ])("leaves out $command, which acts on the palette itself", (item) => {
+    expect(menuCommands([menuRow(), menuRow(item)]).map((c) => c.id)).toEqual(["app:new"]);
   });
 });
 

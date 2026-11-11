@@ -34,8 +34,10 @@ function renderInspector(shown: Project | null = alpha) {
   );
 }
 
-/** The row of a label inside a section: label and value share one parent. */
-const row = (label: string) => screen.getByText(label).parentElement as HTMLElement;
+/** The row of a label: label and value share one parent. "Files" and "Lines" are also table headers, so rows can be scoped to a section. */
+const row = (label: string, section?: string) =>
+  (section ? within(screen.getByRole("region", { name: section })) : screen).getByText(label).parentElement as HTMLElement;
+const overview = (label: string) => row(label, "Overview");
 
 const devScript: PackageScript = { manager: "npm", name: "dev", script: "vite", command: "npm run dev" };
 const buildScript: PackageScript = { manager: "pnpm", name: "build-site", script: "vite build", command: "pnpm run build-site" };
@@ -46,6 +48,7 @@ beforeEach(() => {
   mocked.fileStats.mockResolvedValue(EMPTY_FILE_STATS);
   resetStore();
   resetLibrary();
+  localStorage.clear();
 });
 
 describe("Inspector", () => {
@@ -68,88 +71,124 @@ describe("Inspector", () => {
   });
 
   describe("Overview", () => {
-    it("shows the project's kind and its requirements joined by dots", async () => {
+    it("shows the project's kind as Type and its requirements as Requires, joined by dots", async () => {
       mocked.quickStats.mockResolvedValue(quickStats({ kind: "Node project", requirements: ["Node 20", "pnpm 9"] }));
       renderInspector();
 
-      expect(await screen.findByText("Node project")).toBeInTheDocument();
-      expect(screen.getByText("Node 20 · pnpm 9")).toBeInTheDocument();
+      await screen.findByText("Node project");
+      expect(overview("Type")).toHaveTextContent("Node project");
+      expect(overview("Requires")).toHaveTextContent("Node 20 · pnpm 9");
+    });
+
+    it("leaves out Type, Requires and Packages when there is nothing to show", async () => {
+      renderInspector();
+      await waitFor(() => expect(overview("Last edited")).toHaveTextContent("–"));
+
+      const section = within(screen.getByRole("region", { name: "Overview" }));
+      expect(section.queryByText("Type")).not.toBeInTheDocument();
+      expect(section.queryByText("Requires")).not.toBeInTheDocument();
+      expect(section.queryByText("Packages")).not.toBeInTheDocument();
+    });
+
+    it("shows the packages of the project", async () => {
+      mocked.quickStats.mockResolvedValue(quickStats({ packages: "42 dependencies" }));
+      renderInspector();
+
+      await waitFor(() => expect(overview("Packages")).toHaveTextContent("42 dependencies"));
     });
 
     it("shows files, sizes and lines of the scan", async () => {
       mocked.fileStats.mockResolvedValue(fileStats({ files: 1234, sourceBytes: 1536, diskBytes: 3 * 1024 * 1024, lines: 56789 }));
       renderInspector();
 
-      await waitFor(() => expect(row("Files")).toHaveTextContent(/1\D?234/));
-      expect(row("Source size")).toHaveTextContent("1.5");
-      expect(row("On disk")).toHaveTextContent("3");
-      expect(row("Lines of code")).toHaveTextContent(/56\D?789/);
+      await waitFor(() => expect(overview("Files")).toHaveTextContent(/1\D?234/));
+      expect(overview("Source size")).toHaveTextContent("1.5");
+      expect(overview("On disk")).toHaveTextContent("3");
+      expect(overview("Lines")).toHaveTextContent(/56\D?789/);
     });
 
     it("marks the file count with a plus when the scan was cut short", async () => {
       mocked.fileStats.mockResolvedValue(fileStats({ files: 50000, truncated: true }));
       renderInspector();
 
-      await waitFor(() => expect(row("Files")).toHaveTextContent(/50\D?000\+/));
+      await waitFor(() => expect(overview("Files")).toHaveTextContent(/50\D?000\+/));
     });
 
     it("leaves out the plus when the scan was complete", async () => {
       mocked.fileStats.mockResolvedValue(fileStats({ files: 40 }));
       renderInspector();
 
-      await waitFor(() => expect(row("Files")).toHaveTextContent("40"));
-      expect(row("Files")).not.toHaveTextContent("+");
+      await waitFor(() => expect(overview("Files")).toHaveTextContent("40"));
+      expect(overview("Files")).not.toHaveTextContent("+");
     });
 
     it("shows a dash for a disk usage that could not be read", async () => {
       mocked.fileStats.mockResolvedValue(fileStats({ files: 3, diskBytes: null }));
       renderInspector();
 
-      await waitFor(() => expect(row("On disk")).toHaveTextContent("–"));
+      await waitFor(() => expect(overview("On disk")).toHaveTextContent("–"));
     });
 
     it("shows when the newest file was edited, with its path as the title", async () => {
       mocked.fileStats.mockResolvedValue(fileStats({ files: 2, recent: [{ path: "src/app.ts", atMs: Date.now() - 3 * DAY }, { path: "README.md", atMs: Date.now() - 9 * DAY }] }));
       renderInspector();
 
-      await waitFor(() => expect(row("Last edited")).toHaveTextContent("3 days ago"));
-      expect(within(row("Last edited")).getByTitle("src/app.ts")).toBeInTheDocument();
+      await waitFor(() => expect(overview("Last edited")).toHaveTextContent("3 days ago"));
+      expect(within(overview("Last edited")).getByTitle("src/app.ts")).toBeInTheDocument();
     });
 
     it("shows a dash for Last edited when no file was found", async () => {
       renderInspector();
 
-      await waitFor(() => expect(row("Last edited")).toHaveTextContent("–"));
+      await waitFor(() => expect(overview("Last edited")).toHaveTextContent("–"));
     });
 
-    it.each(["Files", "Source size", "On disk", "Lines of code", "Last edited"])("shows an ellipsis for %s while the file scan reads", (label) => {
+    it.each(["Files", "Source size", "On disk", "Lines", "Last edited"])("shows an ellipsis for %s while the file scan reads", (label) => {
       mocked.fileStats.mockReturnValue(new Promise(() => {}));
       renderInspector();
 
-      expect(row(label)).toHaveTextContent("…");
+      expect(overview(label)).toHaveTextContent("…");
     });
   });
 
   describe("Languages", () => {
-    it("lists each language with its share and size", async () => {
+    const withLanguages = () =>
       mocked.fileStats.mockResolvedValue(
         fileStats({
-          files: 14,
+          files: 1838,
           languages: [
-            { name: "TypeScript", color: "Blue", files: 10, lines: 900, bytes: 7500 },
-            { name: "CSS", color: null, files: 4, lines: 100, bytes: 2500 },
+            { name: "TypeScript", color: "Blue", files: 1834, lines: 12000, bytes: 7500 },
+            { name: "CSS", color: null, files: 4, lines: 1_200_000, bytes: 2500 },
           ],
         }),
       );
+
+    it("tabulates each language with its files, lines and size under column headers", async () => {
+      withLanguages();
       renderInspector();
 
       const languages = await screen.findByRole("region", { name: "Languages" });
-      expect(within(languages).getByText("TypeScript")).toBeInTheDocument();
-      expect(within(languages).getByText("CSS")).toBeInTheDocument();
-      expect(within(languages).getByText("75%")).toBeInTheDocument();
-      expect(within(languages).getByText("25%")).toBeInTheDocument();
-      expect(within(languages).getByText("10 files · 900 lines")).toBeInTheDocument();
+      for (const header of ["Language", "Files", "Lines", "Size"]) expect(within(languages).getByText(header)).toBeInTheDocument();
       expect(within(languages).getByRole("img", { name: "TypeScript, CSS" })).toBeInTheDocument();
+    });
+
+    it("shortens the file and line counts of each language", async () => {
+      withLanguages();
+      renderInspector();
+
+      const typescript = await screen.findByTitle("TypeScript: 75%");
+      const css = screen.getByTitle("CSS: 25%");
+      expect([...typescript.children].slice(0, 3).map((cell) => cell.textContent)).toEqual(["TypeScript", "1.8K", "12K"]);
+      expect([...css.children].slice(0, 3).map((cell) => cell.textContent)).toEqual(["CSS", "4", "1.2M"]);
+    });
+
+    it("keeps the percentages out of the visible text", async () => {
+      withLanguages();
+      renderInspector();
+
+      const languages = await screen.findByRole("region", { name: "Languages" });
+      expect(within(languages).queryByText("75%")).not.toBeInTheDocument();
+      expect(within(languages).queryByText("25%")).not.toBeInTheDocument();
     });
 
     it("is left out when no language was found", async () => {
@@ -168,35 +207,39 @@ describe("Inspector", () => {
       expect(screen.queryByRole("region", { name: "Git" })).not.toBeInTheDocument();
     });
 
-    it("shows branch, last commit, commit count and latest tag", async () => {
+    it("shows branch, commit count, start month and latest tag", async () => {
       mocked.quickStats.mockResolvedValue(
         quickStats({
-          git: gitStats({
-            branch: "feature/search",
-            lastCommit: { subject: "Fix the search", author: "Sam Example", atMs: Date.now() - 2 * DAY },
-            commits: 1200,
-            firstCommitMs: Date.now() - 800 * DAY,
-            latestTag: "v1.4.0",
-          }),
+          git: gitStats({ branch: "feature/search", commits: 1200, firstCommitMs: Date.UTC(2024, 2, 15, 12), latestTag: "v1.4.0" }),
         }),
       );
       renderInspector();
 
       await screen.findByRole("region", { name: "Git" });
       expect(row("Branch")).toHaveTextContent("feature/search");
-      expect(row("Last commit")).toHaveTextContent("Fix the search · 2 days ago");
-      expect(within(row("Last commit")).getByTitle("Sam Example")).toBeInTheDocument();
       expect(row("Commits")).toHaveTextContent(/^Commits1\D?200$/);
-      expect(row("First commit")).toHaveTextContent("2 years ago");
+      expect(row("Started")).toHaveTextContent("Mar 2024");
       expect(row("Latest tag")).toHaveTextContent("v1.4.0");
     });
 
-    it("leaves out First commit when there is none", async () => {
+    it("shows the last commit's subject, then when and by whom", async () => {
+      mocked.quickStats.mockResolvedValue(
+        quickStats({ git: gitStats({ lastCommit: { subject: "Fix the search", author: "Sam Example", atMs: Date.now() - 2 * DAY } }) }),
+      );
+      renderInspector();
+
+      await screen.findByRole("region", { name: "Git" });
+      const commit = row("Last commit");
+      expect(commit).toHaveTextContent(/^Last commitFix the search2 days ago · Sam Example$/);
+      expect(within(commit).getByTitle("Sam Example")).toHaveTextContent("2 days ago · Sam Example");
+    });
+
+    it("leaves out Started when there is no first commit", async () => {
       mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ firstCommitMs: null }) }));
       renderInspector();
 
       const git = await screen.findByRole("region", { name: "Git" });
-      expect(within(git).queryByText("First commit")).not.toBeInTheDocument();
+      expect(within(git).queryByText("Started")).not.toBeInTheDocument();
     });
 
     it("says Detached without a branch", async () => {
@@ -208,33 +251,38 @@ describe("Inspector", () => {
     });
 
     it.each([
-      { why: "nothing changed", modified: 0, untracked: 0, text: "None" },
-      { why: "files changed and are new", modified: 2, untracked: 1, text: "2 modified, 1 untracked" },
-    ])("shows $text for Changes when $why", async ({ modified, untracked, text }) => {
+      { why: "nothing changed", modified: 0, untracked: 0, text: "Clean" },
+      { why: "files changed and are new", modified: 3, untracked: 1, text: "3 modified · 1 untracked" },
+      { why: "files only changed", modified: 3, untracked: 0, text: "3 modified" },
+      { why: "files are only new", modified: 0, untracked: 1, text: "1 untracked" },
+    ])("shows '$text' for Changes when $why", async ({ modified, untracked, text }) => {
       mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ modified, untracked }) }));
       renderInspector();
 
       await screen.findByRole("region", { name: "Git" });
-      expect(row("Changes")).toHaveTextContent(text);
+      expect(row("Changes")).toHaveTextContent(`Changes${text}`);
     });
 
     it.each([
-      { why: "ahead and behind", ahead: 2, behind: 1, text: "2 ahead, 1 behind" },
-      { why: "level", ahead: 0, behind: 0, text: "Up to date" },
-    ])("shows $text for Upstream when the branch is $why", async ({ ahead, behind, text }) => {
-      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ hasUpstream: true, ahead, behind }) }));
+      { why: "there is no remote", hasUpstream: false, ahead: 0, behind: 0, text: "No remote" },
+      { why: "the branch is level", hasUpstream: true, ahead: 0, behind: 0, text: "Up to date" },
+      { why: "the branch is ahead", hasUpstream: true, ahead: 2, behind: 0, text: "2 ahead" },
+      { why: "the branch is behind", hasUpstream: true, ahead: 0, behind: 1, text: "1 behind" },
+      { why: "the branch is ahead and behind", hasUpstream: true, ahead: 2, behind: 1, text: "2 ahead · 1 behind" },
+      { why: "there is no remote but commits are ahead", hasUpstream: false, ahead: 3, behind: 0, text: "No remote" },
+    ])("shows '$text' for Remote when $why", async ({ hasUpstream, ahead, behind, text }) => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ hasUpstream, ahead, behind }) }));
       renderInspector();
 
       await screen.findByRole("region", { name: "Git" });
-      expect(row("Upstream")).toHaveTextContent(text);
+      expect(row("Remote")).toHaveTextContent(`Remote${text}`);
     });
 
-    it("leaves out Upstream, Last commit and Latest tag when there are none", async () => {
-      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ hasUpstream: false, ahead: 3, lastCommit: null, latestTag: null }) }));
+    it("leaves out Last commit and Latest tag when there are none", async () => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ lastCommit: null, latestTag: null }) }));
       renderInspector();
 
       const git = await screen.findByRole("region", { name: "Git" });
-      expect(within(git).queryByText("Upstream")).not.toBeInTheDocument();
       expect(within(git).queryByText("Last commit")).not.toBeInTheDocument();
       expect(within(git).queryByText("Latest tag")).not.toBeInTheDocument();
     });
@@ -244,6 +292,16 @@ describe("Inspector", () => {
       renderInspector();
 
       expect(await screen.findByRole("img", { name: "5 commits in 3 weeks" })).toBeInTheDocument();
+    });
+
+    it.each([
+      { weekly: [1, 0, 4], text: "5 commits in the last 3 weeks" },
+      { weekly: [1, 0], text: "1 commit in the last 2 weeks" },
+    ])("captions the activity '$text'", async ({ weekly, text }) => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ weekly }) }));
+      renderInspector();
+
+      expect(await screen.findByText(text)).toBeInTheDocument();
     });
   });
 
@@ -345,6 +403,90 @@ describe("Inspector", () => {
 
       expect(item).toHaveAttribute("aria-disabled", "true");
       expect(useLibrary.getState().newAction).toBeNull();
+    });
+  });
+
+  describe("collapsing a section", () => {
+    const toggle = (title: string) => screen.getByRole("button", { name: title });
+
+    beforeEach(() => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ branch: "feature/search" }) }));
+    });
+
+    it("starts expanded", async () => {
+      renderInspector();
+
+      await screen.findByText("feature/search");
+      expect(toggle("Git")).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("hides the section's body and reports it collapsed when its title is clicked", async () => {
+      renderInspector();
+      await screen.findByText("feature/search");
+
+      await userEvent.click(toggle("Git"));
+
+      expect(toggle("Git")).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("feature/search")).not.toBeInTheDocument();
+      expect(toggle("Overview")).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("shows the body again on a second click", async () => {
+      renderInspector();
+      await screen.findByText("feature/search");
+
+      await userEvent.click(toggle("Git"));
+      await userEvent.click(toggle("Git"));
+
+      expect(toggle("Git")).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("feature/search")).toBeInTheDocument();
+    });
+
+    it("remembers a collapsed section the next time the inspector shows", async () => {
+      const first = renderInspector();
+      await screen.findByText("feature/search");
+      await userEvent.click(toggle("Git"));
+      first.unmount();
+
+      renderInspector();
+
+      await waitFor(() => expect(toggle("Git")).toHaveAttribute("aria-expanded", "false"));
+      expect(screen.queryByText("feature/search")).not.toBeInTheDocument();
+    });
+
+    it("forgets the fold once the section is expanded again", async () => {
+      const first = renderInspector();
+      await screen.findByText("feature/search");
+      await userEvent.click(toggle("Git"));
+      await userEvent.click(toggle("Git"));
+      first.unmount();
+
+      renderInspector();
+
+      expect(await screen.findByText("feature/search")).toBeInTheDocument();
+    });
+
+    it("starts expanded when the stored fold cannot be read", async () => {
+      const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("Storage is blocked");
+      });
+      renderInspector();
+
+      expect(await screen.findByText("feature/search")).toBeInTheDocument();
+      read.mockRestore();
+    });
+
+    it("still folds for the session when the fold cannot be stored", async () => {
+      const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage is full");
+      });
+      renderInspector();
+      await screen.findByText("feature/search");
+
+      await userEvent.click(toggle("Git"));
+
+      expect(toggle("Git")).toHaveAttribute("aria-expanded", "false");
+      write.mockRestore();
     });
   });
 

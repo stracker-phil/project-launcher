@@ -827,6 +827,40 @@ fn config_edits_on_an_unknown_project_are_not_found() {
     );
 }
 
+#[test]
+fn the_shown_config_starts_home_paths_with_a_tilde_while_the_config_keeps_the_full_paths() {
+    let fx = Fx::new(Some(json!({
+        "name": "Alpha",
+        "apps": [{ "label": "Shell", "command": "cd ~/work" }],
+        "scripts": [{ "label": "Export", "command": "ddev export-db --file ~/dumps/a.sql" }],
+    })));
+    let home = fx.root.path().to_string_lossy().into_owned();
+
+    let full = fx.data.project_config("p").unwrap();
+    let shown = fx.data.project_config_shown("p").unwrap();
+
+    assert_eq!(full.apps[0].command, Some(format!("cd {home}/work")));
+    assert_eq!(
+        full.scripts[0].command,
+        Some(format!("ddev export-db --file {home}/dumps/a.sql"))
+    );
+    assert_eq!(shown.apps[0].command.as_deref(), Some("cd ~/work"));
+    assert_eq!(
+        shown.scripts[0].command.as_deref(),
+        Some("ddev export-db --file ~/dumps/a.sql")
+    );
+}
+
+#[test]
+fn the_shown_config_of_an_unknown_project_is_not_found() {
+    let fx = Fx::new(Some(base_file()));
+
+    assert_eq!(
+        fx.data.project_config_shown("nope").unwrap_err().kind(),
+        ErrorKind::NotFound
+    );
+}
+
 const NOW: i64 = 1_800_000_000_000;
 
 fn demo_data(config: &TempDir) -> Data {

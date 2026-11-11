@@ -332,7 +332,11 @@ export type QuickStats = {
 /**
  * "WordPress plugin · v3.1.2".
  */
-kind: string | null, requirements: Array<string>, scripts: Array<PackageScript>, git: GitStats | null, computedAtMs: number, };
+kind: string | null, requirements: Array<string>, 
+/**
+ * "43 npm · 20 composer".
+ */
+packages: string | null, scripts: Array<PackageScript>, git: GitStats | null, computedAtMs: number, };
 
 export type Row = { project: Project, 
 /**

@@ -257,7 +257,7 @@ pub async fn set_project_meta(
 
 #[tauri::command]
 pub async fn project_config(state: State<'_, AppState>, id: String) -> AppResult<ProjectConfig> {
-    state.data.project_config(&id)
+    state.data.project_config_shown(&id)
 }
 
 /// `source: null` creates the action; `preset` names the built-in the draft overrides.

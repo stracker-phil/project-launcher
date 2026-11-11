@@ -9,7 +9,7 @@ import { TooltipHost } from "./components/TooltipHost";
 import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
 import { useDevFailures } from "./main/devEnvironment";
-import { useReportCurrentProject, useSelectProjectRequests } from "./main/useCurrentProject";
+import { useFocusOnOpen, useReportCurrentProject, useSelectProjectRequests } from "./main/useCurrentProject";
 import { createQueryClient } from "./queries/queryClient";
 import { useEvents } from "./queries/useEvents";
 import { useSettings } from "./queries/useSettings";
@@ -26,6 +26,7 @@ function MainWindow() {
   useMainCommands();
   useReportCurrentProject();
   useSelectProjectRequests();
+  useFocusOnOpen();
   useDevFailures();
   const onLaunch = useCallback((event: LaunchEvent) => {
     if (event.type === "error") useStore.getState().toast("error", event.message);

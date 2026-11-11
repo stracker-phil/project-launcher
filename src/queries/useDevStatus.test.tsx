@@ -7,7 +7,7 @@ vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await impo
 
 import { api } from "../api";
 import { createQueryClient } from "./queryClient";
-import { useDevStatus } from "./useDevStatus";
+import { useDevRunning, useDevStatus } from "./useDevStatus";
 
 const mocked = vi.mocked(api, true);
 
@@ -32,5 +32,15 @@ describe("useDevStatus", () => {
 
     expect(result.current.data).toBeUndefined();
     expect(mocked.devStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe("useDevRunning", () => {
+  it("returns the ids of the projects whose dev server runs", async () => {
+    mocked.devRunning.mockResolvedValue(["alpha", "gamma"]);
+
+    const { result } = renderHook(() => useDevRunning(), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual(["alpha", "gamma"]));
   });
 });

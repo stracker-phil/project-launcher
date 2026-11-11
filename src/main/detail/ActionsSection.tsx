@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type 
 import { LoaderCircle, Play, Plus, X } from "lucide-react";
 import type { Action, Project, ProjectConfig, ProjectStatus, RunsAs } from "../../api";
 import { openContextMenu, openMenu, type MenuEntry } from "../../components/menu";
-import { bindingLabel } from "../../commands/registry";
+import { Keycaps } from "../../components/Keycaps";
 import { colorVar, iconFor } from "../../lib/icons";
 import { useLibrary } from "../../state/library";
 import { sourceKey, useRuns } from "../../state/runs";
@@ -87,28 +87,34 @@ function addMenuEntries(project: Project, config: ProjectConfig, onNew: (runsAs:
   ];
 }
 
+const tileColor = (action: Action) => ({ "--tile-color": colorVar(action.color ?? (action.runsAs === "script" ? "Orange" : "Blue")) }) as CSSProperties;
+
+function ActionIcon({ action }: { action: Action }) {
+  const Icon = iconFor(action.icon);
+  return (
+    <span className="project-tile action-icon" style={tileColor(action)}>
+      <Icon size={15} aria-hidden />
+    </span>
+  );
+}
+
 function ActionTile({ action, running, onContextMenu, onClick }: {
   action: Action;
   running: boolean;
   onContextMenu?: (e: MouseEvent<HTMLButtonElement>) => void;
   onClick: () => void;
 }) {
-  const Icon = iconFor(action.icon);
   return (
-    <button
-      type="button"
-      className="action-tile"
-      style={action.color ? ({ "--tile-color": colorVar(action.color) } as CSSProperties) : undefined}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-    >
-      <Icon size={16} aria-hidden className="action-tile__icon" />
+    <button type="button" className="action-tile" onClick={onClick} onContextMenu={onContextMenu}>
+      <ActionIcon action={action} />
       <span className="action-tile__text">
         <span className="action-tile__label">{action.label}</span>
-        <span className="action-tile__opens">{opens(action)}</span>
+        <span className="action-tile__opens">
+          <span className={running ? "action-tile__dot action-tile__dot--on" : "action-tile__dot"} role={running ? "img" : undefined} aria-label={running ? "Running" : undefined} />
+          {opens(action)}
+        </span>
       </span>
-      <span className={running ? "action-tile__dot action-tile__dot--on" : "action-tile__dot"} role={running ? "img" : undefined} aria-label={running ? "Running" : undefined} />
-      <span className="action-tile__key">{action.shortcut ? bindingLabel(action.shortcut) : ""}</span>
+      <Keycaps binding={action.shortcut ?? null} className="action-tile__key" />
     </button>
   );
 }
@@ -164,11 +170,15 @@ function ScriptRow({ action, running, onRun, onContextMenu }: {
 }) {
   return (
     <div className="script-row" onContextMenu={onContextMenu}>
-      <span className="script-row__label">{action.label}</span>
-      <span className="script-row__command mono">{action.command}</span>
-      <span className="script-row__key">{action.shortcut ? bindingLabel(action.shortcut) : ""}</span>
-      <button type="button" className="icon-btn tiny" aria-label={running ? `${action.label} is running` : `Run ${action.label}`} disabled={running} onClick={onRun}>
-        {running ? <LoaderCircle size={14} className="spin" aria-hidden /> : <Play size={14} aria-hidden />}
+      <ActionIcon action={action} />
+      <span className="script-row__text">
+        <span className="script-row__label">{action.label}</span>
+        <span className="script-row__command mono">{action.command}</span>
+      </span>
+      <Keycaps binding={action.shortcut ?? null} className="script-row__key" />
+      <button type="button" className="btn script-row__run" aria-label={running ? `${action.label} is running` : `Run ${action.label}`} disabled={running} onClick={onRun}>
+        {running ? <LoaderCircle size={13} className="spin" aria-hidden /> : <Play size={13} aria-hidden />}
+        {running ? "Running" : "Run"}
       </button>
     </div>
   );
@@ -202,7 +212,7 @@ function ScriptsSection({ project, scripts, menuFor }: { project: Project; scrip
     <section className="detail-section">
       <h2 className="detail-section__title">Scripts</h2>
       {scripts.length > 0 && (
-        <div className="script-list">
+        <div className="card">
           {scripts.map((script) => (
             <ScriptRow
               key={sourceKey(script.edit.source)}

@@ -3,6 +3,7 @@ import {
   allCommands,
   bindingFromEvent,
   bindingFor,
+  bindingKeys,
   bindingLabel,
   clearCommands,
   getCommand,
@@ -168,6 +169,26 @@ describe("bindingLabel", () => {
 
   it("is empty for no binding", () => {
     expect(bindingLabel(null)).toBe("");
+  });
+});
+
+describe("bindingKeys", () => {
+  it.each([
+    ["Shift+Mod+T", ["⇧", "⌘", "T"]],
+    ["Mod+Ctrl+Alt+Shift+K", ["⌃", "⌥", "⇧", "⌘", "K"]],
+    ["Mod+Enter", ["⌘", "↵"]],
+    ["Escape", ["⎋"]],
+    ["Mod+Shift++", ["⇧", "⌘", "+"]],
+  ])("splits %j into its symbols, modifiers first", (binding, keys) => {
+    expect(bindingKeys(binding)).toEqual(keys);
+  });
+
+  it("is empty for no binding", () => {
+    expect(bindingKeys(null)).toEqual([]);
+  });
+
+  it("joins to the binding's label", () => {
+    expect(bindingKeys("Mod+Shift+Z").join("")).toBe(bindingLabel("Mod+Shift+Z"));
   });
 });
 

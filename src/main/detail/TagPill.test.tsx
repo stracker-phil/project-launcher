@@ -1,5 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../api", async (orig) => ({ ...(await orig<object>()), api: (await import("../../test/apiMock")).createApiMock() }));
@@ -124,7 +125,9 @@ describe("TagPill", () => {
       renderPill(subject, { editing: true });
 
       await userEvent.type(screen.getByRole("textbox", { name: "Tag name" }), "Docs");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
       await userEvent.tab();
+      hasFocus.mockRestore();
 
       expect(mocked.setProjectMeta).toHaveBeenCalledWith(subject.id, { field: "tag", value: "Docs" });
     });
@@ -145,6 +148,42 @@ describe("TagPill", () => {
 
       expect(mocked.setProjectMeta).not.toHaveBeenCalled();
       expect(onEditingChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe("finishing the field", () => {
+    function Harness() {
+      const [editing, setEditing] = useState(true);
+      return (
+        <>
+          <TagPill project={project()} tags={TAGS} editing={editing} onEditingChange={setEditing} readOnly={false} />
+          <div role="listbox" aria-label="Projects" tabIndex={0} />
+        </>
+      );
+    }
+    const nextFrame = () => act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+
+    it.each(["Docs{Enter}", "Docs{Escape}"])("hands the keys to the project list after %j", async (keys) => {
+      render(<Harness />);
+
+      await userEvent.type(screen.getByRole("textbox", { name: "Tag name" }), keys);
+      await nextFrame();
+
+      expect(screen.queryByRole("textbox", { name: "Tag name" })).not.toBeInTheDocument();
+      expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
+    });
+
+    it("keeps the field open and sets nothing when it blurs while the document has no focus", async () => {
+      render(<Harness />);
+      const field = screen.getByRole("textbox", { name: "Tag name" });
+      await userEvent.type(field, "Docs");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+
+      fireEvent.blur(field);
+
+      expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveValue("Docs");
+      expect(mocked.setProjectMeta).not.toHaveBeenCalled();
+      hasFocus.mockRestore();
     });
   });
 

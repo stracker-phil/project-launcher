@@ -96,7 +96,16 @@ export function PalettePanel({ commands, onClose }: { commands: PaletteCommand[]
   const activeItem = all[active];
 
   return (
-    <div className="palette" role="dialog" aria-label="Command palette" onKeyDown={onKeyDown}>
+    <div
+      className="palette"
+      role="dialog"
+      aria-label="Command palette"
+      onKeyDown={onKeyDown}
+      // A click on empty space would take the keys from the search field.
+      onMouseDown={(e) => {
+        if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
+      }}
+    >
       <label className="palette__input">
         <Search size={18} strokeWidth={2} aria-hidden="true" />
         <input

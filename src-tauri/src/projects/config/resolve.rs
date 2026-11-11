@@ -51,6 +51,22 @@ pub struct ProjectConfig {
     pub is_git_repo: bool,
 }
 
+impl ProjectConfig {
+    /// For the page, which only shows the commands (launching resolves them again): paths in the home folder
+    /// start with `~`.
+    pub fn with_home_shown(mut self, home: Option<&Path>) -> Self {
+        for action in self.apps.iter_mut().chain(self.scripts.iter_mut()) {
+            for text in [&mut action.command, &mut action.args]
+                .into_iter()
+                .flatten()
+            {
+                *text = crate::status::tilde_in(text, home);
+            }
+        }
+        self
+    }
+}
+
 /// An app, URL, terminal command or script, with its placeholders filled in.
 #[derive(Serialize, TS, Debug, Clone, PartialEq)]
 #[ts(export, export_to = "src/api/types.gen.ts")]
@@ -1021,6 +1037,46 @@ mod tests {
         assert!(config.env.is_empty());
         assert!(config.states.is_empty());
         assert!(config.state_providers.is_empty());
+    }
+
+    #[test]
+    fn showing_the_home_folder_changes_only_commands_and_args_of_apps_and_scripts() {
+        let config = resolved(json!({
+            "env": { "NOTES": "~/notes" },
+            "stateProviders": { "notes": "cat ~/status" },
+            "apps": [
+                { "label": "Figma", "app": "Figma", "args": "~/design/a.fig" },
+                { "label": "Shell", "command": "cd ~/work && ls" },
+                { "preset": "terminal", "command": "ls ~/x" },
+                { "label": "Docs", "url": "https://example.com/docs" },
+            ],
+            "scripts": [{ "label": "Deploy", "command": "~/bin/deploy --to=/work/northwind" }],
+        }));
+        assert_eq!(
+            config.apps[0].args.as_deref(),
+            Some("/Users/demo/design/a.fig")
+        );
+
+        let shown = config
+            .clone()
+            .with_home_shown(Some(Path::new("/Users/demo")));
+
+        let mut expected = config;
+        expected.apps[0].args = Some("~/design/a.fig".into());
+        expected.apps[1].command = Some("cd ~/work && ls".into());
+        expected.apps[2].command = Some("ls ~/x".into());
+        expected.scripts[0].command = Some("~/bin/deploy --to=/work/northwind".into());
+        assert_eq!(shown, expected);
+    }
+
+    #[test]
+    fn without_a_home_folder_the_config_is_shown_as_resolved() {
+        let config = resolved(json!({
+            "apps": [{ "label": "Shell", "command": "cd ~/work" }],
+            "scripts": [{ "label": "Deploy", "command": "~/bin/deploy" }],
+        }));
+
+        assert_eq!(config.clone().with_home_shown(None), config);
     }
 
     #[test]

@@ -548,6 +548,38 @@ fn describe_prints_the_details_then_apps_and_scripts_sections() {
 }
 
 #[test]
+fn describe_shows_paths_inside_the_home_folder_in_commands_with_a_tilde() {
+    let home = text(&home());
+    let reply = serde_json::to_value(Description {
+        apps: vec![("Shell".into(), format!("cd {home}/work"))],
+        scripts: vec![
+            (
+                "Export".into(),
+                format!("ddev export-db --file={home}/dumps/a.sql"),
+            ),
+            ("Sibling".into(), format!("ls {home}y/work")),
+        ],
+        ..description()
+    })
+    .unwrap();
+
+    let rendered = reply::render(&describe_message(), &reply).unwrap().unwrap();
+
+    let commands: Vec<&str> = rendered
+        .lines()
+        .filter(|line| line.starts_with("  "))
+        .collect();
+    assert_eq!(
+        commands,
+        [
+            "  Shell  cd ~/work".to_string(),
+            "  Export   ddev export-db --file=~/dumps/a.sql".to_string(),
+            format!("  Sibling  ls {home}y/work"),
+        ]
+    );
+}
+
+#[test]
 fn describe_of_a_project_with_a_broken_file_shows_the_problem_and_no_sections() {
     let reply = serde_json::to_value(Description {
         project: listed("Acme Shop", None, &text(&home().join("acme-shop")), false),

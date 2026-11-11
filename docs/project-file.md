@@ -79,8 +79,9 @@ folder), `${url}` (`meta.url`; left as written without one) and `~` where it sta
 icon, colour, shortcut, how it runs, target, `hiddenStates`) with the placeholders filled, entries that don't fit
 skipped; all six built-ins with `enabled` and `unavailableReason`; `env`, `stateProviders` and `states` in file
 order; `dev`, `database` (`detect`, `hidden` or `url`), `locked`, `isGitRepo` and `claude` (when the folder has a
-`.claude` directory, with `CLAUDE_CONFIG_DIR`). Read with `project_config(id)`; a missing or broken file is an
-error, as the project shows unavailable.
+`.claude` directory, with `CLAUDE_CONFIG_DIR`). Read with `project_config(id)`, which shows paths in the home folder from `~` in
+commands and arguments (the page only shows them; launching resolves the action again); a missing or broken file
+is an error, as the project shows unavailable.
 
 Each action carries `edit`, what the action editor starts from: `source` (list and index in the file), `draft`
 (the fields as written, no placeholders filled; for a built-in only its overrides), `preset` and, for a built-in,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ago, bytes, count } from "./format";
+import { ago, bytes, count, monthYear, short } from "./format";
 
 const NOW = Date.UTC(2026, 5, 15, 12, 0, 0);
 const SECOND = 1000;
@@ -34,6 +34,23 @@ describe("count", () => {
 
   it("keeps a small number as it is", () => {
     expect(count(42)).toBe("42");
+  });
+});
+
+describe("short", () => {
+  it.each([
+    [42, "42"],
+    [1834, "1.8K"],
+    [12000, "12K"],
+    [1_200_000, "1.2M"],
+  ])("shortens %i to %j", (value, text) => {
+    expect(short(value)).toBe(text);
+  });
+});
+
+describe("monthYear", () => {
+  it("names the month by its short English name and the year", () => {
+    expect(monthYear(Date.UTC(2024, 2, 15, 12))).toBe("Mar 2024");
   });
 });
 

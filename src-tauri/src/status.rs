@@ -66,6 +66,40 @@ pub fn tilde(path: &Path, home: Option<&Path>) -> String {
     }
 }
 
+fn in_folder_name(c: char) -> bool {
+    c.is_alphanumeric() || matches!(c, '-' | '_' | '.')
+}
+
+/// `home` found between `before` and `after` is the whole start of a path, not part of a longer name.
+fn is_home_path(before: &str, after: &str) -> bool {
+    let starts_path = before
+        .chars()
+        .next_back()
+        .is_none_or(|c| !in_folder_name(c) && c != '/');
+    starts_path && after.chars().next().is_none_or(|c| !in_folder_name(c))
+}
+
+/// `text` (a command) with every path that starts in `home` shown from `~`.
+pub fn tilde_in(text: &str, home: Option<&Path>) -> String {
+    let Some(home) = home.and_then(Path::to_str).filter(|h| !h.is_empty()) else {
+        return text.to_string();
+    };
+    let mut shown = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find(home) {
+        let (before, after) = (&rest[..at], &rest[at + home.len()..]);
+        shown.push_str(before);
+        shown.push_str(if is_home_path(before, after) {
+            "~"
+        } else {
+            home
+        });
+        rest = after;
+    }
+    shown.push_str(rest);
+    shown
+}
+
 /// The status of this build, from paths already read; without a home folder the command line shows where it
 /// would be linked and counts as not installed.
 pub fn build_status(
@@ -145,6 +179,34 @@ mod tests {
         ] {
             assert_eq!(tilde(Path::new(path), home), expected, "{path}");
         }
+    }
+
+    #[test]
+    fn tilde_in_shows_every_path_inside_home_from_the_tilde() {
+        let home = Path::new("/Users/demo");
+        for (text, expected) in [
+            (
+                "ddev export-db --file=/Users/demo/x/b.sql",
+                "ddev export-db --file=~/x/b.sql",
+            ),
+            ("/Users/demo", "~"),
+            ("cd /Users/demo && ls", "cd ~ && ls"),
+            ("cp /Users/demo/a /Users/demo/b", "cp ~/a ~/b"),
+            ("ls /Users/demoX/a", "ls /Users/demoX/a"),
+            ("cp /Users/demoX/a /Users/demo/b", "cp /Users/demoX/a ~/b"),
+            ("ls /opt/tools", "ls /opt/tools"),
+            ("ls foo/Users/demo/x", "ls foo/Users/demo/x"),
+            ("", ""),
+        ] {
+            assert_eq!(tilde_in(text, Some(home)), expected, "{text}");
+        }
+    }
+
+    #[test]
+    fn tilde_in_leaves_text_unchanged_without_a_usable_home() {
+        let text = "ls /Users/demo/notes";
+        assert_eq!(tilde_in(text, None), text);
+        assert_eq!(tilde_in(text, Some(Path::new(""))), text);
     }
 
     struct Fixture {

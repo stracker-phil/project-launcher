@@ -1,10 +1,11 @@
-import { Lock, LockOpen, PanelRight, Star } from "lucide-react";
+import { GitBranch, Lock, LockOpen, PanelRight, Star } from "lucide-react";
 import { useMemo } from "react";
 import type { Action, Library, Project, ProjectConfig, ProjectStatus } from "../../api";
 import { InlineText } from "../../components/InlineText";
 import { useProjectConfig } from "../../queries/useProjectConfig";
 import { useDevStatus } from "../../queries/useDevStatus";
 import { useProjectStatus } from "../../queries/useProjectStatus";
+import { useQuickStats } from "../../queries/useStats";
 import { useLibrary, type EditField } from "../../state/library";
 import { useStore } from "../../state/store";
 import { addProjects, rename, setLocked, setMeta, toggleStar } from "../actions";
@@ -89,6 +90,7 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
   const { data: config } = useProjectConfig(shownId);
   const { data: status } = useProjectStatus(shownId);
   const { data: dev } = useDevStatus(shownId);
+  const branch = useQuickStats(shownId).data?.git?.branch;
   const shortcutActions = useShownActions(config, status);
   useActionShortcuts(shownId ? project : null, shortcutActions);
   if (!project) return <EmptyDetail library={library} />;
@@ -117,6 +119,12 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
           />
           <div className="detail-header__badges">
             <TagPill project={project} tags={tags} readOnly={readOnly} editing={isEditing("tag")} onEditingChange={setEditing("tag")} />
+            {branch && (
+              <span className="branch-pill" title="Git branch">
+                <GitBranch size={11} aria-hidden />
+                {branch}
+              </span>
+            )}
             {project.meta.archived && <span className="badge">Archived</span>}
             {project.locked && <span className="badge">Locked</span>}
           </div>
@@ -137,8 +145,8 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
       </header>
       {project.fileError && <div className="callout callout--error">{project.fileError}</div>}
       {status && <StatesRow states={status.states} />}
-      {config && <ActionsSection project={project} config={config} status={status} editable={!readOnly} />}
       <DevSection project={project} status={dev} />
+      {config && <ActionsSection project={project} config={config} status={status} editable={!readOnly} />}
       <InfoSection project={project} config={config} readOnly={readOnly} />
       {config && <EnvSection config={config} />}
     </div>

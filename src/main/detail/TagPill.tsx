@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Tag } from "lucide-react";
 import type { Project } from "../../api";
 import { openMenu } from "../../components/menu";
+import { restoreFocus } from "../../lib/focus";
 import { setTag } from "../actions";
 import { tagMenu } from "../projectMenu";
 
@@ -24,7 +26,13 @@ export function TagPill({ project, tags, editing, onEditingChange, readOnly }: {
     field.current?.focus();
   }, [editing]);
 
-  if (readOnly) return tag ? <span className="tag-pill tag-pill--filled">{tag}</span> : null;
+  if (readOnly)
+    return tag ? (
+      <span className="tag-pill tag-pill--filled">
+        <Tag size={11} aria-hidden />
+        {tag}
+      </span>
+    ) : null;
 
   if (editing) {
     const finish = (value: string | null) => {
@@ -32,6 +40,7 @@ export function TagPill({ project, tags, editing, onEditingChange, readOnly }: {
       done.current = true;
       onEditingChange(false);
       if (value?.trim()) void setTag(project, value.trim());
+      restoreFocus();
     };
     return (
       <input
@@ -41,8 +50,9 @@ export function TagPill({ project, tags, editing, onEditingChange, readOnly }: {
         placeholder="Tag name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        onBlur={() => finish(name)}
+        onBlur={() => document.hasFocus() && finish(name)}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter") finish(name);
           if (e.key === "Escape") {
             e.stopPropagation();
@@ -60,6 +70,7 @@ export function TagPill({ project, tags, editing, onEditingChange, readOnly }: {
       aria-haspopup="menu"
       onClick={(e) => openMenu(tagMenu(project, tags), e.currentTarget, "Tag")}
     >
+      <Tag size={11} aria-hidden />
       {tag ?? "Add Tag"}
     </button>
   );

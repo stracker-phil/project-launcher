@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await import("../test/apiMock")).createApiMock() }));
@@ -7,10 +7,12 @@ import { api, type Filter } from "../api";
 import { resetLibrary, useLibrary } from "../state/library";
 import type { createApiMock } from "../test/apiMock";
 import { project } from "../test/library";
-import { useReportCurrentProject, useSelectProjectRequests } from "./useCurrentProject";
+import { useFocusOnOpen, useReportCurrentProject, useSelectProjectRequests } from "./useCurrentProject";
 
 const mocked = vi.mocked(api, true);
 const select = (payload: { id: string; filter: Filter }) => act(() => (api as ReturnType<typeof createApiMock>).emit("select_project", payload));
+
+const nextFrame = () => act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 
 const alpha = project({ id: "alpha", name: "Alpha" });
 const beta = project({ id: "beta", name: "Beta Shop" });
@@ -99,5 +101,51 @@ describe("useSelectProjectRequests", () => {
     select({ id: "beta", filter: { kind: "all" } });
 
     expect(useLibrary.getState().selectedId).toBeNull();
+  });
+
+  it("gives the project list the focus when nothing has it", async () => {
+    render(<div role="listbox" aria-label="Projects" tabIndex={0} />);
+    await renderListening();
+
+    select({ id: "beta", filter: { kind: "all" } });
+    await nextFrame();
+
+    expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
+  });
+});
+
+describe("useFocusOnOpen", () => {
+  const opened = () => act(() => (api as ReturnType<typeof createApiMock>).emit("window_opened", null));
+
+  async function renderListening() {
+    const view = renderHook(() => useFocusOnOpen());
+    await waitFor(() => expect(mocked.on).toHaveBeenCalledWith("window_opened", expect.any(Function)));
+    return view;
+  }
+
+  it("gives the project list the focus when the window opens and nothing has it", async () => {
+    render(<div role="listbox" aria-label="Projects" tabIndex={0} />);
+    await renderListening();
+
+    opened();
+    await nextFrame();
+
+    expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
+  });
+
+  it("leaves the focus with a field that has it", async () => {
+    render(
+      <>
+        <div role="listbox" aria-label="Projects" tabIndex={0} />
+        <input aria-label="Name" />
+      </>,
+    );
+    screen.getByRole("textbox", { name: "Name" }).focus();
+    await renderListening();
+
+    opened();
+    await nextFrame();
+
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
   });
 });

@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +8,7 @@ vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await impo
 import { api, type Library } from "../api";
 import { MenuHost } from "../components/menu";
 import { Toasts } from "../components/Toasts";
+import { createQueryClient } from "../queries/queryClient";
 import { library, project, row, section } from "../test/library";
 import { resetLibrary, useLibrary } from "../state/library";
 import { resetStore } from "../state/store";
@@ -21,13 +23,14 @@ const threeProjects = library([section(null, alpha, beta, gamma)]);
 
 /** `null` renders the list without a library, as while it loads. */
 function renderList(lib: Library | null = threeProjects, settled = true) {
+  const client = createQueryClient();
   const ui = (s: boolean) => (
-    <>
+    <QueryClientProvider client={client}>
       <SearchField />
       <ProjectList library={lib ?? undefined} settled={s} />
       <MenuHost />
       <Toasts />
-    </>
+    </QueryClientProvider>
   );
   const view = render(ui(settled));
   return { ...view, settle: () => view.rerender(ui(true)) };
@@ -181,6 +184,71 @@ describe("ProjectList", () => {
       await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}");
 
       expect(selectedId()).toBe("gamma");
+    });
+
+    it.each([
+      { key: "ArrowDown", id: "beta" },
+      { key: "ArrowUp", id: "alpha" },
+    ])("moves the selection on $key with nothing focused and gives the list the focus", ({ key, id }) => {
+      resetLibrary({ selectedId: key === "ArrowUp" ? "beta" : "alpha" });
+      renderList();
+      expect(document.body).toHaveFocus();
+
+      fireEvent.keyDown(window, { key });
+
+      expect(selectedId()).toBe(id);
+      expect(listbox()).toHaveFocus();
+    });
+
+    it("leaves the arrow keys to a text field that has focus", async () => {
+      renderList();
+      screen.getByRole("searchbox", { name: "Search Projects" }).focus();
+
+      await userEvent.keyboard("{ArrowDown}");
+
+      expect(selectedId()).toBe("alpha");
+    });
+
+    it("leaves the arrow keys to an open menu", () => {
+      renderList();
+      fireEvent.contextMenu(option("Alpha"));
+
+      fireEvent.keyDown(document.body, { key: "ArrowDown" });
+
+      expect(selectedId()).toBe("alpha");
+    });
+
+    it("leaves the arrow keys to an open confirmation", () => {
+      renderList();
+      act(() => resetStore({ confirmation: { title: "Remove?", text: "Demo", action: "Remove", answer: vi.fn() } }));
+
+      fireEvent.keyDown(document.body, { key: "ArrowDown" });
+
+      expect(selectedId()).toBe("alpha");
+    });
+
+    it.each([
+      { name: "a dialog", markup: <div role="dialog" aria-label="Demo dialog"><button type="button">Inside</button></div> },
+      { name: "a popover", markup: <div className="popover"><button type="button">Inside</button></div> },
+    ])("leaves the arrow keys to $name", async ({ markup }) => {
+      renderList();
+      render(markup);
+      screen.getByRole("button", { name: "Inside" }).focus();
+
+      await userEvent.keyboard("{ArrowDown}");
+
+      expect(selectedId()).toBe("alpha");
+    });
+  });
+
+  describe("dev server mark", () => {
+    it("marks the rows whose project's dev server runs", async () => {
+      mocked.devRunning.mockResolvedValue(["beta"]);
+
+      renderList();
+
+      expect(await within(option("Beta")).findByRole("img", { name: "Dev server running" })).toBeInTheDocument();
+      expect(within(option("Alpha")).queryByRole("img", { name: "Dev server running" })).not.toBeInTheDocument();
     });
   });
 

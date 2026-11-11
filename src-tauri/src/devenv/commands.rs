@@ -74,6 +74,16 @@ pub fn target(state: &AppState, id: &str) -> AppResult<Target> {
     })
 }
 
+/// Every project that can be a target; one whose file is missing or broken has no server to ask about.
+fn all_targets(state: &AppState) -> Vec<Target> {
+    state
+        .data
+        .projects()
+        .iter()
+        .filter_map(|p| target(state, &p.id).ok())
+        .collect()
+}
+
 /// Runs `work` on a thread of its own; a failure goes to the page as `dev_failed`.
 fn in_background(
     app: &AppHandle,
@@ -106,6 +116,17 @@ pub async fn dev_status(app: AppHandle, id: String) -> AppResult<DevStatus> {
         Ok(state
             .devenv
             .status(&target(&state, &id)?, &state.data.settings()))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+/// The projects whose dev server runs, for the list's dots.
+#[tauri::command]
+pub async fn dev_running(app: AppHandle) -> AppResult<Vec<String>> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        Ok(state.devenv.running(&all_targets(&state)))
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?

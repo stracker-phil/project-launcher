@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -156,7 +156,9 @@ describe("Sidebar", () => {
       await userEvent.click(screen.getByRole("button", { name: "New Tag" }));
 
       await userEvent.type(screen.getByRole("textbox", { name: "Tag name" }), "Docs");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
       await userEvent.tab();
+      hasFocus.mockRestore();
 
       expect(mocked.addTag).toHaveBeenCalledWith("Docs");
     });
@@ -189,6 +191,31 @@ describe("Sidebar", () => {
       await userEvent.type(screen.getByRole("textbox", { name: "Tag name" }), "   {Enter}");
 
       expect(mocked.addTag).not.toHaveBeenCalled();
+    });
+
+    it.each(["Docs{Enter}", "Docs{Escape}"])("hands the keys to the project list after %j", async (keys) => {
+      render(<div role="listbox" aria-label="Projects" tabIndex={0} />);
+      renderSidebar();
+      await userEvent.click(screen.getByRole("button", { name: "New Tag" }));
+
+      await userEvent.type(screen.getByRole("textbox", { name: "Tag name" }), keys);
+      await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+
+      expect(screen.getByRole("listbox", { name: "Projects" })).toHaveFocus();
+    });
+
+    it("keeps the field open and adds nothing when it blurs while the document has no focus", async () => {
+      renderSidebar();
+      await userEvent.click(screen.getByRole("button", { name: "New Tag" }));
+      const field = screen.getByRole("textbox", { name: "Tag name" });
+      await userEvent.type(field, "Docs");
+      const hasFocus = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+
+      fireEvent.blur(field);
+
+      expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveValue("Docs");
+      expect(mocked.addTag).not.toHaveBeenCalled();
+      hasFocus.mockRestore();
     });
 
     it("toasts the reason when adding fails", async () => {

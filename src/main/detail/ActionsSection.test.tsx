@@ -65,7 +65,8 @@ describe("ActionsSection", () => {
       renderSection({ apps: [editor, terminal, action("Website", { runsAs: "url", url: "https://example.com/shop" }, "apps", 2)] });
 
       expect(tile(/Open in Editor/)).toHaveTextContent("Demo Editor");
-      expect(tile(/Open in Editor/)).toHaveTextContent("⌘O");
+      expect(within(tile(/Open in Editor/)).getByLabelText("⌘O")).toBeInTheDocument();
+      expect(within(tile(/Dev Shell/)).queryByLabelText(/⌘/)).not.toBeInTheDocument();
       expect(tile(/Dev Shell/)).toHaveTextContent("Terminal · npm run dev");
       expect(tile(/Website/)).toHaveTextContent("example.com");
     });
@@ -113,6 +114,18 @@ describe("ActionsSection", () => {
       expect(screen.getByRole("button", { name: "Run Lint" })).toBeEnabled();
     });
 
+    it("labels each Run button with the visible text Run", () => {
+      renderSection();
+
+      expect(screen.getByRole("button", { name: "Run Lint" })).toHaveTextContent("Run");
+    });
+
+    it("shows a script's shortcut as keycaps", () => {
+      renderSection({ scripts: [action("Build site", { command: "npm run build", shortcut: "Mod+Shift+B" }, "scripts", 0)] });
+
+      expect(screen.getByLabelText("⇧⌘B")).toBeInTheDocument();
+    });
+
     it("runs the script and shows its output under Last Run", async () => {
       mocked.launchAction.mockResolvedValueOnce({ kind: "ran", result: result({ output: "built 12 pages" }) });
       renderSection();
@@ -132,6 +145,7 @@ describe("ActionsSection", () => {
       renderSection();
 
       expect(screen.getByRole("button", { name: "Build site is running" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Build site is running" })).toHaveTextContent("Running");
       expect(screen.queryByRole("button", { name: "Run Build site" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Run Lint" })).toBeEnabled();
     });

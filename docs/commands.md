@@ -43,7 +43,7 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 |---|---|---|
 | `view.toggleSidebar` | Toggle Sidebar | ⌃⌘S |
 | `view.toggleInspector` | Toggle Inspector | ⌃⌘I |
-| `palette.open` | Command Palette | ⌘K; opens the palette, or closes it when open |
+| `app:palette` (bus) | Command Palette | ⌘K; opens the palette, or closes it when open |
 | `project.new` | New Project… | ⌘N; the folder panel, several folders at once (`add_project_folders`, one undo step) |
 | `tag.new` | New Tag… | ⇧⌘N; a field at the end of the sidebar's tags |
 | `view.search` | Search Projects | ⌘F; focuses the list's search field |
@@ -96,7 +96,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 | Launcher | About · Settings… ⌘, · Services · Hide, Hide Others, Show All · Quit Launcher ⌘Q |
 | File | New Project… ⌘N, New Tag… ⇧⌘N · Close Window ⌘W |
 | Edit | Undo ⌘Z, Redo ⇧⌘Z (`edit:undo`, `edit:redo`, replacing macOS's own) · macOS's Cut, Copy, Paste, Select All |
-| View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`page:palette.open`), Reload ⌥⌘R (debug) · Enter Full Screen |
+| View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`app:palette`), Reload ⌥⌘R (debug) · Enter Full Screen |
 | Library | All Projects ⌘1, Starred ⌘2 · Archived ⌘0 |
 | Project | Rename Project ⌘E, Change Icon & Color…, Edit Note · Star Project, Archive Project, Lock Project Details ⇧⌘L · Open Terminal Here, Reveal in Finder, Copy Path ⌥⌘C, Open Database ⇧⌘D, Edit Project File… · Remove from List |
 | Window | Minimize, Zoom · Bring All to Front |
@@ -104,7 +104,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 
 The keys above are the defaults. The owner changes them in Settings → Shortcuts; `settings.json` `shortcuts`
 stores them by command id in the page's notation (`Mod+Shift+K`): a menu item under its command
-(`page:palette.open`, `app:quit`), a page command under its id (`settings.search`). `menu/keys.rs` converts
+(`app:palette`, `app:quit`), a page command under its id (`settings.search`). `menu/keys.rs` converts
 between that and Tauri's `CmdOrCtrl+Shift+K` (`Combo`); a menu item's key is the override, else its default
 (`effective_accelerator`; an override the menu can't take keeps the default). Every settings change, its undo
 and redo included, rebuilds the menu bar (`menu::refresh`), and `menu_commands` reports the keys in effect.
@@ -144,6 +144,16 @@ An action's key (its `shortcut`, or a built-in's default such as ⌘O for Edit C
 window shows its project and no text field, menu, sheet or palette has the keys
 (`src/main/detail/useActionShortcuts.ts`). A menu item with the same key wins.
 
+## Focus
+
+The project list keeps the keys whenever nothing else needs them (`src/lib/focus.ts`): ↑↓ move its selection
+from anywhere in the main window unless a text field, menu, popover or sheet has the keys
+(`ProjectList.tsx`); a field that closes (rename, note, tag, link), a popover or sheet whose opener is gone, a
+project picked in the palette and a window that opens again hand the keys back to it. A popover takes the
+keys when it opens (its chosen item first) and gives them back to its anchor. A field that loses the keys only
+because the app does (another app, the palette) stays open. Commands that act on the window in front (Close
+Window, Reload) aren't in the palette, which would be that window.
+
 | Tauri command | Does |
 |---|---|
 | `launch_action(id, source)` | Runs the action at `source` (`run/mod.rs` `Runner::launch`): an app on the folder or its arguments (a CLI on the login PATH directly, else `open -a`), a link, a terminal command, or a script in a login `zsh` with a 120 s timeout. Returns `Outcome`: `opened` with `Launched` (`launched`, `focused`, `needsPermission`, `activated`) or `ran` with the `ScriptResult` |
@@ -157,6 +167,7 @@ Everything but copying the path records the project as opened (`lastOpenedAt`) a
 
 | Tauri command | Does |
 |---|---|
+| `dev_running()` | The ids of the projects whose DDEV or wp-env server runs, asked in one go (`ddev list`, `docker ps`); none while Docker is stopped. The list's green dots |
 | `dev_status(id)` | `DevStatus`: Docker (running, the step under way, the manager's name) for a project that uses it, the DDEV or wp-env server (state, URL, step under way; `notConfigured` with a hint when the folder lacks its config) and the database (`DatabaseInfo`) |
 | `dev_action(id, action)` | Starts, stops or restarts Docker or the server on a thread of its own (`DevAction`); Docker's stop first runs `ddev poweroff` while DDEV projects run. `dev_changed` follows each change, `dev_failed` (`{ projectId, label, output }`) a failed step |
 | `open_database(id)` | Opens the database in DataBee through its CLI (`databee`, the password in `DATABEE_PASSWORD`); `starting` when the server is started first, then DataBee opens or `dev_failed` reports why not |
@@ -169,7 +180,7 @@ an environment stopped by hand stays stopped.
 
 | Tauri command | Does |
 |---|---|
-| `quick_stats(id, refresh)` | `QuickStats`: the kind line ("WordPress plugin · v3.1.2"), requirements, package scripts and git (`None` outside a repository) |
+| `quick_stats(id, refresh)` | `QuickStats`: the kind line ("WordPress plugin · v3.1.2"), requirements, the dependency counts ("43 npm · 20 composer"), package scripts and git (`None` outside a repository) |
 | `file_stats(id, refresh)` | `FileStats`: files (`truncated` past 50 000), source size, size on disk, lines, languages (the six largest, the rest as Other) and the five files edited last |
 | `run_package_script(id, manager, name)` | Runs `npm run <name>` (or pnpm, yarn, bun, `composer run-script`) in a terminal; one still running there comes to the front |
 | `open_project_file(id, path)` | Opens a file of the project (a relative path inside its folder) in its editor, else the default editor, else its default app |

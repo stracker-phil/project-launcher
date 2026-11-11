@@ -45,10 +45,13 @@ function fromMenuItem(item: MenuCommand, mode: PaletteMode, section: string): Pa
   };
 }
 
+/** Commands that act on the window in front, which is the palette itself while it is open. */
+const ACT_ON_FOCUSED_WINDOW = new Set(["app:palette", "window:close", "app:reload"]);
+
 /** The menus' commands, except the Project menu's (they show with the project's actions). */
 export function menuCommands(menu: MenuCommand[]): PaletteCommand[] {
   return menu
-    .filter((item) => item.menu !== PROJECT_MENU && item.command !== "app:palette")
+    .filter((item) => item.menu !== PROJECT_MENU && !ACT_ON_FOCUSED_WINDOW.has(item.command))
     .map((item) => fromMenuItem(item, "commands", item.menu));
 }
 

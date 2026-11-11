@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { restoreFocus } from "../lib/focus";
 import { usePresence } from "../lib/motion";
+
+const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 const EDGE = 6;
 const GAP = 4;
@@ -28,6 +31,25 @@ export function Popover({ open, anchor, label, onClose, children }: Props) {
       top: at.bottom + GAP,
     });
   }, [open, anchor, mounted]);
+
+  // The panel takes the keys (its pressed choice first); closing gives them back to the anchor.
+  useEffect(() => {
+    if (!open) return;
+    const opener = anchor.current;
+    let root = panel.current;
+    const focusInPanel = requestAnimationFrame(() => {
+      root ??= panel.current;
+      if (!root || root.contains(document.activeElement)) return;
+      (root.querySelector<HTMLElement>('[aria-pressed="true"]') ?? root.querySelector<HTMLElement>(FOCUSABLE))?.focus();
+    });
+    return () => {
+      cancelAnimationFrame(focusInPanel);
+      const active = document.activeElement;
+      if (active && active !== document.body && !root?.contains(active)) return;
+      if (opener?.isConnected && opener.tabIndex >= 0) opener.focus();
+      else restoreFocus();
+    };
+  }, [open, anchor]);
 
   useEffect(() => {
     if (!open) return;

@@ -6,6 +6,7 @@ import "./base.css";
 import "./controls.css";
 import "./shell.css";
 import "./main.css";
+import "./inspector.css";
 import "./settings.css";
 import "./overlays.css";
 import "./menu.css";

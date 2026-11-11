@@ -3,7 +3,7 @@ import { useStore } from "../state/store";
 import { isTextInput, type PageCommand } from "./registry";
 
 /** Escape leaves a text field or a sheet first. */
-const escapeIsFree = () => !isTextInput(document.activeElement) && !document.querySelector('[role="dialog"]');
+const escapeIsFree = () => !isTextInput(document.activeElement) && !document.querySelector('[role="dialog"], [role="alertdialog"]');
 
 function closeWindow() {
   api.runCommand("window:close").catch((e: unknown) => useStore.getState().toast("error", `Could not close the window: ${toAppError(e).message}`));
@@ -16,6 +16,10 @@ export const SETTINGS_COMMANDS: PageCommand[] = [
     id: "settings.search",
     title: "Search Settings",
     defaultBinding: "Mod+F",
-    run: () => document.querySelector<HTMLInputElement>('input[aria-label="Search Settings"]')?.focus(),
+    run: () => {
+      const field = document.querySelector<HTMLInputElement>('input[aria-label="Search Settings"]');
+      field?.focus();
+      field?.select();
+    },
   },
 ];

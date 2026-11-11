@@ -7,7 +7,7 @@ vi.mock("../../api", async (orig) => ({ ...(await orig<object>()), api: (await i
 import { api } from "../../api";
 import { createQueryClient } from "../../queries/queryClient";
 import { registerCoreSettingsPages } from "../../settings/pages";
-import { resetStore } from "../../state/store";
+import { resetStore, useStore } from "../../state/store";
 import { DEFAULT_SETTINGS, type createApiMock } from "../../test/apiMock";
 import { SettingsApp } from "./SettingsApp";
 
@@ -216,12 +216,45 @@ describe("SettingsApp", () => {
       expect(mocked.runCommand).not.toHaveBeenCalledWith("window:close");
     });
 
+    it("keeps the window open on Escape while a confirmation is open", async () => {
+      await renderSettings();
+      act(() => void useStore.getState().confirm({ title: "Remove it?", text: "This removes it.", action: "Remove" }));
+      await screen.findByRole("alertdialog");
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(mocked.runCommand).not.toHaveBeenCalledWith("window:close");
+    });
+
     it("focuses the search field on ⌘F", async () => {
       await renderSettings();
 
       await userEvent.keyboard("{Meta>}f{/Meta}");
 
       expect(search()).toHaveFocus();
+    });
+
+    it("selects the search text on ⌘F", async () => {
+      await renderSettings();
+      await userEvent.type(search(), "log");
+      await userEvent.click(document.body);
+
+      await userEvent.keyboard("{Meta>}f{/Meta}");
+
+      expect(search()).toHaveFocus();
+      const field = search() as HTMLInputElement;
+      expect(field.selectionStart).toBe(0);
+      expect(field.selectionEnd).toBe(3);
+    });
+
+    it("clears the search on the first Escape inside the search field and keeps Settings open", async () => {
+      await renderSettings();
+      await userEvent.type(search(), "log");
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(search()).toHaveValue("");
+      expect(mocked.runCommand).not.toHaveBeenCalledWith("window:close");
     });
   });
 });

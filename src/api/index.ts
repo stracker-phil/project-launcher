@@ -197,6 +197,7 @@ export const api = {
   setAutostart: (on: boolean) => invoke<boolean>("set_autostart", { on }),
   /** Docker, the project's server and its database. */
   devStatus: (id: string) => invoke<DevStatus>("dev_status", { id }),
+  devRunning: () => invoke<string[]>("dev_running"),
   /** Starts the step in the background; `dev_changed` and `dev_failed` follow. */
   devAction: (id: string, action: DevAction) => invoke<void>("dev_action", { id, action }),
   openDatabase: (id: string) => invoke<OpenedDatabase>("open_database", { id }),

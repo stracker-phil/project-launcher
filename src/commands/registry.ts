@@ -168,13 +168,17 @@ export function bindingFromEvent(e: KeyLike): string | null {
   return [...mods, key].join("+");
 }
 
-/** `Mod+Shift+K` → `⌘⇧K`. */
-export function bindingLabel(binding: string | null): string {
-  if (!binding) return "";
+/** The binding's symbols one by one, modifiers first: `["⇧", "⌘", "T"]`. */
+export function bindingKeys(binding: string | null): string[] {
+  if (!binding) return [];
   const parts = splitBinding(binding);
   const key = parts[parts.length - 1];
   const mods = new Set(parts.slice(0, -1));
-  return LABEL_ORDER.filter((m) => mods.has(m)).map((m) => MOD_LABELS[m]).join("") + (KEY_LABELS[key] ?? key);
+  return [...LABEL_ORDER.filter((m) => mods.has(m)).map((m) => MOD_LABELS[m]), KEY_LABELS[key] ?? key];
+}
+
+export function bindingLabel(binding: string | null): string {
+  return bindingKeys(binding).join("");
 }
 
 export function isTextInput(target: EventTarget | null): boolean {
