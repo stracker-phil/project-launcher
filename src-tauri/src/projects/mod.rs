@@ -1,6 +1,7 @@
 //! Projects: the registry of known project files (`projects.json`), each project's own
 //! `.project-launcher.json`, and the `Project` the page shows (ADR 0038).
 
+pub mod config;
 pub mod file;
 pub mod registry;
 pub mod view;

@@ -1,5 +1,6 @@
 //! What the owner can change, each checked against the current data and turned into one undoable op.
 
+mod config;
 mod projects;
 mod settings;
 mod tags;

@@ -47,13 +47,24 @@ fn projects() -> Vec<DemoProject> {
                     "notes": ["Relaunch goes live in March", "Staging: https://staging.acme.example.com"],
                     "starred": true
                 },
-                "apps": ["editor", "terminal", "git", "browser"],
+                "dev": { "ddev": true },
+                "apps": [
+                    "editor",
+                    { "preset": "terminal", "label": "Shell", "shortcut": "cmd+shift+t" },
+                    "git",
+                    "browser",
+                    "repoBrowser"
+                ],
                 "scripts": [
                     { "label": "Build", "command": "npm run build", "icon": "Hammer" },
-                    { "label": "Lint", "command": "npm run lint" }
+                    { "label": "Lint", "command": "npm run lint" },
+                    { "label": "Export Database", "command": "ddev export-db --file=${dir}/backup.sql.gz" }
                 ]
             })),
-            manifest: Some(("package.json", json!({ "name": "acme-website", "version": "2.4.0", "private": true }))),
+            manifest: Some((
+                "package.json",
+                json!({ "name": "acme-website", "version": "2.4.0", "private": true }),
+            )),
             added_days_ago: 120,
             opened_minutes_ago: Some(12),
         },
@@ -68,11 +79,33 @@ fn projects() -> Vec<DemoProject> {
                     "repoUrl": "https://git.example.com/orbit/api",
                     "notes": "Deploys on Tuesdays\nAsk Sam Example before changing the schema"
                 },
-                "env": { "APP_ENV": "local" },
-                "apps": ["editor", "terminal", { "label": "API Docs", "url": "https://docs.orbit.example.com", "icon": "Book" }],
-                "scripts": [{ "label": "Run Tests", "command": "composer test" }]
+                "env": { "APP_ENV": "local", "CLAUDE_CONFIG_DIR": "~/.claude-demo" },
+                "dev": { "docker": true },
+                "database": "mysql://orbit:demo-password@127.0.0.1:3306/orbit",
+                "apps": [
+                    "editor",
+                    "terminal",
+                    "claude",
+                    { "label": "API Docs", "url": "https://docs.orbit.example.com", "icon": "Book" },
+                    { "label": "Tail Logs", "command": "tail -f ${dir}/storage/logs/app.log", "hiddenStates": ["paused"] }
+                ],
+                "scripts": [{ "label": "Run Tests", "command": "composer test", "shortcut": "cmd+shift+u" }],
+                "stateProviders": { "queue": "cat ${dir}/storage/queue-state" },
+                "states": {
+                    "queue": {
+                        "source": "queue",
+                        "label": "Queue",
+                        "values": {
+                            "running": { "value": "running", "label": "Running", "color": "Green" },
+                            "paused": { "value": "paused", "label": "Paused", "color": "Orange" }
+                        }
+                    }
+                }
             })),
-            manifest: Some(("composer.json", json!({ "name": "orbit/api", "require": { "php": ">=8.2" } }))),
+            manifest: Some((
+                "composer.json",
+                json!({ "name": "orbit/api", "require": { "php": ">=8.2" } }),
+            )),
             added_days_ago: 90,
             opened_minutes_ago: Some(2 * 24 * 60),
         },
@@ -84,7 +117,10 @@ fn projects() -> Vec<DemoProject> {
                 "apps": ["editor", "terminal"],
                 "scripts": [{ "label": "Dev Server", "command": "bun run dev" }]
             })),
-            manifest: Some(("package.json", json!({ "name": "pixel-notes", "version": "0.3.1" }))),
+            manifest: Some((
+                "package.json",
+                json!({ "name": "pixel-notes", "version": "0.3.1" }),
+            )),
             added_days_ago: 45,
             opened_minutes_ago: Some(3 * 60),
         },
@@ -93,6 +129,7 @@ fn projects() -> Vec<DemoProject> {
             file: Some(json!({
                 "name": "Garden Planner",
                 "meta": { "icon": "Leaf", "color": "Yellow", "tag": "Personal" },
+                "locked": true,
                 "apps": ["editor"]
             })),
             manifest: None,
@@ -160,6 +197,8 @@ pub fn write(config_dir: &Path, now_ms: i64) -> AppResult<Seed> {
             tags: ["Client", "Personal", "Experiments", "Ideas"]
                 .map(String::from)
                 .to_vec(),
+            default_editor: "Visual Studio Code".into(),
+            git_client: "GitHub Desktop".into(),
             ..Settings::default()
         },
         registry: Registry { projects: known },

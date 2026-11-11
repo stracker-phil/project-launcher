@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Api, EventName, EventPayloads, Settings } from "../api";
+import type { Api, EventName, EventPayloads, ProjectConfig, Settings } from "../api";
 
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -10,6 +10,21 @@ export const DEFAULT_SETTINGS: Settings = {
   gitClient: "",
   terminalApp: "Terminal",
   configEditor: "",
+};
+
+/** The config of a project whose file sets nothing up. */
+export const EMPTY_PROJECT_CONFIG: ProjectConfig = {
+  apps: [],
+  scripts: [],
+  builtins: [],
+  env: [],
+  stateProviders: [],
+  states: [],
+  dev: "none",
+  database: "detect",
+  claude: null,
+  locked: false,
+  isGitRepo: false,
 };
 
 type Handler = (payload: unknown) => void;
@@ -48,6 +63,13 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     removeProject: vi.fn().mockResolvedValue(undefined),
     setProjectName: vi.fn().mockResolvedValue(undefined),
     setProjectMeta: vi.fn().mockResolvedValue(undefined),
+    projectConfig: vi.fn().mockResolvedValue(EMPTY_PROJECT_CONFIG),
+    saveAction: vi.fn().mockResolvedValue(undefined),
+    removeAction: vi.fn().mockResolvedValue(undefined),
+    moveAction: vi.fn().mockResolvedValue(undefined),
+    setBuiltinEnabled: vi.fn().mockResolvedValue(undefined),
+    setProjectLocked: vi.fn().mockResolvedValue(undefined),
+    setDevMode: vi.fn().mockResolvedValue(undefined),
     undo: vi.fn().mockResolvedValue(null),
     redo: vi.fn().mockResolvedValue(null),
     on: vi.fn(async (event: string, handler: Handler) => {

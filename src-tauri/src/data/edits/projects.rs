@@ -6,11 +6,12 @@ use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use ts_rs::TS;
 
+use super::config::key_edit;
 use super::{edit, invalid_field, non_blank};
 use crate::data::ops::Op;
 use crate::data::{Changed, Data, Edit};
 use crate::error::AppResult;
-use crate::projects::file::{self, FileObject};
+use crate::projects::file;
 use crate::projects::view::folder_name;
 use crate::projects::{FileKey, FileRead, KnownProject, MetaKey};
 
@@ -67,6 +68,11 @@ impl MetaEdit {
         }
     }
 
+    /// Starring and archiving work on a locked project; the other details don't.
+    fn works_while_locked(&self) -> bool {
+        matches!(self, MetaEdit::Starred(_) | MetaEdit::Archived(_))
+    }
+
     /// The tag this edit sets, if any.
     fn new_tag(&self) -> Option<String> {
         match self {
@@ -84,7 +90,10 @@ impl Data {
         let id = new_id();
         let changed = self.change(|data| {
             if data.registry.read(|r| r.find_path(&dir).is_some()) {
-                return Err(invalid_field("path", format!("{dir} is already in the list")));
+                return Err(invalid_field(
+                    "path",
+                    format!("{dir} is already in the list"),
+                ));
             }
             let project = KnownProject {
                 id: id.clone(),
@@ -120,13 +129,21 @@ impl Data {
     /// An empty name removes it from the file, so the folder's name shows.
     pub fn set_project_name(&self, id: &str, name: &str) -> AppResult<Changed> {
         let value = non_blank(name).map(Value::String);
-        self.change(|data| data.file_key_edit(id, "Rename Project", FileKey::Name, value))
+        self.change(|data| {
+            let object = data.unlocked_project_file(id)?;
+            key_edit(id, "Rename Project", &object, FileKey::Name, value)
+        })
     }
 
     pub fn set_project_meta(&self, id: &str, meta: MetaEdit) -> AppResult<Changed> {
         self.change(|data| {
+            let object = if meta.works_while_locked() {
+                data.project_file(id)?
+            } else {
+                data.unlocked_project_file(id)?
+            };
             let key = FileKey::Meta(meta.key());
-            let Some(Edit { label, op }) = data.file_key_edit(id, meta.label(), key, meta.value())?
+            let Some(Edit { label, op }) = key_edit(id, meta.label(), &object, key, meta.value())?
             else {
                 return Ok(None);
             };
@@ -137,22 +154,6 @@ impl Data {
             }
             edit(label, op)
         })
-    }
-
-    /// One key of the project's file, read fresh; nothing to do when it already holds `value`.
-    fn file_key_edit(
-        &self,
-        id: &str,
-        label: &'static str,
-        key: FileKey,
-        value: Option<Value>,
-    ) -> AppResult<Option<Edit>> {
-        let object: FileObject = file::read_for_change(Path::new(&self.project_dir(id)?))?;
-        if key.get(&object) == value {
-            return Ok(None);
-        }
-        let id = id.to_string();
-        edit(label, Op::SetFileKey { id, key, value })
     }
 
     /// An existing folder as an absolute path without a trailing slash.

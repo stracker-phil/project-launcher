@@ -16,6 +16,7 @@ use std::sync::Mutex;
 
 use crate::error::AppResult;
 use crate::lock::MutexExt;
+use crate::projects::config::{self, ProjectConfig};
 use crate::projects::{self, FileRead, KnownProject, Project, Registry};
 use crate::store::{JsonStore, Settings};
 use ops::{Op, apply};
@@ -98,19 +99,45 @@ impl Data {
         Ok(self.view(&known))
     }
 
+    /// The project's launch config, resolved; refused while its file is missing or broken.
+    pub fn project_config(&self, id: &str) -> AppResult<ProjectConfig> {
+        let dir = self.project_dir(id)?;
+        let object = match self.file_in(&dir) {
+            FileRead::Found(object) => object,
+            FileRead::Missing | FileRead::Broken(_) => {
+                projects::file::read_for_change(Path::new(&dir))?
+            }
+        };
+        let folder = Path::new(&dir);
+        let settings = self.settings();
+        Ok(config::resolve(
+            &object,
+            &config::Context {
+                dir: folder,
+                home: self.home.as_deref(),
+                settings: &settings,
+                is_git_repo: folder.join(".git").exists(),
+                uses_claude: folder.join(".claude").is_dir(),
+            },
+        ))
+    }
+
     /// Forgets the parsed project files, so the next read takes them from disk.
     pub fn reload(&self) {
         self.files.lock_unpoisoned().clear();
     }
 
     fn view(&self, known: &KnownProject) -> Project {
-        let file = self
-            .files
+        projects::view::build(known, &self.file_in(&known.path), self.home.as_deref())
+    }
+
+    /// The project file in `dir`, read on first use.
+    fn file_in(&self, dir: &str) -> FileRead {
+        self.files
             .lock_unpoisoned()
-            .entry(known.path.clone())
-            .or_insert_with(|| projects::file::read(Path::new(&known.path)))
-            .clone();
-        projects::view::build(known, &file, self.home.as_deref())
+            .entry(dir.to_string())
+            .or_insert_with(|| projects::file::read(Path::new(dir)))
+            .clone()
     }
 
     fn project_dir(&self, id: &str) -> AppResult<String> {
@@ -125,7 +152,10 @@ impl Data {
 
     /// The one write path: `build` turns the current data into an edit (`None`: nothing to change), which is
     /// applied and made undoable, all while no other change runs.
-    pub fn change(&self, build: impl FnOnce(&Self) -> AppResult<Option<Edit>>) -> AppResult<Changed> {
+    pub fn change(
+        &self,
+        build: impl FnOnce(&Self) -> AppResult<Option<Edit>>,
+    ) -> AppResult<Changed> {
         let _writer = self.writer.lock_unpoisoned();
         let Some(edit) = build(self)? else {
             return Ok(Changed::default());

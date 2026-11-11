@@ -14,6 +14,8 @@ use crate::projects::{FileKey, KnownProject, MetaKey, Registry};
 use crate::store::{Appearance, Settings};
 use crate::test_support::temp_config_dir;
 
+mod config;
+
 const SETTINGS_ONLY: Changed = Changed {
     settings: true,
     projects: false,
@@ -124,7 +126,10 @@ fn alpha_file() -> Value {
 #[test]
 fn appearance_changes_and_undo_and_redo_move_it_back_and_forth() {
     let fx = Fixture::new(&[], &[]);
-    assert_eq!(fx.data.set_appearance(Appearance::Dark).unwrap(), SETTINGS_ONLY);
+    assert_eq!(
+        fx.data.set_appearance(Appearance::Dark).unwrap(),
+        SETTINGS_ONLY
+    );
     assert_eq!(fx.data.settings().appearance, Appearance::Dark);
 
     let undone = fx.data.undo().unwrap().unwrap();
@@ -151,7 +156,9 @@ fn the_appearance_it_already_has_changes_nothing_and_is_not_undoable() {
 fn a_shortcut_is_stored_trimmed_and_undo_removes_the_override() {
     let fx = Fixture::new(&[], &[]);
     assert_eq!(
-        fx.data.set_shortcut("palette.open", Some(" Cmd+K ".into())).unwrap(),
+        fx.data
+            .set_shortcut("palette.open", Some(" Cmd+K ".into()))
+            .unwrap(),
         SETTINGS_ONLY
     );
     assert_eq!(
@@ -172,10 +179,15 @@ fn a_shortcut_is_stored_trimmed_and_undo_removes_the_override() {
 #[test]
 fn unbinding_a_shortcut_leaves_the_command_without_a_key_and_undo_restores_the_old_one() {
     let fx = Fixture::new(&[], &[]);
-    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+K".into()))
+        .unwrap();
 
     fx.data.set_shortcut("palette.open", None).unwrap();
-    assert_eq!(fx.data.settings().shortcuts.get("palette.open"), Some(&None));
+    assert_eq!(
+        fx.data.settings().shortcuts.get("palette.open"),
+        Some(&None)
+    );
 
     undo_label(&fx.data);
     assert_eq!(
@@ -183,15 +195,23 @@ fn unbinding_a_shortcut_leaves_the_command_without_a_key_and_undo_restores_the_o
         Some(&Some("Cmd+K".to_string()))
     );
     redo_label(&fx.data);
-    assert_eq!(fx.data.settings().shortcuts.get("palette.open"), Some(&None));
+    assert_eq!(
+        fx.data.settings().shortcuts.get("palette.open"),
+        Some(&None)
+    );
 }
 
 #[test]
 fn resetting_a_shortcut_drops_the_override_and_undo_brings_it_back() {
     let fx = Fixture::new(&[], &[]);
-    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+K".into()))
+        .unwrap();
 
-    assert_eq!(fx.data.reset_shortcut("palette.open").unwrap(), SETTINGS_ONLY);
+    assert_eq!(
+        fx.data.reset_shortcut("palette.open").unwrap(),
+        SETTINGS_ONLY
+    );
     assert!(fx.data.settings().shortcuts.is_empty());
 
     let undone = fx.data.undo().unwrap().unwrap();
@@ -207,10 +227,17 @@ fn resetting_a_shortcut_drops_the_override_and_undo_brings_it_back() {
 #[test]
 fn shortcut_changes_that_change_nothing_are_not_undoable() {
     let fx = Fixture::new(&[], &[]);
-    assert_eq!(fx.data.reset_shortcut("palette.open").unwrap(), Changed::default());
-    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
     assert_eq!(
-        fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap(),
+        fx.data.reset_shortcut("palette.open").unwrap(),
+        Changed::default()
+    );
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+K".into()))
+        .unwrap();
+    assert_eq!(
+        fx.data
+            .set_shortcut("palette.open", Some("Cmd+K".into()))
+            .unwrap(),
         Changed::default()
     );
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
@@ -220,11 +247,17 @@ fn shortcut_changes_that_change_nothing_are_not_undoable() {
 #[test]
 fn a_shortcut_without_a_command_or_a_key_is_refused() {
     let fx = Fixture::new(&[], &[]);
-    let blank_command = fx.data.set_shortcut("  ", Some("Cmd+K".into())).unwrap_err();
+    let blank_command = fx
+        .data
+        .set_shortcut("  ", Some("Cmd+K".into()))
+        .unwrap_err();
     assert_eq!(blank_command.kind(), ErrorKind::InvalidInput);
     let blank_reset = fx.data.reset_shortcut("").unwrap_err();
     assert_eq!(blank_reset.kind(), ErrorKind::InvalidInput);
-    let blank_key = fx.data.set_shortcut("palette.open", Some("  ".into())).unwrap_err();
+    let blank_key = fx
+        .data
+        .set_shortcut("palette.open", Some("  ".into()))
+        .unwrap_err();
     assert_eq!(field_of(&blank_key), Some("shortcut"));
     assert_eq!(undo_label(&fx.data), None);
 }
@@ -236,14 +269,21 @@ fn shortcut_of(data: &Data, command: &str) -> Option<Option<String>> {
 #[test]
 fn reassigning_a_shortcut_moves_the_key_and_unbinds_the_command_that_had_it() {
     let fx = Fixture::new(&[], &[]);
-    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+K".into()))
+        .unwrap();
 
     assert_eq!(
-        fx.data.reassign_shortcut("project.find", " Cmd+K ", "palette.open").unwrap(),
+        fx.data
+            .reassign_shortcut("project.find", " Cmd+K ", "palette.open")
+            .unwrap(),
         SETTINGS_ONLY
     );
 
-    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "project.find"),
+        Some(Some("Cmd+K".to_string()))
+    );
     assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
 }
 
@@ -251,28 +291,43 @@ fn reassigning_a_shortcut_moves_the_key_and_unbinds_the_command_that_had_it() {
 fn reassigning_a_shortcut_from_a_command_without_an_override_still_unbinds_it() {
     let fx = Fixture::new(&[], &[]);
 
-    fx.data.reassign_shortcut("project.find", "Cmd+K", "palette.open").unwrap();
+    fx.data
+        .reassign_shortcut("project.find", "Cmd+K", "palette.open")
+        .unwrap();
 
     assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
-    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "project.find"),
+        Some(Some("Cmd+K".to_string()))
+    );
 }
 
 #[test]
 fn a_reassignment_is_one_undo_step_labelled_reassign_shortcut() {
     let fx = Fixture::new(&[], &[]);
-    fx.data.set_shortcut("palette.open", Some("Cmd+K".into())).unwrap();
-    fx.data.reassign_shortcut("project.find", "Cmd+K", "palette.open").unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+K".into()))
+        .unwrap();
+    fx.data
+        .reassign_shortcut("project.find", "Cmd+K", "palette.open")
+        .unwrap();
 
     let undone = fx.data.undo().unwrap().unwrap();
     assert_eq!(undone.label, "Reassign Shortcut");
     assert_eq!(undone.changed, SETTINGS_ONLY);
-    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "palette.open"),
+        Some(Some("Cmd+K".to_string()))
+    );
     assert_eq!(shortcut_of(&fx.data, "project.find"), None);
 
     let redone = fx.data.redo().unwrap().unwrap();
     assert_eq!(redone.label, "Reassign Shortcut");
     assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(None));
-    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "project.find"),
+        Some(Some("Cmd+K".to_string()))
+    );
 
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Reassign Shortcut"));
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
@@ -282,11 +337,20 @@ fn a_reassignment_is_one_undo_step_labelled_reassign_shortcut() {
 #[test]
 fn reassigning_with_a_blank_command_key_or_source_is_refused_and_changes_nothing() {
     let fx = Fixture::new(&[], &[]);
-    let blank_command = fx.data.reassign_shortcut(" ", "Cmd+K", "palette.open").unwrap_err();
+    let blank_command = fx
+        .data
+        .reassign_shortcut(" ", "Cmd+K", "palette.open")
+        .unwrap_err();
     assert_eq!(blank_command.kind(), ErrorKind::InvalidInput);
-    let blank_from = fx.data.reassign_shortcut("project.find", "Cmd+K", "").unwrap_err();
+    let blank_from = fx
+        .data
+        .reassign_shortcut("project.find", "Cmd+K", "")
+        .unwrap_err();
     assert_eq!(blank_from.kind(), ErrorKind::InvalidInput);
-    let blank_key = fx.data.reassign_shortcut("project.find", "  ", "palette.open").unwrap_err();
+    let blank_key = fx
+        .data
+        .reassign_shortcut("project.find", "  ", "palette.open")
+        .unwrap_err();
     assert_eq!(field_of(&blank_key), Some("shortcut"));
 
     assert!(fx.data.settings().shortcuts.is_empty());
@@ -296,11 +360,17 @@ fn reassigning_with_a_blank_command_key_or_source_is_refused_and_changes_nothing
 #[test]
 fn resetting_a_shortcut_taking_it_from_another_command_is_one_undo_step() {
     let fx = Fixture::new(&[], &[]);
-    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
-    fx.data.set_shortcut("project.find", Some("Cmd+K".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+J".into()))
+        .unwrap();
+    fx.data
+        .set_shortcut("project.find", Some("Cmd+K".into()))
+        .unwrap();
 
     assert_eq!(
-        fx.data.reset_shortcut_taking_from("palette.open", "project.find").unwrap(),
+        fx.data
+            .reset_shortcut_taking_from("palette.open", "project.find")
+            .unwrap(),
         SETTINGS_ONLY
     );
     assert_eq!(shortcut_of(&fx.data, "palette.open"), None);
@@ -308,8 +378,14 @@ fn resetting_a_shortcut_taking_it_from_another_command_is_one_undo_step() {
 
     let undone = fx.data.undo().unwrap().unwrap();
     assert_eq!(undone.label, "Reset Shortcut");
-    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+J".to_string())));
-    assert_eq!(shortcut_of(&fx.data, "project.find"), Some(Some("Cmd+K".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "palette.open"),
+        Some(Some("Cmd+J".to_string()))
+    );
+    assert_eq!(
+        shortcut_of(&fx.data, "project.find"),
+        Some(Some("Cmd+K".to_string()))
+    );
 
     let redone = fx.data.redo().unwrap().unwrap();
     assert_eq!(redone.label, "Reset Shortcut");
@@ -321,13 +397,19 @@ fn resetting_a_shortcut_taking_it_from_another_command_is_one_undo_step() {
 fn resetting_taking_from_the_same_command_acts_as_a_plain_reset() {
     let fx = Fixture::new(&[], &[]);
     assert_eq!(
-        fx.data.reset_shortcut_taking_from("palette.open", "palette.open").unwrap(),
+        fx.data
+            .reset_shortcut_taking_from("palette.open", "palette.open")
+            .unwrap(),
         Changed::default()
     );
-    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+J".into()))
+        .unwrap();
 
     assert_eq!(
-        fx.data.reset_shortcut_taking_from("palette.open", "palette.open").unwrap(),
+        fx.data
+            .reset_shortcut_taking_from("palette.open", "palette.open")
+            .unwrap(),
         SETTINGS_ONLY
     );
     assert_eq!(shortcut_of(&fx.data, "palette.open"), None);
@@ -339,7 +421,10 @@ fn resetting_taking_from_the_same_command_acts_as_a_plain_reset() {
 fn resetting_taking_from_with_a_blank_command_is_refused() {
     let fx = Fixture::new(&[], &[]);
     for (command, from) in [(" ", "palette.open"), ("palette.open", "")] {
-        let err = fx.data.reset_shortcut_taking_from(command, from).unwrap_err();
+        let err = fx
+            .data
+            .reset_shortcut_taking_from(command, from)
+            .unwrap_err();
         assert_eq!(err.kind(), ErrorKind::InvalidInput, "{command:?} {from:?}");
     }
     assert_eq!(undo_label(&fx.data), None);
@@ -350,16 +435,25 @@ fn reassigning_a_shortcut_to_the_command_that_has_it_acts_as_setting_it() {
     let fx = Fixture::new(&[], &[]);
 
     assert_eq!(
-        fx.data.reassign_shortcut("palette.open", " Cmd+J ", "palette.open").unwrap(),
+        fx.data
+            .reassign_shortcut("palette.open", " Cmd+J ", "palette.open")
+            .unwrap(),
         SETTINGS_ONLY
     );
-    assert_eq!(shortcut_of(&fx.data, "palette.open"), Some(Some("Cmd+J".to_string())));
+    assert_eq!(
+        shortcut_of(&fx.data, "palette.open"),
+        Some(Some("Cmd+J".to_string()))
+    );
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Shortcut"));
     assert_eq!(undo_label(&fx.data), None);
 
-    fx.data.set_shortcut("palette.open", Some("Cmd+J".into())).unwrap();
+    fx.data
+        .set_shortcut("palette.open", Some("Cmd+J".into()))
+        .unwrap();
     assert_eq!(
-        fx.data.reassign_shortcut("palette.open", "Cmd+J", "palette.open").unwrap(),
+        fx.data
+            .reassign_shortcut("palette.open", "Cmd+J", "palette.open")
+            .unwrap(),
         Changed::default()
     );
 }
@@ -390,7 +484,11 @@ fn adding_a_duplicate_or_blank_tag_is_a_tag_field_error() {
 #[test]
 fn reordering_tags_applies_the_order_and_undo_restores_the_old_one() {
     let fx = Fixture::new(&[], &["Client", "Personal", "Ideas"]);
-    let order = vec!["Ideas".to_string(), "Client".to_string(), "Personal".to_string()];
+    let order = vec![
+        "Ideas".to_string(),
+        "Client".to_string(),
+        "Personal".to_string(),
+    ];
     assert_eq!(fx.data.set_tag_order(order).unwrap(), SETTINGS_ONLY);
     assert_eq!(fx.tags(), ["Ideas", "Client", "Personal"]);
 
@@ -496,7 +594,10 @@ fn renaming_a_tag_only_projects_carry_adds_the_new_name_to_the_list() {
 #[test]
 fn renaming_a_tag_to_its_own_name_changes_nothing_and_an_unknown_tag_is_not_found() {
     let fx = Fixture::new(&[], &["Client"]);
-    assert_eq!(fx.data.rename_tag("Client", "Client").unwrap(), Changed::default());
+    assert_eq!(
+        fx.data.rename_tag("Client", "Client").unwrap(),
+        Changed::default()
+    );
     assert_eq!(undo_label(&fx.data), None);
 
     let missing = fx.data.rename_tag("Nope", "Other").unwrap_err();
@@ -573,7 +674,10 @@ fn a_folder_without_a_project_file_gets_one_named_after_the_folder() {
 fn undoing_an_added_project_removes_the_file_it_created_and_redo_creates_it_again() {
     let fx = Fixture::new(&[], &[]);
     fs::create_dir(fx.dir("fresh")).unwrap();
-    let (id, _) = fx.data.add_project(&fx.dir("fresh").to_string_lossy(), 1).unwrap();
+    let (id, _) = fx
+        .data
+        .add_project(&fx.dir("fresh").to_string_lossy(), 1)
+        .unwrap();
 
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Add Project"));
     assert!(!fx.has_file("fresh"));
@@ -592,7 +696,10 @@ fn adding_a_folder_with_a_project_file_leaves_the_file_untouched_also_on_undo() 
     let text = "{\n\"name\":   \"Existing\",   \"meta\": {\"color\":\"Green\"}\n}";
     fx.write_raw("existing", text);
 
-    let (id, _) = fx.data.add_project(&fx.dir("existing").to_string_lossy(), 1).unwrap();
+    let (id, _) = fx
+        .data
+        .add_project(&fx.dir("existing").to_string_lossy(), 1)
+        .unwrap();
     assert_eq!(fx.raw("existing"), text);
     assert_eq!(fx.data.project(&id).unwrap().name, "Existing");
 
@@ -607,7 +714,10 @@ fn adding_a_folder_with_a_broken_project_file_keeps_the_file_and_shows_the_probl
     fs::create_dir(fx.dir("broken")).unwrap();
     fx.write_raw("broken", "{ nope");
 
-    let (id, _) = fx.data.add_project(&fx.dir("broken").to_string_lossy(), 1).unwrap();
+    let (id, _) = fx
+        .data
+        .add_project(&fx.dir("broken").to_string_lossy(), 1)
+        .unwrap();
 
     assert_eq!(fx.raw("broken"), "{ nope");
     let project = fx.data.project(&id).unwrap();
@@ -630,9 +740,18 @@ fn adding_a_known_folder_again_is_a_path_field_error_also_with_a_trailing_slash(
 #[test]
 fn adding_something_that_is_not_a_folder_is_a_path_field_error() {
     let fx = Fixture::new(&[("alpha", Some(alpha_file()))], &[]);
-    let a_file = fx.dir("alpha").join(FILE_NAME).to_string_lossy().into_owned();
+    let a_file = fx
+        .dir("alpha")
+        .join(FILE_NAME)
+        .to_string_lossy()
+        .into_owned();
     let missing = fx.dir("nowhere").to_string_lossy().into_owned();
-    for path in [a_file, missing, "relative/folder".to_string(), String::new()] {
+    for path in [
+        a_file,
+        missing,
+        "relative/folder".to_string(),
+        String::new(),
+    ] {
         let err = fx.data.add_project(&path, 1).unwrap_err();
         assert_eq!(field_of(&err), Some("path"), "{path}");
     }
@@ -678,7 +797,10 @@ fn removing_a_project_keeps_its_folder_and_undo_restores_it_at_the_same_index() 
 
 #[test]
 fn removing_the_first_project_is_restored_first() {
-    let fx = Fixture::new(&[("alpha", Some(alpha_file())), ("beta", Some(alpha_file()))], &[]);
+    let fx = Fixture::new(
+        &[("alpha", Some(alpha_file())), ("beta", Some(alpha_file()))],
+        &[],
+    );
     fx.data.remove_project("alpha").unwrap();
     undo_label(&fx.data);
     assert_eq!(fx.ids(), ["alpha", "beta"]);
@@ -696,7 +818,10 @@ fn removing_an_unknown_project_is_not_found() {
 fn renaming_a_project_keeps_every_other_key_in_its_file() {
     let fx = Fixture::new(&[("alpha", Some(alpha_file()))], &[]);
 
-    assert_eq!(fx.data.set_project_name("alpha", "  Alpha Two ").unwrap(), PROJECTS_ONLY);
+    assert_eq!(
+        fx.data.set_project_name("alpha", "  Alpha Two ").unwrap(),
+        PROJECTS_ONLY
+    );
 
     let mut expected = alpha_file();
     expected["name"] = json!("Alpha Two");
@@ -727,24 +852,52 @@ fn an_empty_name_removes_the_key_so_the_folder_name_shows() {
 #[test]
 fn renaming_to_the_current_name_is_not_a_change() {
     let fx = Fixture::new(&[("alpha", Some(alpha_file()))], &[]);
-    assert_eq!(fx.data.set_project_name("alpha", "Alpha").unwrap(), Changed::default());
+    assert_eq!(
+        fx.data.set_project_name("alpha", "Alpha").unwrap(),
+        Changed::default()
+    );
     assert_eq!(undo_label(&fx.data), None);
 }
 
 #[test]
 fn each_meta_edit_sets_its_key_keeps_the_rest_and_undo_restores_the_file() {
     let cases = [
-        (MetaEdit::Icon(Some("Bolt".into())), "icon", json!("Bolt"), "Change Icon"),
-        (MetaEdit::Color(Some("Blue".into())), "color", json!("Blue"), "Change Color"),
-        (MetaEdit::Tag(Some("Client".into())), "tag", json!("Client"), "Change Tag"),
+        (
+            MetaEdit::Icon(Some("Bolt".into())),
+            "icon",
+            json!("Bolt"),
+            "Change Icon",
+        ),
+        (
+            MetaEdit::Color(Some("Blue".into())),
+            "color",
+            json!("Blue"),
+            "Change Color",
+        ),
+        (
+            MetaEdit::Tag(Some("Client".into())),
+            "tag",
+            json!("Client"),
+            "Change Tag",
+        ),
         (
             MetaEdit::Notes(vec!["one".into(), "two".into()]),
             "notes",
             json!(["one", "two"]),
             "Edit Notes",
         ),
-        (MetaEdit::Starred(true), "starred", json!(true), "Star Project"),
-        (MetaEdit::Archived(true), "archived", json!(true), "Archive Project"),
+        (
+            MetaEdit::Starred(true),
+            "starred",
+            json!(true),
+            "Star Project",
+        ),
+        (
+            MetaEdit::Archived(true),
+            "archived",
+            json!(true),
+            "Archive Project",
+        ),
     ];
     for (edit, key, value, label) in cases {
         let fx = Fixture::new(&[("alpha", Some(alpha_file()))], &["Client"]);
@@ -769,9 +922,13 @@ fn each_meta_edit_sets_its_key_keeps_the_rest_and_undo_restores_the_file() {
 fn unstarring_and_unarchiving_use_their_own_labels() {
     let file = json!({ "meta": { "starred": true, "archived": true } });
     let fx = Fixture::new(&[("alpha", Some(file))], &[]);
-    fx.data.set_project_meta("alpha", MetaEdit::Starred(false)).unwrap();
+    fx.data
+        .set_project_meta("alpha", MetaEdit::Starred(false))
+        .unwrap();
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Unstar Project"));
-    fx.data.set_project_meta("alpha", MetaEdit::Archived(false)).unwrap();
+    fx.data
+        .set_project_meta("alpha", MetaEdit::Archived(false))
+        .unwrap();
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Unarchive Project"));
 }
 
@@ -814,7 +971,10 @@ fn a_new_tag_joins_the_tag_list_in_the_same_undo_step() {
 
     assert_eq!(changed, BOTH);
     assert_eq!(fx.tags(), ["Client", "Ideas"]);
-    assert_eq!(fx.data.project("alpha").unwrap().meta.tag.as_deref(), Some("Ideas"));
+    assert_eq!(
+        fx.data.project("alpha").unwrap().meta.tag.as_deref(),
+        Some("Ideas")
+    );
 
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Tag"));
     assert_eq!(fx.tags(), ["Client"]);
@@ -823,7 +983,10 @@ fn a_new_tag_joins_the_tag_list_in_the_same_undo_step() {
 
     redo_label(&fx.data);
     assert_eq!(fx.tags(), ["Client", "Ideas"]);
-    assert_eq!(fx.data.project("alpha").unwrap().meta.tag.as_deref(), Some("Ideas"));
+    assert_eq!(
+        fx.data.project("alpha").unwrap().meta.tag.as_deref(),
+        Some("Ideas")
+    );
 }
 
 #[test]
@@ -859,7 +1022,10 @@ fn setting_a_meta_value_the_file_already_has_is_not_a_change() {
 fn changing_a_project_without_a_file_is_not_found_and_creates_no_file() {
     let fx = Fixture::new(&[("bare", None)], &[]);
     let name = fx.data.set_project_name("bare", "Bare").unwrap_err();
-    let meta = fx.data.set_project_meta("bare", MetaEdit::Starred(true)).unwrap_err();
+    let meta = fx
+        .data
+        .set_project_meta("bare", MetaEdit::Starred(true))
+        .unwrap_err();
     assert_eq!(name.kind(), ErrorKind::NotFound);
     assert_eq!(meta.kind(), ErrorKind::NotFound);
     assert!(!fx.has_file("bare"));
@@ -888,7 +1054,10 @@ fn changing_a_project_with_a_broken_file_is_invalid_input_and_leaves_the_file_al
 fn changing_an_unknown_project_is_not_found() {
     let fx = Fixture::new(&[], &[]);
     let name = fx.data.set_project_name("nope", "X").unwrap_err();
-    let meta = fx.data.set_project_meta("nope", MetaEdit::Starred(true)).unwrap_err();
+    let meta = fx
+        .data
+        .set_project_meta("nope", MetaEdit::Starred(true))
+        .unwrap_err();
     assert_eq!(name.kind(), ErrorKind::NotFound);
     assert_eq!(meta.kind(), ErrorKind::NotFound);
 }
@@ -939,7 +1108,10 @@ fn an_undo_that_cannot_be_applied_is_dropped_and_the_next_undo_continues() {
     let fx = Fixture::new(&[], &[]);
     fs::create_dir(fx.dir("fresh")).unwrap();
     fx.data.add_tag("earlier").unwrap();
-    let (id, _) = fx.data.add_project(&fx.dir("fresh").to_string_lossy(), 1).unwrap();
+    let (id, _) = fx
+        .data
+        .add_project(&fx.dir("fresh").to_string_lossy(), 1)
+        .unwrap();
     fx.write_raw("fresh", "{ \"name\": \"Edited by hand\" }");
 
     let err = undo_error(&fx.data);
@@ -960,11 +1132,20 @@ fn touching_last_opened_records_the_time_and_is_not_undoable() {
     let fx = Fixture::new(&[("alpha", Some(alpha_file()))], &[]);
     fx.data.set_appearance(Appearance::Dark).unwrap();
 
-    assert_eq!(fx.data.touch_last_opened("alpha", 5_000).unwrap(), PROJECTS_ONLY);
-    assert_eq!(fx.data.project("alpha").unwrap().last_opened_at, Some(5_000));
+    assert_eq!(
+        fx.data.touch_last_opened("alpha", 5_000).unwrap(),
+        PROJECTS_ONLY
+    );
+    assert_eq!(
+        fx.data.project("alpha").unwrap().last_opened_at,
+        Some(5_000)
+    );
 
     assert_eq!(undo_label(&fx.data).as_deref(), Some("Change Appearance"));
-    assert_eq!(fx.data.project("alpha").unwrap().last_opened_at, Some(5_000));
+    assert_eq!(
+        fx.data.project("alpha").unwrap().last_opened_at,
+        Some(5_000)
+    );
     assert_eq!(undo_label(&fx.data), None);
 }
 
@@ -1026,7 +1207,9 @@ fn a_change_takes_the_hand_edit_made_since_the_last_read_into_account() {
     fx.data.projects();
     fx.write_raw("alpha", &json!({ "name": "Hand", "mine": 1 }).to_string());
 
-    fx.data.set_project_meta("alpha", MetaEdit::Starred(true)).unwrap();
+    fx.data
+        .set_project_meta("alpha", MetaEdit::Starred(true))
+        .unwrap();
 
     assert_eq!(
         fx.file("alpha"),

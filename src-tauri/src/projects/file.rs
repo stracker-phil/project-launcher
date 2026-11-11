@@ -99,52 +99,73 @@ impl MetaKey {
     }
 }
 
-/// A key of the file Launcher changes: the top-level `name` or a key in `meta`.
+/// A key of the file Launcher changes: a top-level key or a key in `meta`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileKey {
     Name,
+    Apps,
+    Scripts,
+    Locked,
+    Dev,
     Meta(MetaKey),
 }
 
 impl FileKey {
-    pub fn get(self, object: &FileObject) -> Option<Value> {
+    /// The top-level key the value lives under.
+    fn top_level(self) -> &'static str {
         match self {
-            FileKey::Name => object.get("name").cloned(),
-            FileKey::Meta(key) => object.get("meta")?.get(key.name()).cloned(),
+            FileKey::Name => "name",
+            FileKey::Apps => "apps",
+            FileKey::Scripts => "scripts",
+            FileKey::Locked => "locked",
+            FileKey::Dev => "dev",
+            FileKey::Meta(_) => "meta",
         }
     }
 
-    /// Sets or (with `None`) removes the key; a `meta` left empty is removed too. A `meta` that isn't an
-    /// object is replaced only when a value is set.
-    pub fn set(self, object: &mut FileObject, value: Option<Value>) {
-        match (self, value) {
-            (FileKey::Name, Some(value)) => {
-                object.insert("name".into(), value);
-            }
-            (FileKey::Name, None) => {
-                object.remove("name");
-            }
-            (FileKey::Meta(key), Some(value)) => {
-                let meta = object
-                    .entry("meta")
-                    .or_insert_with(|| Value::Object(Map::new()));
-                if !meta.is_object() {
-                    *meta = Value::Object(Map::new());
-                }
-                if let Value::Object(meta) = meta {
-                    meta.insert(key.name().into(), value);
-                }
-            }
-            (FileKey::Meta(key), None) => {
-                let Some(Value::Object(meta)) = object.get_mut("meta") else {
-                    return;
-                };
-                meta.remove(key.name());
-                if meta.is_empty() {
-                    object.remove("meta");
-                }
-            }
+    pub fn get(self, object: &FileObject) -> Option<Value> {
+        match self {
+            FileKey::Meta(key) => object.get("meta")?.get(key.name()).cloned(),
+            _ => object.get(self.top_level()).cloned(),
         }
+    }
+
+    /// Sets or (with `None`) removes the key. Keys keep their place in the file; a new key goes last.
+    pub fn set(self, object: &mut FileObject, value: Option<Value>) {
+        match self {
+            FileKey::Meta(key) => set_meta(object, key, value),
+            _ => set_or_remove(object, self.top_level(), value),
+        }
+    }
+}
+
+fn set_or_remove(object: &mut FileObject, key: &str, value: Option<Value>) {
+    match value {
+        Some(value) => {
+            object.insert(key.into(), value);
+        }
+        None => {
+            object.shift_remove(key);
+        }
+    }
+}
+
+/// A `meta` left empty is removed; one that isn't an object is replaced only when a value is set.
+fn set_meta(object: &mut FileObject, key: MetaKey, value: Option<Value>) {
+    if value.is_some() {
+        let meta = object
+            .entry("meta")
+            .or_insert_with(|| Value::Object(Map::new()));
+        if !meta.is_object() {
+            *meta = Value::Object(Map::new());
+        }
+    }
+    let Some(Value::Object(meta)) = object.get_mut("meta") else {
+        return;
+    };
+    set_or_remove(meta, key.name(), value);
+    if meta.is_empty() {
+        object.shift_remove("meta");
     }
 }
 
@@ -172,11 +193,16 @@ mod tests {
     #[test]
     fn reading_a_valid_object_finds_it() {
         let dir = temp_config_dir();
-        write_raw(dir.path(), r#"{"name": "Northwind", "meta": {"starred": true}}"#);
+        write_raw(
+            dir.path(),
+            r#"{"name": "Northwind", "meta": {"starred": true}}"#,
+        );
 
         assert_eq!(
             read(dir.path()),
-            FileRead::Found(object(json!({"name": "Northwind", "meta": {"starred": true}})))
+            FileRead::Found(object(
+                json!({"name": "Northwind", "meta": {"starred": true}})
+            ))
         );
     }
 
@@ -194,7 +220,10 @@ mod tests {
         let FileRead::Broken(problem) = read(dir.path()) else {
             panic!("expected Broken");
         };
-        assert!(problem.starts_with(".project-launcher.json isn't valid JSON"), "{problem}");
+        assert!(
+            problem.starts_with(".project-launcher.json isn't valid JSON"),
+            "{problem}"
+        );
     }
 
     #[test]
@@ -219,13 +248,19 @@ mod tests {
         let FileRead::Broken(problem) = read(dir.path()) else {
             panic!("expected Broken");
         };
-        assert!(problem.starts_with(".project-launcher.json can't be read"), "{problem}");
+        assert!(
+            problem.starts_with(".project-launcher.json can't be read"),
+            "{problem}"
+        );
     }
 
     #[test]
     fn a_change_needs_a_found_file() {
         let dir = temp_config_dir();
-        assert_eq!(read_for_change(dir.path()).unwrap_err().kind(), crate::error::ErrorKind::NotFound);
+        assert_eq!(
+            read_for_change(dir.path()).unwrap_err().kind(),
+            crate::error::ErrorKind::NotFound
+        );
 
         write_raw(dir.path(), "nope");
         assert_eq!(
@@ -234,7 +269,10 @@ mod tests {
         );
 
         write_raw(dir.path(), r#"{"name": "A"}"#);
-        assert_eq!(read_for_change(dir.path()).unwrap(), object(json!({"name": "A"})));
+        assert_eq!(
+            read_for_change(dir.path()).unwrap(),
+            object(json!({"name": "A"}))
+        );
     }
 
     #[test]
@@ -248,7 +286,11 @@ mod tests {
     fn writing_uses_two_space_indents_and_a_final_newline() {
         let dir = temp_config_dir();
 
-        write(dir.path(), &object(json!({"name": "A", "meta": {"tag": "client"}}))).unwrap();
+        write(
+            dir.path(),
+            &object(json!({"name": "A", "meta": {"tag": "client"}})),
+        )
+        .unwrap();
 
         assert_eq!(
             fs::read_to_string(file_path(dir.path())).unwrap(),
@@ -262,7 +304,11 @@ mod tests {
 
         write(dir.path(), &object(json!({}))).unwrap();
 
-        let mode = fs::metadata(file_path(dir.path())).unwrap().permissions().mode() & 0o777;
+        let mode = fs::metadata(file_path(dir.path()))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
         assert_eq!(mode, 0o644);
     }
 
@@ -274,7 +320,11 @@ mod tests {
 
         write(dir.path(), &object(json!({"name": "A"}))).unwrap();
 
-        let mode = fs::metadata(file_path(dir.path())).unwrap().permissions().mode() & 0o777;
+        let mode = fs::metadata(file_path(dir.path()))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
         assert_eq!(mode, 0o600);
     }
 
@@ -334,8 +384,16 @@ mod tests {
 
     #[test]
     fn a_meta_key_reads_none_without_meta_or_with_a_non_object_meta() {
-        for file in [json!({}), json!({"meta": "text"}), json!({"meta": {"icon": "Bolt"}})] {
-            assert_eq!(FileKey::Meta(MetaKey::Tag).get(&object(file.clone())), None, "{file}");
+        for file in [
+            json!({}),
+            json!({"meta": "text"}),
+            json!({"meta": {"icon": "Bolt"}}),
+        ] {
+            assert_eq!(
+                FileKey::Meta(MetaKey::Tag).get(&object(file.clone())),
+                None,
+                "{file}"
+            );
         }
     }
 
@@ -356,7 +414,10 @@ mod tests {
             file["meta"],
             json!({"url": "https://example.com", "tag": "client", "custom": [1, 2], "starred": true})
         );
-        assert_eq!(keys(file["meta"].as_object().unwrap()), ["url", "tag", "custom", "starred"]);
+        assert_eq!(
+            keys(file["meta"].as_object().unwrap()),
+            ["url", "tag", "custom", "starred"]
+        );
         assert_eq!(file["scripts"], json!({"build": "make"}));
     }
 
@@ -403,6 +464,102 @@ mod tests {
         FileKey::Meta(MetaKey::Tag).set(&mut file, None);
 
         assert_eq!(file, object(json!({"name": "A"})));
+    }
+
+    #[test]
+    fn the_launch_config_keys_are_read_and_set_at_the_top_level() {
+        let mut file = object(json!({"name": "A"}));
+        let values = [
+            (
+                FileKey::Apps,
+                "apps",
+                json!(["editor", {"preset": "git", "label": "G"}]),
+            ),
+            (
+                FileKey::Scripts,
+                "scripts",
+                json!([{"label": "Build", "command": "make"}]),
+            ),
+            (FileKey::Locked, "locked", json!(true)),
+            (FileKey::Dev, "dev", json!({"ddev": true})),
+        ];
+        for (key, name, value) in values {
+            assert_eq!(key.get(&file), None, "{name}");
+
+            key.set(&mut file, Some(value.clone()));
+
+            assert_eq!(file[name], value, "{name}");
+            assert_eq!(key.get(&file), Some(value), "{name}");
+        }
+        assert_eq!(keys(&file), ["name", "apps", "scripts", "locked", "dev"]);
+
+        for (key, name) in [
+            (FileKey::Apps, "apps"),
+            (FileKey::Scripts, "scripts"),
+            (FileKey::Locked, "locked"),
+            (FileKey::Dev, "dev"),
+        ] {
+            key.set(&mut file, None);
+            assert_eq!(key.get(&file), None, "{name}");
+        }
+        assert_eq!(file, object(json!({"name": "A"})));
+    }
+
+    #[test]
+    fn setting_an_existing_top_level_key_keeps_its_place_and_a_new_one_goes_last() {
+        let mut file = object(json!({"apps": ["editor"], "zeta": 1, "name": "A"}));
+
+        FileKey::Apps.set(&mut file, Some(json!(["terminal"])));
+        FileKey::Name.set(&mut file, Some(json!("B")));
+        assert_eq!(keys(&file), ["apps", "zeta", "name"]);
+
+        FileKey::Locked.set(&mut file, Some(json!(true)));
+        assert_eq!(keys(&file), ["apps", "zeta", "name", "locked"]);
+    }
+
+    #[test]
+    fn removing_a_top_level_key_in_the_middle_keeps_the_order_of_the_others() {
+        let mut file = object(json!({
+            "name": "A",
+            "apps": ["editor"],
+            "scripts": [],
+            "dev": {"docker": true},
+            "zeta": 1,
+        }));
+
+        FileKey::Apps.set(&mut file, None);
+        assert_eq!(keys(&file), ["name", "scripts", "dev", "zeta"]);
+
+        FileKey::Scripts.set(&mut file, None);
+        assert_eq!(keys(&file), ["name", "dev", "zeta"]);
+    }
+
+    #[test]
+    fn removing_a_meta_key_in_the_middle_keeps_the_order_of_the_others() {
+        let mut file = object(json!({
+            "meta": {"tag": "client", "icon": "Bolt", "notes": ["x"], "url": "https://example.com"},
+        }));
+
+        FileKey::Meta(MetaKey::Tag).set(&mut file, None);
+
+        assert_eq!(
+            keys(file["meta"].as_object().unwrap()),
+            ["icon", "notes", "url"]
+        );
+    }
+
+    #[test]
+    fn removing_an_emptied_meta_in_the_middle_keeps_the_order_of_the_other_keys() {
+        let mut file = object(json!({
+            "name": "A",
+            "meta": {"tag": "client"},
+            "apps": ["editor"],
+            "scripts": [],
+        }));
+
+        FileKey::Meta(MetaKey::Tag).set(&mut file, None);
+
+        assert_eq!(keys(&file), ["name", "apps", "scripts"]);
     }
 
     #[test]

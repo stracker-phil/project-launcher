@@ -59,26 +59,28 @@ moved aside as `<name>.<timestamp>.corrupt`, repair on load; [ADR 0013](adr/0013
 |---|---|
 | `projects.json` | `Registry` (`projects/registry.rs`): `{ "projects": [{ id, path, addedAt, lastOpenedAt }] }`, times in UTC ms; nothing else about a project ([ADR 0038](adr/0038-project-details-live-in-the-project-file.md)). Repaired per entry: no id or no absolute path → dropped; a second entry with the same id or path → dropped |
 | `settings.json` | `Settings` (`store/settings.rs`): `appearance`, `tags` (the tag list: order, empty tags), `shortcuts` (overrides by command id in the page's `Mod+Shift+K` notation: a menu item's command such as `page:palette.open`, or a page command's id such as `settings.search`; `null` = no key), `defaultEditor`, `gitClient`, `terminalApp`, `configEditor`. `Settings::repaired` falls back per field |
-| `<project>/.project-launcher.json` | Everything about the project (`projects/file.rs`): `name`, `meta` (icon, color, tag, notes, starred, archived, url, repoUrl, editor), apps, scripts, env, … Read fresh before each change, written read-modify-write (two-space JSON, final newline, its own file mode); unknown keys stay. A missing or broken file is never rewritten: the project shows `available: false` and `fileError` |
+| `<project>/.project-launcher.json` | Everything about the project (`projects/file.rs`, format in [project-file.md](project-file.md)): `name`, `meta` (icon, color, tag, notes, starred, archived, url, repoUrl, editor) and the launch config (apps, scripts, env, states, dev, database, locked; `projects/config/`). Read fresh before each change, written read-modify-write (two-space JSON, final newline, its own file mode); unknown keys stay in their place. A missing or broken file is never rewritten: the project shows `available: false` and `fileError` |
 
 `data/` holds the `Data` the commands share (in `AppState`): both stores, the parsed project files cached by folder
 (`Data::reload` empties the cache; file watching comes later) and the undo stack. `projects/view.rs` builds the
 page's `Project` from an entry and its file (name from the file or the folder, icon `Folder` and colour `Blue`
 when unset, notes as lines).
 
-Every change goes through one writer, `Data::change` ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)): `data/edits/` (settings, tags, projects) checks the request against
+Every change goes through one writer, `Data::change` ([ADR 0007](adr/0007-one-write-path-for-app-data-and-project-files.md)): `data/edits/` (settings, tags, projects, config) checks the request against
 the current data and turns it into an `Op` (`data/ops.rs`); applying an op returns its inverse, computed from
 what it replaced, which goes on the bounded (100), non-persisted undo stack (`data/undo.rs`;
 [ADR 0015](adr/0015-writes-are-operations-with-inverses-for-undo.md)). Ops: `SetAppearance`, `SetShortcut`, `ResetShortcut` (a reassigned key is a batch of two `SetShortcut`, a reset that takes its default from another command a `SetShortcut` and a `ResetShortcut`), `SetTags`, `AddProject`, `RemoveProject` (its inverse
 re-inserts the entry at its place), `SetFileKey` (one key of a project file), `ReplaceFile` (a whole file; refused
 when the file isn't what it was) and `Batch` (one undo step; a failure takes back what was applied). A tag
 rename or delete is a batch of the tag list plus every project file carrying the tag; adding a folder without a
-file is a batch that creates `{ "name": <folder> }` and adds the entry. An undo that can no longer apply is
+file is a batch that creates `{ "name": <folder> }` and adds the entry; an action edit sets `apps`, `scripts` or both. A
+project with `"locked": true` refuses every detail edit except star, archive and unlock. An undo that can no longer apply is
 dropped with its error. Recording a launch (`Data::touch_last_opened`) is not undoable.
 
 Each write returns `Changed`, which `data::commands::announce` emits as `settings_changed` and
 `projects_changed`; `src/queries/useEvents.ts` maps them to the query keys `["settings"]` (plus
-`["menuShortcuts"]`) and `["projects"]`. A settings change, its undo and redo included, also rebuilds the menu bar
+`["menuShortcuts"]`) and `["projects"]`; both refresh `["projectConfig"]` (`useProjectConfig`), since the default editor and git
+client resolve into it. A settings change, its undo and redo included, also rebuilds the menu bar
 (`menu::refresh`) with the owner's keys.
 
 The debug build writes the demo seed (`test_support/demo.rs`: made-up folders under `<data>/demo-projects/`, each
@@ -106,7 +108,7 @@ One line per module, added with the code.
 | `src-tauri/src/commands.rs`, `handlers.rs` | Core Tauri commands (`open_url`, `take_launch_events`, `log_frontend_error`) and the handler list |
 | `src-tauri/src/error.rs`, `lock.rs`, `events.rs`, `state.rs` | `AppError`, poison-tolerant locks, event names, `AppState` |
 | `src-tauri/src/store/` | Private folders, `JsonFile` and `JsonStore`, the `Settings` model and its repair |
-| `src-tauri/src/projects/` | The registry (`registry.rs`), a project's `.project-launcher.json` (`file.rs`), the page's `Project` (`view.rs`) |
+| `src-tauri/src/projects/` | The registry (`registry.rs`), a project's `.project-launcher.json` (`file.rs`), the page's `Project` (`view.rs`), the launch config's model, resolver and editor (`config/`) |
 | `src-tauri/src/data/` | `Data`: reads, the one writer (`change`), undo and redo (`mod.rs`, `undo.rs`); ops and inverses (`ops.rs`); the checked edits (`edits/`: `settings.rs`, `tags.rs`, `projects.rs`); Tauri commands and events (`commands.rs`); the Edit menu's Undo and Redo (`edit_menu.rs`) |
 | `src-tauri/src/dev.rs`, `test_support/` | Debug-only hooks (frame, background, eval, demo seed); test fixtures and the demo seed (`demo.rs`) |
 | `src/api/` | The page's only Tauri boundary (`api`, `toAppError`) and the generated types |
@@ -115,7 +117,7 @@ One line per module, added with the code.
 | `src/registry/settingsPages.ts` | Settings pages by id: title, icon, keywords, searchable rows, component; resolving and searching them; `useSettingsPagesVersion` re-renders the window when a page registers again |
 | `src/settings/` | The Settings window's layout (`SettingsWindow.tsx`), groups, rows and `Segmented` (`controls.tsx`), the core pages (`pages.ts`: Appearance, Shortcuts, Status, About); `shortcuts/` is Settings → Shortcuts (`ShortcutsPage.tsx`, `ShortcutRecorder.tsx`, the rows and conflicts in `rows.ts`) |
 | `src/palette/` | The command palette (`CommandPalette.tsx`, rows in `PaletteRows.tsx`): its sources (`sources.ts`: menu items, page commands, Settings pages, `usePaletteMenu` menus from `menus.ts`), what it shows (`sections.ts`), ranking (`rank.ts`), prefixes (`prefixes.ts`), recent searches in memory (`recent.ts`) |
-| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useMenuShortcuts`, `useProjects`) and `useEvents` (Rust events → query keys) |
+| `src/queries/` | TanStack Query: `createQueryClient` (one per window), the read hooks (`useAppStatus`, `useSettings`, `useMenuShortcuts`, `useProjects`, `useProjectConfig`) and `useEvents` (Rust events → query keys) |
 | `src/lib/` | Hooks and helpers shared by windows (`useLaunchEvents`, `theme.ts` for the scheme, `motion.ts` for presence and glides) |
 | `src/state/attempt.ts` | `attempt`: a request whose failure shows as an error toast |
 | `src/state/store.ts` | The page's zustand store: the window layout (sidebar, inspector per layout), toasts, the confirmation sheet, the palette's open state, the open menu; `window.launcher` in debug builds |

@@ -8,6 +8,7 @@ use crate::error::AppResult;
 use crate::events::{PROJECTS_CHANGED_EVENT, SETTINGS_CHANGED_EVENT};
 use crate::menu;
 use crate::projects::Project;
+use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig};
 use crate::state::AppState;
 use crate::store::{Appearance, Settings};
 
@@ -164,7 +165,11 @@ pub async fn add_project(
 }
 
 #[tauri::command]
-pub async fn remove_project(app: AppHandle, state: State<'_, AppState>, id: String) -> AppResult<()> {
+pub async fn remove_project(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> AppResult<()> {
     announced(&app, state.data.remove_project(&id))
 }
 
@@ -186,6 +191,76 @@ pub async fn set_project_meta(
     edit: MetaEdit,
 ) -> AppResult<()> {
     announced(&app, state.data.set_project_meta(&id, edit))
+}
+
+#[tauri::command]
+pub async fn project_config(state: State<'_, AppState>, id: String) -> AppResult<ProjectConfig> {
+    state.data.project_config(&id)
+}
+
+/// `source: null` creates the action; `preset` names the built-in the draft overrides.
+#[tauri::command]
+pub async fn save_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    source: Option<ActionSource>,
+    draft: ActionDraft,
+    preset: Option<Builtin>,
+) -> AppResult<()> {
+    announced(&app, state.data.save_action(&id, source, &draft, preset))
+}
+
+#[tauri::command]
+pub async fn remove_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    source: ActionSource,
+) -> AppResult<()> {
+    announced(&app, state.data.remove_action(&id, source))
+}
+
+#[tauri::command]
+pub async fn move_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    source: ActionSource,
+    to: usize,
+) -> AppResult<()> {
+    announced(&app, state.data.move_action(&id, source, to))
+}
+
+#[tauri::command]
+pub async fn set_builtin_enabled(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    preset: Builtin,
+    enabled: bool,
+) -> AppResult<()> {
+    announced(&app, state.data.set_builtin_enabled(&id, preset, enabled))
+}
+
+#[tauri::command]
+pub async fn set_project_locked(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    locked: bool,
+) -> AppResult<()> {
+    announced(&app, state.data.set_project_locked(&id, locked))
+}
+
+#[tauri::command]
+pub async fn set_dev_mode(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    mode: DevMode,
+) -> AppResult<()> {
+    announced(&app, state.data.set_dev_mode(&id, mode))
 }
 
 /// The label of the undone change, or `null`.

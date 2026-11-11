@@ -29,6 +29,13 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::remove_project,
         data::commands::set_project_name,
         data::commands::set_project_meta,
+        data::commands::project_config,
+        data::commands::save_action,
+        data::commands::remove_action,
+        data::commands::move_action,
+        data::commands::set_builtin_enabled,
+        data::commands::set_project_locked,
+        data::commands::set_dev_mode,
         data::commands::undo_change,
         data::commands::redo_change,
     ]

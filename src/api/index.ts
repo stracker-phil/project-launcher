@@ -1,21 +1,53 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { AppError, AppStatus, Appearance, ErrorKind, LaunchEvent, MenuCommand, MenuShortcut, MetaEdit, Project, Settings } from "./types.gen";
-
-export type {
+import type {
+  ActionDraft,
+  ActionSource,
   AppError,
   AppStatus,
   Appearance,
-  CliLink,
-  CommandLine,
+  Builtin,
+  DevMode,
   ErrorKind,
   LaunchEvent,
   MenuCommand,
   MenuShortcut,
   MetaEdit,
   Project,
-  ProjectMeta,
+  ProjectConfig,
   Settings,
+} from "./types.gen";
+
+export type {
+  Action,
+  ActionDraft,
+  ActionEdit,
+  ActionList,
+  ActionSource,
+  AppError,
+  AppStatus,
+  Appearance,
+  Builtin,
+  BuiltinApp,
+  ClaudeSetup,
+  CliLink,
+  CommandLine,
+  DatabaseSetting,
+  DevMode,
+  EnvVar,
+  ErrorKind,
+  LaunchEvent,
+  MenuCommand,
+  MenuShortcut,
+  MetaEdit,
+  Project,
+  ProjectConfig,
+  ProjectMeta,
+  RunsAs,
+  Settings,
+  StateDef,
+  StateProvider,
+  StateValue,
 } from "./types.gen";
 
 /** Every event Rust emits to the page (`src-tauri/src/events.rs`), with its payload. */
@@ -72,6 +104,17 @@ export const api = {
   /** An empty name falls back to the folder's name. */
   setProjectName: (id: string, name: string) => invoke<void>("set_project_name", { id, name }),
   setProjectMeta: (id: string, edit: MetaEdit) => invoke<void>("set_project_meta", { id, edit }),
+  /** The project's apps, scripts, env, states and dev setup, resolved; fails while its file is missing or broken. */
+  projectConfig: (id: string) => invoke<ProjectConfig>("project_config", { id }),
+  /** `source: null` creates the action; `preset` names the built-in the draft overrides. */
+  saveAction: (id: string, source: ActionSource | null, draft: ActionDraft, preset: Builtin | null = null) =>
+    invoke<void>("save_action", { id, source, draft, preset }),
+  removeAction: (id: string, source: ActionSource) => invoke<void>("remove_action", { id, source }),
+  moveAction: (id: string, source: ActionSource, to: number) => invoke<void>("move_action", { id, source, to }),
+  setBuiltinEnabled: (id: string, preset: Builtin, enabled: boolean) => invoke<void>("set_builtin_enabled", { id, preset, enabled }),
+  /** A locked project's details can't be edited, except starring, archiving and unlocking. */
+  setProjectLocked: (id: string, locked: boolean) => invoke<void>("set_project_locked", { id, locked }),
+  setDevMode: (id: string, mode: DevMode) => invoke<void>("set_dev_mode", { id, mode }),
   /** Takes back the last change; resolves to its label, or null when there was none. */
   undo: () => invoke<string | null>("undo_change"),
   redo: () => invoke<string | null>("redo_change"),
