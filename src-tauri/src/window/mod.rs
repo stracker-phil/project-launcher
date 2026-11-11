@@ -88,6 +88,13 @@ pub fn close_requested(app: &AppHandle, label: &str) -> bool {
     ours
 }
 
+/// The label of the main or Settings window while it has focus.
+pub fn focused_regular(app: &AppHandle) -> Option<String> {
+    focused_window(app)
+        .map(|window| window.label().to_string())
+        .filter(|label| REGULAR.contains(&label.as_str()))
+}
+
 fn focused_window(app: &AppHandle) -> Option<WebviewWindow> {
     app.webview_windows()
         .into_values()

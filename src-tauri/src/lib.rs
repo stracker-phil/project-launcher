@@ -5,6 +5,7 @@ mod app;
 pub mod bus;
 pub mod cli;
 mod commands;
+pub mod data;
 #[cfg(debug_assertions)]
 mod dev;
 pub mod error;
@@ -16,6 +17,7 @@ pub mod ipc;
 pub mod launch;
 pub mod lock;
 pub mod menu;
+pub mod projects;
 mod remote;
 pub mod state;
 pub mod status;
@@ -53,7 +55,7 @@ pub const LINK_SCHEME: &str = if cfg!(debug_assertions) {
 };
 
 /// Same directory Tauri resolves as `app_config_dir`, but available before the app starts.
-fn config_dir() -> PathBuf {
+pub(crate) fn config_dir() -> PathBuf {
     let Some(home) = std::env::home_dir() else {
         fail("Cannot locate the home directory for Launcher's settings");
     };

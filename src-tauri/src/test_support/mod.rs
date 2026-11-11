@@ -6,3 +6,6 @@ mod fixtures;
 
 #[cfg(any(test, feature = "test-util"))]
 pub use fixtures::*;
+
+/// The demo seed; debug builds write it on their first launch and on `launcher dev seed --yes`.
+pub mod demo;

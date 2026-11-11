@@ -23,6 +23,11 @@ export type AppStatus = {
  */
 name: string, version: string, debug: boolean, dataFolder: string, logFolder: string, commandLine: CommandLine, };
 
+/**
+ * Automatic follows macOS; Light and Dark are fixed (ADR 0026).
+ */
+export type Appearance = "system" | "light" | "dark";
+
 export type CliLink = "installed" | "notInstalled" | "notApplicable";
 
 /**
@@ -46,3 +51,61 @@ menu: string, label: string, command: string,
  * The key equivalent as the menu shows it (`⌃⌘S`).
  */
 key: string | null, };
+
+/**
+ * A change to one `meta` key of a project's file; empty text, no note lines and `false` remove the key.
+ */
+export type MetaEdit = { "field": "icon", "value": string | null } | { "field": "color", "value": string | null } | { "field": "tag", "value": string | null } | { "field": "notes", "value": Array<string> } | { "field": "starred", "value": boolean } | { "field": "archived", "value": boolean };
+
+export type Project = { id: string, 
+/**
+ * The folder, starting with `~` for the home folder.
+ */
+path: string, 
+/**
+ * The file's `name`, else the folder's name.
+ */
+name: string, meta: ProjectMeta, addedAt: number, lastOpenedAt: number | null, 
+/**
+ * False when the project's file is missing or broken; the name is then the folder's.
+ */
+available: boolean, 
+/**
+ * Why the file can't be used.
+ */
+fileError: string | null, };
+
+/**
+ * The file's `meta`, cleaned up: blank strings count as unset, notes are lines.
+ */
+export type ProjectMeta = { icon: string, color: string, tag: string | null, 
+/**
+ * Empty when no line has text.
+ */
+notes: Array<string>, starred: boolean, archived: boolean, url: string | null, repoUrl: string | null, 
+/**
+ * The editor this project opens in, instead of the default editor.
+ */
+editor: string | null, };
+
+export type Settings = { appearance: Appearance, 
+/**
+ * Every tag in the owner's order, including tags no project carries.
+ */
+tags: Array<string>, 
+/**
+ * The owner's key for a command id, overriding its default; `null` leaves the command without one.
+ */
+shortcuts: { [key in string]: string | null }, 
+/**
+ * The editor for projects that name none; empty uses the system's default app.
+ */
+defaultEditor: string, gitClient: string, 
+/**
+ * The app that opens terminal sessions (`.command` files).
+ */
+terminalApp: string, 
+/**
+ * The app that opens `.project-launcher.json`; empty uses the system's default app.
+ */
+configEditor: string, };

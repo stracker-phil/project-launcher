@@ -19,7 +19,8 @@ the subagents for tests, suites and reviews. Every new name-, path- or platform-
 | Signing | `LAUNCHER_SIGN_IDENTITY`, else Apple Development, else `Launcher Local Signing` | same | `scripts/sign-app.sh` |
 | Env vars | `LAUNCHER_SIGN_IDENTITY` | adds `LAUNCHER_WINDOW_FRAME`, `LAUNCHER_BACKGROUND`, `LAUNCHER_DEV_TERMINAL` | `dev.rs`, `scripts/dev/` |
 | Dev store | — | `window.launcher` (`VITE_DEV_HOOKS=1`) | `src/main.tsx` |
-| Data | the owner's | the demo seed | `src-tauri/src/test_support/` |
+| Data | the owner's | the demo seed, its folders in `<config dir>/demo-projects/` | `src-tauri/src/test_support/demo.rs`, `dev.rs` |
+| Project file | `.project-launcher.json` in each project folder | same | `projects/file.rs` `FILE_NAME` |
 | Author, license | Philipp Stracker <info@philippstracker.com>, MIT | | `Cargo.toml`, `LICENSE` |
 
 ## Network hosts
@@ -45,12 +46,12 @@ None: the app has no network code and no listener besides its Unix socket (tests
 | Goal | Start here |
 |---|---|
 | A new command or shortcut | `src-tauri/src/bus/`, the menu table in `src-tauri/src/menu/`, `docs/commands.md`, `docs/ux.md` → Keys |
-| A new setting | the `Settings` model in `src-tauri/src/store/settings/`, a page in `src/registry/settingsPages.ts` |
+| A new setting | the `Settings` model and `Settings::repaired` in `src-tauri/src/store/settings.rs`, a page in `src/registry/settingsPages.ts` |
 | A new Tauri command | the feature's `commands.rs`, `handlers.rs`, `src/api/index.ts`, `src/test/apiMock.ts` |
 | A new CLI subcommand | `src-tauri/src/cli/`, `src-tauri/src/remote/` |
 | A new color | a token in every palette under `src/styles/palettes/` |
 | A new built-in app preset (editor, terminal, git, …) | the launcher feature in `src-tauri/src/`, `docs/adapting.md` |
-| A new key in `.project-launcher.json` | the config model and resolver, keep unknown keys on write |
+| A new key in `.project-launcher.json` | the config model and resolver (`projects/`), an op in `data/ops.rs` when Launcher edits it; keep unknown keys on write |
 | A new dev-server tool | the dev-environment feature, its fake in `test_support/` |
 
 ## Conventions to keep

@@ -10,6 +10,8 @@ import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
 import { CommandPalette } from "./palette/CommandPalette";
 import { createQueryClient } from "./queries/queryClient";
+import { useEvents } from "./queries/useEvents";
+import { useSettings } from "./queries/useSettings";
 import { Shell } from "./shell/Shell";
 import { useStore } from "./state/store";
 
@@ -17,7 +19,9 @@ const windowClient = createQueryClient();
 
 /** The main window: the panes, the palette, and the overlays every window has. */
 function MainWindow() {
-  useAppearance();
+  const { data: settings } = useSettings();
+  useAppearance(settings?.appearance);
+  useEvents();
   useMainCommands();
   const onLaunch = useCallback((event: LaunchEvent) => {
     if (event.type === "error") useStore.getState().toast("error", event.message);

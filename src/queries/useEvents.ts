@@ -1,0 +1,24 @@
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { api, type EventName } from "../api";
+import { PROJECTS_KEY } from "./useProjects";
+import { SETTINGS_KEY } from "./useSettings";
+
+/** Which reads each Rust event makes stale (ADR 0014). */
+export const INVALIDATES: Partial<Record<EventName, readonly (readonly string[])[]>> = {
+  projects_changed: [PROJECTS_KEY],
+  settings_changed: [SETTINGS_KEY],
+};
+
+/** Refetches the queries a Rust event makes stale, while mounted; every window mounts it once. */
+export function useEvents() {
+  const client = useQueryClient();
+  useEffect(() => {
+    const stops = Object.entries(INVALIDATES).map(([event, keys]) =>
+      api.on(event as EventName, () => {
+        for (const queryKey of keys ?? []) void client.invalidateQueries({ queryKey });
+      }),
+    );
+    return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
+  }, [client]);
+}

@@ -8,3 +8,10 @@ pub const WINDOW_OPENED_EVENT: &str = "window_opened";
 pub const PAGE_COMMAND_EVENT: &str = "page_command";
 /// The settings page (or an unknown id, which shows the first page) for the Settings window to show.
 pub const OPEN_SETTINGS_EVENT: &str = "open_settings";
+/// No payload; the project list or a project's details changed (`["projects"]`).
+pub const PROJECTS_CHANGED_EVENT: &str = "projects_changed";
+/// No payload; the settings or the tag list changed (`["settings"]`).
+pub const SETTINGS_CHANGED_EVENT: &str = "settings_changed";
+/// `"undo"` or `"redo"` from the Edit menu, for the focused window: a text field undoes its typing, anything
+/// else undoes the last change of the data.
+pub const EDIT_REQUEST_EVENT: &str = "edit_request";

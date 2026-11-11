@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import type { Appearance } from "../api";
 
-/** The Appearance setting (ADR 0026); Rust stores it in the settings. */
-export type Appearance = "system" | "light" | "dark";
+export type { Appearance };
 
 /** The palette's scheme (`palettes/<scheme>.css`). */
 export type Scheme = "light" | "dark";

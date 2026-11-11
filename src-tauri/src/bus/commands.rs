@@ -3,6 +3,7 @@
 use tauri::AppHandle;
 
 use super::{Command, CommandBus};
+use crate::data::edit_menu::{self, Revert};
 use crate::{folders, window};
 
 type Bus = CommandBus<AppHandle>;
@@ -43,6 +44,16 @@ pub fn register(bus: &mut Bus) {
             .help("Hide the window in front")
             .hidden()
             .run_now(window::close_focused),
+    );
+    bus.add(
+        Command::new("edit:undo", "Undo")
+            .help("Undo the last change (in a text field: the typing)")
+            .run(|app| async move { edit_menu::request(&app, Revert::Undo) }),
+    );
+    bus.add(
+        Command::new("edit:redo", "Redo")
+            .help("Redo the last undone change (in a text field: the typing)")
+            .run(|app| async move { edit_menu::request(&app, Revert::Redo) }),
     );
     bus.add(
         Command::new("app:logs", "Open Log Folder")
@@ -86,6 +97,8 @@ mod tests {
             ("app:logs", "Open Log Folder", false, false),
             ("app:data", "Show Data Folder", false, false),
             ("window:close", "Close Window", true, false),
+            ("edit:undo", "Undo", false, false),
+            ("edit:redo", "Redo", false, false),
         ] {
             let info = bus.info(id).unwrap_or_else(|| panic!("{id} is not registered"));
             assert_eq!(info.title, title, "{id}");

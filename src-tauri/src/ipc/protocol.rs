@@ -32,6 +32,11 @@ pub enum IpcMessage {
     Eval {
         js: String,
     },
+    /// Replaces the debug data with the demo seed; refused without `yes`.
+    #[cfg(debug_assertions)]
+    DevSeed {
+        yes: bool,
+    },
 }
 
 impl IpcMessage {
@@ -46,6 +51,8 @@ impl IpcMessage {
             IpcMessage::Status => "Status",
             #[cfg(debug_assertions)]
             IpcMessage::Eval { .. } => "Eval",
+            #[cfg(debug_assertions)]
+            IpcMessage::DevSeed { .. } => "DevSeed",
         }
     }
 }

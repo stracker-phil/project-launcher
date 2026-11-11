@@ -29,6 +29,11 @@ const fn plain(label: &'static str, command: &'static str) -> Item {
 pub const SETTINGS: Item = item("Settings…", "app:settings", "CmdOrCtrl+,");
 pub const QUIT: Item = item("Quit Launcher", "app:quit", "CmdOrCtrl+Q");
 pub const CLOSE: Item = item("Close Window", "window:close", "CmdOrCtrl+W");
+/// Replace macOS's Undo and Redo; the focused page decides between text and data (`data/edit_menu.rs`).
+pub const UNDO_REDO: &[Item] = &[
+    item("Undo", "edit:undo", "CmdOrCtrl+Z"),
+    item("Redo", "edit:redo", "CmdOrCtrl+Shift+Z"),
+];
 pub const VIEW_PANES: &[Item] = &[
     item(
         "Toggle Sidebar",
@@ -55,14 +60,15 @@ pub type MenuDef = (&'static str, &'static [&'static [Item]]);
 /// macOS's standard items (About, Services, Hide, …) go around these.
 pub const APP_MENU: MenuDef = (crate::APP_NAME, &[&[SETTINGS], &[QUIT]]);
 pub const FILE_MENU: MenuDef = ("File", &[&[CLOSE]]);
+/// Undo and Redo above macOS's Cut, Copy, Paste and Select All.
+pub const EDIT_MENU: MenuDef = ("Edit", &[UNDO_REDO]);
 /// Above macOS's Enter Full Screen.
 pub const VIEW_MENU: MenuDef = ("View", &[VIEW_PANES, &[PALETTE, RELOAD]]);
 pub const HELP_MENU: MenuDef = ("Help", &[HELP]);
-/// Menus of macOS's standard items only.
-pub const EDIT_TITLE: &str = "Edit";
+/// A menu of macOS's standard items only.
 pub const WINDOW_TITLE: &str = "Window";
-/// Every menu with items of its own, in menu bar order (Edit and Window hold only standard items).
-pub const MENUS: &[MenuDef] = &[APP_MENU, FILE_MENU, VIEW_MENU, HELP_MENU];
+/// Every menu with items of its own, in menu bar order (Window holds only standard items).
+pub const MENUS: &[MenuDef] = &[APP_MENU, FILE_MENU, EDIT_MENU, VIEW_MENU, HELP_MENU];
 
 /// The groups as a menu shows them: only items of known commands, and no group left empty.
 pub fn shown_groups(

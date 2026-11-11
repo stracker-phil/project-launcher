@@ -1,12 +1,13 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./api", async (orig) => ({ ...(await orig<object>()), api: (await import("./test/apiMock")).createApiMock() }));
 
 import { api } from "./api";
 import App from "./App";
 import { clearCommands } from "./commands/registry";
-import type { createApiMock } from "./test/apiMock";
+import { createQueryClient } from "./queries/queryClient";
+import { DEFAULT_SETTINGS, type createApiMock } from "./test/apiMock";
 import { resetStore } from "./state/store";
 
 const mocked = vi.mocked(api, true) as ReturnType<typeof createApiMock> & ReturnType<typeof vi.mocked<typeof api>>;
@@ -45,6 +46,37 @@ describe("App", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(mocked.logError).not.toHaveBeenCalled();
+  });
+
+  describe("appearance", () => {
+    const scheme = () => document.documentElement.dataset.scheme;
+
+    beforeEach(() => {
+      delete document.documentElement.dataset.scheme;
+    });
+
+    afterEach(() => {
+      mocked.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
+    });
+
+    it.each(["light", "dark"] as const)("applies the stored %s appearance", async (appearance) => {
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance });
+
+      render(<App client={createQueryClient()} />);
+
+      await waitFor(() => expect(scheme()).toBe(appearance));
+    });
+
+    it("applies the new appearance after settings_changed", async () => {
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance: "dark" });
+      render(<App client={createQueryClient()} />);
+      await waitFor(() => expect(scheme()).toBe("dark"));
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance: "light" });
+
+      act(() => mocked.emit("settings_changed", null));
+
+      await waitFor(() => expect(scheme()).toBe("light"));
+    });
   });
 
   describe("page commands from the menus", () => {

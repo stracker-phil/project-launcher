@@ -6,6 +6,8 @@ import { Toasts } from "../../components/Toasts";
 import { TooltipHost } from "../../components/TooltipHost";
 import { useAppearance } from "../../lib/theme";
 import { createQueryClient } from "../../queries/queryClient";
+import { useEvents } from "../../queries/useEvents";
+import { useSettings } from "../../queries/useSettings";
 import { SettingsWindow } from "../../settings/SettingsWindow";
 
 const windowClient = createQueryClient();
@@ -17,7 +19,9 @@ function initialPage(): string | undefined {
 
 function SettingsRoot() {
   const [page, setPage] = useState(initialPage);
-  useAppearance();
+  const { data: settings } = useSettings();
+  useAppearance(settings?.appearance);
+  useEvents();
   useSettingsCommands();
   useEffect(() => {
     const stopListening = api.on("open_settings", setPage);

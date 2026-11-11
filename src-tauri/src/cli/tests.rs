@@ -191,6 +191,36 @@ fn subcommands_without_output_render_nothing() {
     }
 }
 
+#[cfg(debug_assertions)]
+#[test]
+fn dev_seed_with_yes_asks_the_running_app_to_replace_the_data() {
+    assert_eq!(
+        parse_args(&["dev", "seed", "--yes"]),
+        ask(IpcMessage::DevSeed { yes: true }, false)
+    );
+    assert_eq!(
+        parse_args(&["dev", "seed", "--yes", "--json"]),
+        ask(IpcMessage::DevSeed { yes: true }, true)
+    );
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn dev_seed_without_yes_still_parses_and_leaves_the_refusal_to_the_app() {
+    assert_eq!(
+        parse_args(&["dev", "seed"]),
+        ask(IpcMessage::DevSeed { yes: false }, false)
+    );
+}
+
+#[cfg(debug_assertions)]
+#[test]
+fn dev_without_a_known_tool_is_a_usage_error() {
+    for args in [&["dev"][..], &["dev", "frobnicate"], &["dev", "seed", "--force"]] {
+        assert_eq!(exit_code(parse_args(args)), 2, "{args:?}");
+    }
+}
+
 #[test]
 fn an_unexpected_status_reply_is_an_error() {
     let err = reply::render(&IpcMessage::Status, &serde_json::json!({ "version": 3 })).unwrap_err();

@@ -1,4 +1,12 @@
-//! Files in the config folder: private (0700 folders, 0600 files).
+//! Files in the config folder: private (0700 folders, 0600 files), app data through `JsonStore`
+//! (ADR 0012, ADR 0013).
+
+pub mod json_file;
+pub mod json_store;
+pub mod settings;
+
+pub use json_store::JsonStore;
+pub use settings::{Appearance, Settings};
 
 use std::fs;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};

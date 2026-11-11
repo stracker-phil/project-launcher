@@ -121,6 +121,8 @@ mod tests {
         "app:settings",
         "app:quit",
         "window:close",
+        "edit:undo",
+        "edit:redo",
         "page:view.toggleSidebar",
         "page:view.toggleInspector",
         "page:palette.open",
@@ -155,11 +157,28 @@ mod tests {
     }
 
     #[test]
-    fn items_follow_menu_order_app_file_view_help() {
+    fn items_follow_menu_order_app_file_edit_view_help() {
         let listed = listed(&Enabled(ALL));
         let mut menus: Vec<&str> = listed.iter().map(|item| item.menu.as_str()).collect();
         menus.dedup();
-        assert_eq!(menus, [crate::APP_NAME, "File", "View", "Help"]);
+        assert_eq!(menus, [crate::APP_NAME, "File", "Edit", "View", "Help"]);
+    }
+
+    #[test]
+    fn the_edit_menu_lists_undo_and_redo_with_their_keys() {
+        let listed = listed(&Enabled(ALL));
+        let edit: Vec<(&str, &str, Option<&str>)> = listed
+            .iter()
+            .filter(|item| item.menu == "Edit")
+            .map(|item| (item.label.as_str(), item.command.as_str(), item.key.as_deref()))
+            .collect();
+        assert_eq!(
+            edit,
+            [
+                ("Undo", "edit:undo", Some("⌘Z")),
+                ("Redo", "edit:redo", Some("⇧⌘Z")),
+            ]
+        );
     }
 
     #[test]
@@ -171,6 +190,8 @@ mod tests {
                 "app:settings",
                 "app:quit",
                 "window:close",
+                "edit:undo",
+                "edit:redo",
                 "page:view.toggleSidebar",
                 "page:view.toggleInspector",
                 "app:reload",

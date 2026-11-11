@@ -8,7 +8,7 @@ import { api } from "../../api";
 import { createQueryClient } from "../../queries/queryClient";
 import { registerCoreSettingsPages } from "../../settings/pages";
 import { resetStore } from "../../state/store";
-import type { createApiMock } from "../../test/apiMock";
+import { DEFAULT_SETTINGS, type createApiMock } from "../../test/apiMock";
 import { SettingsApp } from "./SettingsApp";
 
 const mocked = vi.mocked(api, true);
@@ -51,6 +51,37 @@ describe("SettingsApp", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "About" })).toBeInTheDocument();
     expect(within(nav()).getByRole("button", { name: "About" })).toHaveAttribute("aria-current", "page");
+  });
+
+  describe("appearance", () => {
+    const scheme = () => document.documentElement.dataset.scheme;
+
+    beforeEach(() => {
+      delete document.documentElement.dataset.scheme;
+    });
+
+    afterEach(() => {
+      mocked.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
+    });
+
+    it.each(["light", "dark"] as const)("applies the stored %s appearance", async (appearance) => {
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance });
+
+      await renderSettings();
+
+      await waitFor(() => expect(scheme()).toBe(appearance));
+    });
+
+    it("applies the new appearance after settings_changed", async () => {
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance: "dark" });
+      await renderSettings();
+      await waitFor(() => expect(scheme()).toBe("dark"));
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance: "light" });
+
+      act(() => (api as ReturnType<typeof createApiMock>).emit("settings_changed", null));
+
+      await waitFor(() => expect(scheme()).toBe("light"));
+    });
   });
 
   describe("opening at a page", () => {

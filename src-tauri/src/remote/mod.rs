@@ -62,5 +62,10 @@ pub async fn handle(app: AppHandle, message: IpcMessage) -> HandlerResult {
             crate::dev::eval(&app, &js);
             ack()
         }
+        #[cfg(debug_assertions)]
+        IpcMessage::DevSeed { yes } => {
+            crate::dev::seed(&app, yes)?;
+            ack()
+        }
     }
 }

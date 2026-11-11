@@ -5,7 +5,7 @@ use tauri::menu::{AboutMetadata, Menu, MenuItemBuilder, Submenu, SubmenuBuilder}
 use tauri::{AppHandle, Manager, Wry};
 
 use super::items::{
-    APP_MENU, EDIT_TITLE, FILE_MENU, HELP_MENU, Item, MenuDef, VIEW_MENU, WINDOW_TITLE,
+    APP_MENU, EDIT_MENU, FILE_MENU, HELP_MENU, Item, MenuDef, VIEW_MENU, WINDOW_TITLE,
 };
 use super::shown_groups;
 use crate::bus::{self, CommandStatus};
@@ -76,9 +76,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     };
     let launcher = app_submenu(&ctx)?;
     let file = submenu(&ctx, FILE_MENU)?.build()?;
-    let edit = SubmenuBuilder::new(app, EDIT_TITLE)
-        .undo()
-        .redo()
+    let edit = submenu(&ctx, EDIT_MENU)?
         .separator()
         .cut()
         .copy()

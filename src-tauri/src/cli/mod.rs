@@ -74,6 +74,21 @@ enum Command {
     Hide,
     /// Quit the running app
     Quit,
+    /// Developer tools (debug builds only)
+    #[cfg(debug_assertions)]
+    #[command(subcommand)]
+    Dev(DevCommand),
+}
+
+#[cfg(debug_assertions)]
+#[derive(Subcommand, Debug)]
+enum DevCommand {
+    /// Replace the debug build's projects and settings with the demo seed
+    Seed {
+        /// Confirm replacing the data
+        #[arg(long)]
+        yes: bool,
+    },
 }
 
 /// A message for the running app and how to print its reply.
@@ -138,6 +153,8 @@ fn message(command: Command) -> IpcMessage {
         Command::Focus => IpcMessage::Activate { hidden: false },
         Command::Hide => IpcMessage::Hide,
         Command::Quit => IpcMessage::Quit,
+        #[cfg(debug_assertions)]
+        Command::Dev(DevCommand::Seed { yes }) => IpcMessage::DevSeed { yes },
     }
 }
 
