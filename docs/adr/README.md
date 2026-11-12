@@ -54,3 +54,4 @@ Context, Decision, Consequences.
 | [0041](0041-debug-builds-record-databee-like-every-launch.md) | Debug builds record DataBee like every other launch | Accepted (2026-11-12) |
 | [0042](0042-settings-follow-timetracker-with-an-accent-choice.md) | Settings follow TimeTracker, with an accent choice | Accepted (2026-11-12) |
 | [0043](0043-the-view-is-remembered-outside-undo.md) | The window frame and sidebar choice are remembered outside undo | Accepted (2026-11-12) |
+| [0044](0044-a-launch-outside-a-terminal-starts-in-the-menu-bar.md) | A launch outside a terminal starts in the menu bar | Accepted (2026-11-12) |

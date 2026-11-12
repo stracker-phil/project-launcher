@@ -77,6 +77,18 @@ fn fail(message: &str) -> ! {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// A launch from Finder, Spotlight, `open` or at login starts in the menu bar (ADR 0044); `launcher` typed in a
+/// terminal shows the window unless asked for `--hidden`.
+pub fn starts_hidden(asked_hidden: bool, typed_in_a_terminal: bool) -> bool {
+    asked_hidden || !typed_in_a_terminal
+}
+
+/// Whether stdin is a terminal: LaunchServices starts apps without one.
+fn typed_in_a_terminal() -> bool {
+    // SAFETY: isatty only reads the state of file descriptor 0.
+    unsafe { libc::isatty(libc::STDIN_FILENO) == 1 }
+}
+
 pub fn run() {
     let config_dir = config_dir();
     if let Err(e) = create_private_dir(&config_dir) {
@@ -94,6 +106,7 @@ pub fn run() {
             std::process::exit(code);
         }
         CliOutcome::Run { hidden, log_level } => {
+            let hidden = starts_hidden(hidden, typed_in_a_terminal());
             (IpcMessage::Activate { hidden }, log_level, hidden)
         }
         CliOutcome::Ask(CliRequest { message, json }) => {
@@ -204,6 +217,22 @@ mod tests {
             .filter(|name| forbidden.contains(&name.as_str()))
             .collect();
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn only_a_terminal_launch_without_the_hidden_flag_shows_the_window() {
+        for (asked_hidden, typed_in_a_terminal, expected) in [
+            (false, true, false),
+            (true, true, true),
+            (false, false, true),
+            (true, false, true),
+        ] {
+            assert_eq!(
+                starts_hidden(asked_hidden, typed_in_a_terminal),
+                expected,
+                "asked_hidden={asked_hidden}, typed_in_a_terminal={typed_in_a_terminal}"
+            );
+        }
     }
 
     #[test]

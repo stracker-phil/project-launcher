@@ -42,7 +42,12 @@ fi
 for _ in {1..10}; do
   open -g "$LINK" "${OPEN_ARGS[@]}" 2>/dev/null || true
   sleep 1
-  running && { echo "Restarted Launcher on the new release build"; exit 0; }
+  if running; then
+    # Opened by Launch Services it starts in the menu bar (ADR 0044); a window that was open comes back.
+    [[ ${#OPEN_ARGS[@]} -eq 0 ]] && { sleep 2; "$BIN" show >/dev/null 2>&1 || true; }
+    echo "Restarted Launcher on the new release build"
+    exit 0
+  fi
 done
 echo "Launcher did not start again; open it from ~/Applications" >&2
 exit 1

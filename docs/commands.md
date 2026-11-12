@@ -207,7 +207,7 @@ The same binary is the command line ([ADR 0009](adr/0009-the-cli-asks-the-runnin
 
 | Subcommand | Does |
 |---|---|
-| `launcher` / `--hidden` | Starts Launcher or brings it forward; `--hidden` starts it in the menu bar |
+| `launcher` / `--hidden` | Starts Launcher or brings it forward; `--hidden`, or a start without a terminal (Finder, Spotlight, login), starts it in the menu bar (`starts_hidden`, ADR 0044) |
 | `show`, `focus`, `hide`, `quit`, `status` | The window and the app |
 | `list [--json]` | Every project: NAME, TAG, PATH (`~` for home); JSON entries `{ id, name, path, tag, starred, archived }` with an absolute path. Daybook calls `launcher list --json` |
 | `describe [project] [--json]` | A project's details, apps (with what they open) and scripts; defaults to the project of the current folder |

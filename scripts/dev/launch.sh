@@ -45,4 +45,9 @@ SWIFT
 LOG="${TMPDIR:-/tmp}/launcher-dev.log"
 LAUNCHER_WINDOW_FRAME="$FRAME" LAUNCHER_BACKGROUND=1 nohup "$BIN" "$@" >"$LOG" 2>&1 &
 disown
+# Started without a terminal it opens in the menu bar only (ADR 0044); a check wants the window.
+if (( $# == 0 )); then
+  for _ in {1..30}; do sleep 0.5; "$BIN" status >/dev/null 2>&1 && break; done
+  "$BIN" show >/dev/null 2>&1
+fi
 echo "Launcher started at $FRAME (log: $LOG)"

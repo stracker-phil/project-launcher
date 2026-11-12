@@ -98,7 +98,7 @@ folder inside it, so `launcher describe .` describes the project you are in.
 
 | Command | Does |
 |---|---|
-| `launcher` | starts Launcher, or brings the running one to the front; `--hidden` starts it in the menu bar |
+| `launcher` | starts Launcher, or brings the running one to the front; `--hidden` starts it in the menu bar (as Finder, Spotlight and login do) |
 | `launcher show`, `focus`, `hide`, `quit`, `status` | the window and the app |
 | `launcher list [--json]` | every project with its tag and folder |
 | `launcher describe [PROJECT]` | a project's details, apps and scripts (default: the current folder's) |
