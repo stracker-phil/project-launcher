@@ -17,7 +17,8 @@ the family language below.
 - **Project list**: a full-width search field on top; sections "Recent" (opened in the last 72 hours) and
   "All", both alphabetical, so rows never re-sort while the list is open. The selected row takes the
   project's colour. Right-click opens the project menu.
-- **Detail**: icon and colour, name, the tag pill and the git branch pill, and notes, all edited in place (no
+- **Detail**: icon and colour, name, the tag pill and the git branch pill (a long name cut short, whole in its
+  tooltip), and notes, all edited in place (no
   dialogs); then, in this order: Dev Environment (a status dot, Docker and the DDEV or wp-env server with
   "Running · Docker Desktop" / "Running · <host>", a globe button for the site, Restart then Start/Stop, and the
   database that opens in DataBee); an Open grid (each action's icon on a tile in its colour, what it opens, its

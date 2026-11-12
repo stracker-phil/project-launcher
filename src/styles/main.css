@@ -100,10 +100,14 @@ button.inline-text:hover { background: var(--hover-bg); }
 .inline-text.inline-text--empty { color: var(--text-faint); }
 
 /* Tag pill and branch pill */
+/* A long branch name is cut short; the tooltip shows it whole. */
 .branch-pill {
-  display: inline-flex; gap: 4px; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px;
-  background: var(--fill-subtle); color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; white-space: nowrap;
+  display: inline-flex; gap: 4px; align-items: center; min-width: 0; max-width: min(100%, 360px); height: 22px; padding: 0 8px;
+  border-radius: 11px; background: var(--fill-subtle); color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px;
+  white-space: nowrap;
 }
+.branch-pill svg { flex: none; }
+.branch-pill__name { overflow: hidden; text-overflow: ellipsis; }
 .tag-pill {
   display: inline-flex; gap: 4px; align-items: center; height: 22px; padding: 0 10px; border: 1px dashed var(--border-strong); border-radius: 11px; background: transparent;
   color: var(--text-muted); font-size: 12px;

@@ -120,13 +120,12 @@ export function ProjectDetail({ project, library }: { project: Project | null; l
           <div className="detail-header__badges">
             <TagPill project={project} tags={tags} readOnly={readOnly} editing={isEditing("tag")} onEditingChange={setEditing("tag")} />
             {branch && (
-              <span className="branch-pill" title="Git branch">
+              <span className="branch-pill" title={branch}>
                 <GitBranch size={11} aria-hidden />
-                {branch}
+                <span className="branch-pill__name">{branch}</span>
               </span>
             )}
             {project.meta.archived && <span className="badge">Archived</span>}
-            {project.locked && <span className="badge">Locked</span>}
           </div>
           {showNotes && (
             <InlineText

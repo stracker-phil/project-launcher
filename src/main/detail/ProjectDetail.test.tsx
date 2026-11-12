@@ -100,14 +100,23 @@ describe("ProjectDetail", () => {
 
       renderDetail(alpha);
 
-      expect(await screen.findByTitle("Git branch")).toHaveTextContent("feature/demo");
+      expect(await screen.findByTitle("feature/demo")).toHaveTextContent("feature/demo");
+    });
+
+    it("keeps the full name of a long branch as the pill's title", async () => {
+      const branch = "feature/demo-a-very-long-branch-name-that-the-pill-has-to-cut-with-an-ellipsis";
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ branch }) }));
+
+      renderDetail(alpha);
+
+      expect(await screen.findByTitle(branch)).toHaveTextContent(branch);
     });
 
     it("shows no branch pill for a folder that is not a git repository", async () => {
       renderDetail(alpha);
       await screen.findByText(NOTHING_YET);
 
-      expect(screen.queryByTitle("Git branch")).not.toBeInTheDocument();
+      expect(screen.queryByTitle(/feature|main/)).not.toBeInTheDocument();
     });
 
     it("shows an Archived badge for an archived project", () => {
@@ -177,13 +186,13 @@ describe("ProjectDetail", () => {
   describe("a locked project", () => {
     const locked = project({ name: "Alpha", locked: true, meta: { tag: "client", notes: ["Read only note"] } });
 
-    it("shows the name, tag and notes as plain text with a Locked badge", () => {
+    it("shows the name, tag and notes as plain text without a Locked badge", () => {
       renderDetail(locked);
 
       expect(screen.getByText("Alpha")).toBeInTheDocument();
       expect(screen.getByText("client")).toBeInTheDocument();
       expect(screen.getByText("Read only note")).toBeInTheDocument();
-      expect(screen.getByText("Locked")).toBeInTheDocument();
+      expect(screen.queryByText("Locked")).not.toBeInTheDocument();
     });
 
     it.each(["Project name", "Notes", "Change Icon & Color", "Website", "Repository"])("offers no %s button", (name) => {
