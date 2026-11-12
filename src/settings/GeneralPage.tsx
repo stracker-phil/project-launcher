@@ -4,6 +4,7 @@ import { api, type AppSetting, type DockerManager } from "../api";
 import { PopUpButton } from "../components/menu";
 import { AUTOSTART_KEY, useAutostart } from "../queries/useAutostart";
 import { useSettings } from "../queries/useSettings";
+import type { SettingsRow } from "../registry/settingsPages";
 import { attempt } from "../state/attempt";
 import { Group, Row, SwitchRow } from "./controls";
 import { TextField, useFieldSave } from "./fields";
@@ -61,8 +62,8 @@ function DockerGroup() {
   const id = useId();
   const manager = settings?.dockerManager ?? "docker-desktop";
   return (
-    <Group title="Dev Environment" anchor="docker">
-      <Row label="Docker app" description="Starts and stops Docker for projects with a dev environment." htmlFor={id}>
+    <Group title="Dev Environment">
+      <Row label="Docker app" description="Starts and stops Docker for projects with a dev environment." anchor="docker" htmlFor={id}>
         <PopUpButton
           id={id}
           value={manager}
@@ -96,6 +97,15 @@ function OpenAtLogin() {
     />
   );
 }
+
+const appRow = ({ setting, label }: AppFieldSpec): SettingsRow => ({ id: setting, title: label });
+
+export const GENERAL_ROWS: SettingsRow[] = [
+  ...APPS.map(appRow),
+  { id: "docker", title: "Docker app", keywords: ["Docker Desktop", "OrbStack", "Colima", "dev environment"] },
+  ...DOCKER_COMMANDS.map((spec) => ({ ...appRow(spec), keywords: ["docker"], under: "docker" })),
+  { id: "login", title: "Open at login", keywords: ["startup", "login item"] },
+];
 
 export function GeneralPage() {
   const { data: settings } = useSettings();

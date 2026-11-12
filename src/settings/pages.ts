@@ -1,13 +1,13 @@
 import { Activity, AppWindow, Info, Keyboard, ShieldCheck, SunMoon } from "lucide-react";
 import { api, toAppError, type MenuShortcut } from "../api";
 import { registerSettingsPage } from "../registry/settingsPages";
-import { AboutPage } from "./AboutPage";
-import { AppearancePage } from "./AppearancePage";
-import { GeneralPage } from "./GeneralPage";
-import { PrivacyPage } from "./privacy/PrivacyPage";
+import { ABOUT_ROWS, AboutPage } from "./AboutPage";
+import { APPEARANCE_ROWS, AppearancePage } from "./AppearancePage";
+import { GENERAL_ROWS, GeneralPage } from "./GeneralPage";
+import { PRIVACY_ROWS, PrivacyPage } from "./privacy/PrivacyPage";
 import { rowAnchor, shortcutRows } from "./shortcuts/rows";
 import { ShortcutsPage } from "./shortcuts/ShortcutsPage";
-import { StatusPage } from "./StatusPage";
+import { STATUS_ROWS, StatusPage } from "./StatusPage";
 
 /** Registered again once the menu's items arrive, so the search finds every command by its title. */
 function registerShortcutsPage(menu: MenuShortcut[]) {
@@ -33,15 +33,8 @@ export function registerCoreSettingsPages() {
     intro: "The apps projects open with, Docker, and how Launcher starts.",
     icon: AppWindow,
     order: 2,
-    keywords: ["editor", "git", "terminal", "login", "startup", "docker", "orbstack", "colima"],
-    rows: [
-      { id: "defaultEditor", title: "Default editor" },
-      { id: "gitClient", title: "Git client" },
-      { id: "terminalApp", title: "Terminal" },
-      { id: "configEditor", title: "Project file editor" },
-      { id: "docker", title: "Docker app" },
-      { id: "login", title: "Open at login" },
-    ],
+    keywords: ["apps"],
+    rows: GENERAL_ROWS,
     component: GeneralPage,
   });
   registerSettingsPage({
@@ -51,8 +44,8 @@ export function registerCoreSettingsPages() {
     intro: "How every Launcher window looks.",
     icon: SunMoon,
     order: 4,
-    keywords: ["dark", "light", "theme", "color"],
-    rows: [{ id: "accent", title: "Accent color" }],
+    keywords: ["look"],
+    rows: APPEARANCE_ROWS,
     component: AppearancePage,
   });
   registerShortcutsPage([]);
@@ -70,13 +63,7 @@ export function registerCoreSettingsPages() {
     icon: Activity,
     order: 10,
     keywords: ["diagnostics"],
-    rows: [
-      { id: "version", title: "Version" },
-      { id: "build", title: "Build" },
-      { id: "data", title: "Data folder" },
-      { id: "logs", title: "Log folder" },
-      { id: "cli", title: "Command line" },
-    ],
+    rows: STATUS_ROWS,
     component: StatusPage,
   });
   registerSettingsPage({
@@ -86,11 +73,8 @@ export function registerCoreSettingsPages() {
     intro: "What Launcher keeps, and where.",
     icon: ShieldCheck,
     order: 15,
-    keywords: ["data", "storage", "network"],
-    rows: [
-      { id: "storage", title: "On this Mac" },
-      { id: "network", title: "Network" },
-    ],
+    keywords: ["data"],
+    rows: PRIVACY_ROWS,
     component: PrivacyPage,
   });
   registerSettingsPage({
@@ -100,6 +84,7 @@ export function registerCoreSettingsPages() {
     intro: "The version, and the folders a bug report needs.",
     icon: Info,
     order: 20,
+    rows: ABOUT_ROWS,
     component: AboutPage,
   });
 }

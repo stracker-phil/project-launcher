@@ -1,5 +1,6 @@
 import { api, type Appearance } from "../api";
 import { useSettings } from "../queries/useSettings";
+import type { SettingsRow } from "../registry/settingsPages";
 import { attempt } from "../state/attempt";
 import { AccentSwatches } from "./AccentSwatches";
 import { Group, Row } from "./controls";
@@ -41,12 +42,17 @@ function ModePicker({ value, onChange }: { value: Appearance | null; onChange: (
   );
 }
 
+export const APPEARANCE_ROWS: SettingsRow[] = [
+  { id: "mode", title: "Mode", keywords: ["dark", "light", "automatic", "theme"] },
+  { id: "accent", title: "Accent color", keywords: ["highlight", "selection"] },
+];
+
 /** Light, dark or following macOS (ADR 0026), and the accent (ADR 0042), for every Launcher window. */
 export function AppearancePage() {
   const { data: settings } = useSettings();
   return (
     <Group>
-      <Row label="Mode" description="Light, dark, or Automatic, which follows macOS." stacked>
+      <Row label="Mode" description="Light, dark, or Automatic, which follows macOS." anchor="mode" stacked>
         <ModePicker value={settings?.appearance ?? null} onChange={(appearance) => void attempt(api.setAppearance(appearance), "Could not change the appearance")} />
       </Row>
       <Row label="Accent color" description="Selection, focus, switches and buttons. System follows macOS." anchor="accent">

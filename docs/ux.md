@@ -113,7 +113,7 @@ Body text is 13px. An app using the scheme-per-mode option
 
 ## Motion
 `--motion-fast` 120ms (hover, press), `--motion-base` 150ms (fades, chevrons, toggles, popover exit),
-`--motion-slow` 200ms (expand/collapse, popover entry), `--ease-out`, `--ease-in-out`; no literal durations
+`--motion-slow` 200ms (expand/collapse, popover entry), `--motion-highlight` 1600ms (a found Settings row's wash), `--ease-out`, `--ease-in-out`; no literal durations
 elsewhere; `prefers-reduced-motion` makes movement instant and fades short. Popovers rise in and fade out
 (`usePresence`, inert while leaving). A view switch is instant. Expand/collapse via `Disclosure`: height
 animates, rows fade, what's below glides.
@@ -189,9 +189,13 @@ when left or on ↵; a value Rust refuses for its field (`InvalidField`) shows i
 any other failure as a toast. Switches are checkboxes (`role="switch"`) 32×18 with a `--settings-knob`; pop-up
 buttons (`PopUpButton`) open the window's menu (`MenuHost`). With another window in front, the current page,
 checked switches and primary buttons turn `--settings-blurred-fill` (`window-blurred` on <html>,
-`src/lib/windowFocus.ts`). The search matches page titles, group names, keywords and row titles; a page found
-by a row names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F focuses the field, ⎋ and ⌘W
-hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
+`src/lib/windowFocus.ts`). The search ([ADR 0046](adr/0046-settings-search-finds-every-row.md)) turns the page
+list into one list of every matching page and row, ranked as in the palette, a row hit showing its page as listed with the row's title on a second line
+("No Results" when none); pages match by title, group and keywords, rows by title and keywords. Each page module
+exports its rows (`*_ROWS`, `SettingsRow` in `src/registry/settingsPages.ts`): every `Row` has an `anchor`, its
+entry's `id`, and its label is the entry's `title`; a test holds them together. A hit opens its page scrolled to
+the row, which an accent wash highlights once (`--motion-highlight`); picking it again does so again. ↵ opens the
+first hit, ⌘F focuses the field, ⎋ clears it, then ⎋ and ⌘W hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
 `--settings-control` tile with `--settings-control-shadow`. Pages so far:
 
 - General: the default editor, git client, terminal and project file editor (text fields; the terminal can't
@@ -216,7 +220,7 @@ hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px seg
 - Privacy & Data: what Launcher keeps in its data folder (settings, shortcuts and the tag list; the known
   project files with their last-opened times; the main window's frame and sidebar choice), that everything else about a project lives in its own
   `.project-launcher.json`, Show Data Folder, and that Launcher has no network code (links open in the browser).
-- About: version, Show Data Folder, Open Log Folder.
+- About: Version, Data (Show Data Folder), Logs (Open Log Folder).
 
 ## Keys
 App actions are Rust commands; page keys live in the page registry, reached from menus as `page:<id>`. Menus

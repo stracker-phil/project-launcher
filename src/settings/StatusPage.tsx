@@ -1,5 +1,6 @@
 import { toAppError, type CommandLine } from "../api";
 import { useAppStatus } from "../queries/useAppStatus";
+import type { SettingsRow } from "../registry/settingsPages";
 import { Group, Row, Value } from "./controls";
 
 function commandLineText({ link, path }: CommandLine): string {
@@ -14,6 +15,14 @@ function commandLineText({ link, path }: CommandLine): string {
       return link satisfies never;
   }
 }
+
+export const STATUS_ROWS: SettingsRow[] = [
+  { id: "version", title: "Version" },
+  { id: "build", title: "Build", keywords: ["debug", "release"] },
+  { id: "data", title: "Data folder" },
+  { id: "logs", title: "Log folder" },
+  { id: "cli", title: "Command", keywords: ["command line", "cli", "launcher"] },
+];
 
 export function StatusPage() {
   const { data, error } = useAppStatus();

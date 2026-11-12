@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { useSettingsCommands } from "../../commands";
@@ -11,29 +11,30 @@ import { trackWindowFocus } from "../../lib/windowFocus";
 import { createQueryClient } from "../../queries/queryClient";
 import { useEvents } from "../../queries/useEvents";
 import { useSettings } from "../../queries/useSettings";
-import { SettingsWindow } from "../../settings/SettingsWindow";
+import { SettingsWindow, type SettingsRequest } from "../../settings/SettingsWindow";
 
 const windowClient = createQueryClient();
 
-/** The page Rust opened the window at (`?page=`); later pages arrive as `open_settings`. */
-function initialPage(): string | undefined {
-  return new URLSearchParams(window.location.search).get("page") ?? undefined;
+/** The page or row Rust opened the window at (`?page=`). */
+function initialRequest(): SettingsRequest {
+  return { id: new URLSearchParams(window.location.search).get("page") ?? undefined };
 }
 
 function SettingsRoot() {
-  const [page, setPage] = useState(initialPage);
+  const [request, setRequest] = useState(initialRequest);
+  const open = useCallback((id: string) => setRequest({ id }), []);
   const { data: settings } = useSettings();
   useAppearance(settings?.appearance, settings?.accent);
   useEvents();
   useSettingsCommands();
   useEffect(trackWindowFocus, []);
   useEffect(() => {
-    const stopListening = api.on("open_settings", setPage);
+    const stopListening = api.on("open_settings", open);
     return () => void stopListening.then((stop) => stop());
-  }, []);
+  }, [open]);
   return (
     <>
-      <SettingsWindow target={page} onPage={setPage} />
+      <SettingsWindow request={request} onOpen={open} />
       <Toasts />
       <ConfirmHost />
       <MenuHost />

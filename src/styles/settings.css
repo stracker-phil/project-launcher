@@ -63,11 +63,14 @@
 .settings-nav button svg { flex: none; color: var(--settings-text-secondary); }
 .settings-nav button:active:not([aria-current="page"]) { background: var(--settings-fill); }
 .settings-nav button[aria-current="page"] { background: var(--accent); color: var(--text-on-accent); }
-.settings-nav button[aria-current="page"] :is(svg, .settings-nav-row) { color: inherit; }
+.settings-nav button[aria-current="page"] :is(svg, .settings-nav-setting) { color: inherit; }
 :root.window-blurred .settings-nav button[aria-current="page"] { background: var(--settings-blurred-fill); color: var(--settings-text); }
+.settings-nav-text { display: flex; flex-direction: column; min-width: 0; }
 .settings-nav-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The row a search found the page by. */
-.settings-nav-row { flex-shrink: 1; min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--settings-text-secondary); }
+/* A search hit on a row: the page as listed, the row's title on a second line; the button grows to fit. */
+.settings-nav button:has(.settings-nav-setting) { height: auto; min-height: 28px; padding-block: 4px; }
+.settings-nav button:has(.settings-nav-setting) svg { align-self: flex-start; margin-top: 3px; }
+.settings-nav-setting { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--settings-text-secondary); }
 .settings-nav-empty { margin: 0; padding: 0 8px; color: var(--settings-text-tertiary); }
 
 /* The title sits in the strip beside the page list; only the page below it scrolls. */
@@ -91,8 +94,23 @@
 .settings-group h3 { margin: 0 0 0 16px; font-size: 13px; font-weight: 600; color: var(--settings-text); }
 .settings-group-desc { margin: 0 0 0 16px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: pretty; }
 .settings-card { margin-top: 4px; padding: 0 16px; border-radius: 12px; background: var(--settings-fill-quiet); }
-.settings-row { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 14px 0; scroll-margin-top: 8px; }
+.settings-row { position: relative; isolation: isolate; display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 14px 0; scroll-margin-top: 8px; }
 .settings-row + .settings-row { border-top: 1px solid var(--settings-hairline); }
+/* The row or group Settings was opened at (a search hit, a link): an accent wash that fades once. */
+.settings-row.found::before {
+  content: "";
+  position: absolute;
+  inset: 2px -8px;
+  z-index: -1;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: settings-found var(--motion-highlight) var(--ease-out);
+}
+.settings-group.found > .settings-card { animation: settings-found var(--motion-highlight) var(--ease-out); }
+/* No end stop: the wash fades into each element's own background. */
+@keyframes settings-found {
+  0%, 35% { background: color-mix(in srgb, var(--accent) 15%, var(--settings-fill-quiet)); }
+}
 .settings-row.stacked { flex-direction: column; align-items: stretch; gap: 12px; }
 .settings-row.stacked .settings-row-control { justify-content: flex-start; }
 .settings-row.disabled .settings-row-text { opacity: 0.5; }

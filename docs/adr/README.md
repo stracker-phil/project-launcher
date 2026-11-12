@@ -56,3 +56,4 @@ Context, Decision, Consequences.
 | [0043](0043-the-view-is-remembered-outside-undo.md) | The window frame and sidebar choice are remembered outside undo | Accepted (2026-11-12) |
 | [0044](0044-a-launch-outside-a-terminal-starts-in-the-menu-bar.md) | A launch outside a terminal starts in the menu bar | Accepted (2026-11-12) |
 | [0045](0045-settings-groups-are-taskboards-inset-cards.md) | Settings groups are Taskboard's inset cards; no headline repeats | Accepted (2026-11-12) |
+| [0046](0046-settings-search-finds-every-row.md) | The Settings search finds every row | Accepted (2026-11-12) |

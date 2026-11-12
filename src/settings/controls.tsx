@@ -3,14 +3,34 @@ import { createContext, useContext, useEffect, useId, useRef, type ReactNode } f
 import { SegmentedControl, type SegmentedControlProps } from "../components/SegmentedControl";
 import { Switch } from "./Switch";
 
-/** The page or row `open_settings` asked for; the group or row with that anchor scrolls into view. */
-export const ScrollTarget = createContext<string | undefined>(undefined);
+/** The row Settings was opened at, a new object per request, so opening the same row again reveals it again. */
+export interface RevealTarget {
+  id: string;
+  /** Revealed instead while the row isn't shown. */
+  under?: string;
+}
+
+export const ScrollTarget = createContext<RevealTarget | undefined>(undefined);
+
+/** Targets whose own row was revealed; a fallback revealed first gives way to the row when it mounts later. */
+const revealed = new WeakSet<RevealTarget>();
+
+function scrollAndHighlight(element: HTMLElement) {
+  element.scrollIntoView?.({ block: "start" });
+  element.classList.remove("found");
+  void element.offsetWidth; // restarts the highlight
+  element.classList.add("found");
+}
 
 function useScrollTarget<E extends HTMLElement>(anchor: string | undefined) {
   const target = useContext(ScrollTarget);
   const ref = useRef<E>(null);
   useEffect(() => {
-    if (anchor && anchor === target) ref.current?.scrollIntoView?.({ block: "start" });
+    const element = ref.current;
+    if (!anchor || !target || !element || revealed.has(target)) return;
+    if (anchor !== target.id && anchor !== target.under) return;
+    if (anchor === target.id) revealed.add(target);
+    scrollAndHighlight(element);
   }, [anchor, target]);
   return ref;
 }
@@ -19,7 +39,7 @@ function useScrollTarget<E extends HTMLElement>(anchor: string | undefined) {
 export function Group({ title, description, anchor, children }: { title?: string; description?: ReactNode; anchor?: string; children: ReactNode }) {
   const ref = useScrollTarget<HTMLElement>(anchor);
   return (
-    <section ref={ref} className="settings-group" aria-label={title}>
+    <section ref={ref} className="settings-group" aria-label={title} data-anchor={anchor}>
       {title && <h3>{title}</h3>}
       {description && <p className="settings-group-desc">{description}</p>}
       <div className="settings-card">{children}</div>
@@ -46,7 +66,7 @@ export function Row({ label, description, anchor, htmlFor, stacked, disabled, ch
   const ref = useScrollTarget<HTMLDivElement>(anchor);
   const className = ["settings-row", stacked && "stacked", disabled && "disabled"].filter(Boolean).join(" ");
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} data-anchor={anchor}>
       <div className="settings-row-text">
         {htmlFor ? (
           <label className="settings-row-label" htmlFor={htmlFor}>

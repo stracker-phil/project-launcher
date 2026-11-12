@@ -12,7 +12,7 @@ function subsequence(hay: string, needle: string): boolean {
 
 const withoutSpaces = (text: string) => text.replace(/\s+/g, "");
 
-/** How well an entry matches a folded query (ADR 0031): the label starting with it, then a word of the label, then
+/** How well an entry matches a folded query (ADR 0031; also the Settings search): the label starting with it, then a word of the label, then
  *  every query word somewhere in label or detail, then the letters in order. Lower is better; null doesn't match. */
 export function rankMatch(label: string, detail: string, query: string): number | null {
   if (!query) return 0;

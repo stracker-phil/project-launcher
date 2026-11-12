@@ -1,11 +1,16 @@
-/** Settings pages by id (ADR 0033). Pages register here before the Settings window renders. */
+/** Settings pages by id (ADR 0033) and the search over their rows (ADR 0046). */
 import { useSyncExternalStore, type ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
+import { ranked } from "../lib/rank";
 
-/** A row of a page that the search finds by its title; `open_settings` with its id opens the page there. */
+/** A row the search finds: `id` is the row's `anchor`, `title` its label. */
 export interface SettingsRow {
   id: string;
   title: string;
+  /** More words the search finds the row by. */
+  keywords?: string[];
+  /** The anchor to scroll to while the row isn't shown, e.g. a field only one choice of a pop-up adds. */
+  under?: string;
 }
 
 export interface SettingsPage {
@@ -62,38 +67,35 @@ export function settingsPages(): SettingsPage[] {
   return [...pages.values()].sort(compareSettingsPages);
 }
 
-export const hasRow = (page: SettingsPage, id: string | undefined) => page.rows?.some((row) => row.id === id) ?? false;
+export const findRow = (page: SettingsPage, id: string | undefined) => page.rows?.find((row) => row.id === id);
 
 /** The named page, the page holding the named row, or the first when the name is absent or unknown. */
 export function resolveSettingsPage(id: string | undefined): SettingsPage | undefined {
   const all = settingsPages();
-  return all.find((page) => page.id === id) ?? all.find((page) => hasRow(page, id)) ?? all[0];
+  return all.find((page) => page.id === id) ?? all.find((page) => findRow(page, id)) ?? all[0];
 }
 
-/** A page in the list; `row` when the search found the page by that row's title. */
+/** A search hit: its page, and the row that matched, if any. */
 export interface SettingsMatch {
   page: SettingsPage;
   row?: SettingsRow;
 }
 
-/** Pages whose title, group, a keyword or a row title contains `query` (any case), in list order. */
-export function searchSettingsPages(query: string): SettingsMatch[] {
-  const needle = query.trim().toLowerCase();
-  const has = (text: string) => text.toLowerCase().includes(needle);
-  return settingsPages().flatMap((page) => {
-    if (has(page.title) || has(page.group) || page.keywords?.some(has)) return [{ page }];
-    const row = page.rows?.find((candidate) => has(candidate.title));
-    return row ? [{ page, row }] : [];
-  });
+/** Every page and row matching `query`, best first (`rankMatch`). */
+export function searchSettings(query: string): SettingsMatch[] {
+  const entries = settingsPages().flatMap((page): SettingsMatch[] => [{ page }, ...(page.rows ?? []).map((row) => ({ page, row }))]);
+  return ranked(entries, query, ({ page, row }) =>
+    row ? [row.title, (row.keywords ?? []).join(" ")] : [page.title, [page.group, ...(page.keywords ?? [])].join(" ")],
+  );
 }
 
-/** The list's groups with their matches, narrowed to `query`; every page for "". */
-export function settingsGroups(query = ""): { group: string; matches: SettingsMatch[] }[] {
-  const groups: { group: string; matches: SettingsMatch[] }[] = [];
-  for (const match of searchSettingsPages(query)) {
+/** The page list under its group headings. */
+export function settingsGroups(): { group: string; pages: SettingsPage[] }[] {
+  const groups: { group: string; pages: SettingsPage[] }[] = [];
+  for (const page of settingsPages()) {
     const last = groups.at(-1);
-    if (last?.group === match.page.group) last.matches.push(match);
-    else groups.push({ group: match.page.group, matches: [match] });
+    if (last?.group === page.group) last.pages.push(page);
+    else groups.push({ group: page.group, pages: [page] });
   }
   return groups;
 }

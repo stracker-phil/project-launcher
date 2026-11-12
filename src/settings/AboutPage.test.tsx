@@ -28,17 +28,17 @@ beforeEach(() => {
 });
 
 describe("AboutPage", () => {
-  it("shows the app name and version", async () => {
+  it("shows the version number in the Version row", async () => {
     renderPage();
 
-    expect(await screen.findByText("Version 1.2.3")).toBeInTheDocument();
-    expect(screen.getByText("Launcher")).toBeInTheDocument();
+    expect(await screen.findByText("1.2.3")).toBeInTheDocument();
+    expect(screen.getByText("Version")).toBeInTheDocument();
   });
 
   it("repeats no About heading, the page title already says it", async () => {
     renderPage();
 
-    await screen.findByText("Version 1.2.3");
+    await screen.findByText("1.2.3");
 
     expect(screen.queryByRole("heading", { name: "About" })).not.toBeInTheDocument();
   });

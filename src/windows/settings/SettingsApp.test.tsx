@@ -193,13 +193,131 @@ describe("SettingsApp", () => {
   });
 
   describe("search", () => {
-    it("finds Status by its Log folder row", async () => {
+    const hit = (name: string) => within(nav()).getByRole("button", { name });
+    const row = (anchor: string) => document.querySelector(`[data-anchor="${anchor}"]`);
+
+    it("replaces the page list with one Results group while there is text", async () => {
       await renderSettings();
 
       await userEvent.type(search(), "log");
 
-      expect(within(nav()).getByRole("button", { name: "Status Log folder" })).toBeInTheDocument();
-      expect(within(nav()).queryByRole("button", { name: "About" })).not.toBeInTheDocument();
+      expect(within(nav()).getByRole("group", { name: "Results" })).toBeInTheDocument();
+      expect(within(nav()).queryByRole("group", { name: "App" })).not.toBeInTheDocument();
+      expect(within(nav()).queryByRole("group", { name: "System" })).not.toBeInTheDocument();
+    });
+
+    it("lists a row hit with its page title first and the row title below, named with both", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "log");
+
+      expect(hit("Log folder, Status")).toHaveTextContent("StatusLog folder");
+      expect(within(hit("Log folder, Status")).getByText("Status")).toBeInTheDocument();
+      expect(within(hit("Log folder, Status")).getByText("Log folder")).toBeInTheDocument();
+      expect(within(nav()).queryByRole("button", { name: "General" })).not.toBeInTheDocument();
+    });
+
+    it("lists the rows of different pages that share a title", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "version");
+
+      expect(hit("Version, Status")).toBeInTheDocument();
+      expect(hit("Version, About")).toBeInTheDocument();
+    });
+
+    it("finds a row by one of its keywords", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "colima");
+
+      expect(hit("Docker app, General")).toBeInTheDocument();
+    });
+
+    it("lists a page hit by the page title alone", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "appearance");
+
+      expect(hit("Appearance")).toBeInTheDocument();
+    });
+
+    it("brings the page list back when the search is cleared", async () => {
+      await renderSettings();
+      await userEvent.type(search(), "log");
+
+      await userEvent.clear(search());
+
+      expect(within(nav()).getByRole("group", { name: "App" })).toBeInTheDocument();
+      expect(within(nav()).queryByRole("group", { name: "Results" })).not.toBeInTheDocument();
+    });
+
+    describe("opening a hit", () => {
+      afterEach(() => {
+        mocked.getSettings.mockResolvedValue(DEFAULT_SETTINGS);
+      });
+
+      it("opens the hit's page and highlights its row", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "log folder");
+
+        await userEvent.click(hit("Log folder, Status"));
+
+        expect(screen.getByRole("heading", { level: 2, name: "Status" })).toBeInTheDocument();
+        await waitFor(() => expect(row("logs")).toHaveClass("found"));
+      });
+
+      it("highlights the row again when the same hit is chosen again", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "log folder");
+        await userEvent.click(hit("Log folder, Status"));
+        await waitFor(() => expect(row("logs")).toHaveClass("found"));
+        row("logs")?.classList.remove("found");
+
+        await userEvent.click(hit("Log folder, Status"));
+
+        await waitFor(() => expect(row("logs")).toHaveClass("found"));
+      });
+
+      it("highlights a group when its hit is chosen", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "network");
+
+        await userEvent.click(hit("Network, Privacy & Data"));
+
+        expect(screen.getByRole("heading", { level: 2, name: "Privacy & Data" })).toBeInTheDocument();
+        await waitFor(() => expect(row("network")).toHaveClass("found"));
+      });
+
+      it("highlights the Docker app row for a start command that only shows with a custom Docker app", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "start command");
+
+        await userEvent.click(hit("Start command, General"));
+
+        await waitFor(() => expect(row("docker")).toHaveClass("found"));
+        expect(row("dockerStartCommand")).toBeNull();
+      });
+
+      it("highlights the start command itself when the Docker app is custom", async () => {
+        mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, dockerManager: "custom" });
+        await renderSettings();
+        await userEvent.type(search(), "start command");
+
+        await userEvent.click(hit("Start command, General"));
+
+        await waitFor(() => expect(row("dockerStartCommand")).toHaveClass("found"));
+      });
+
+      it("opens the page without highlighting anything when a page hit is chosen", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "appearance");
+
+        await userEvent.click(hit("Appearance"));
+
+        expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
+        expect(document.querySelector(".found")).toBeNull();
+      });
     });
 
     describe("with a menu command", () => {
@@ -214,8 +332,8 @@ describe("SettingsApp", () => {
         act(() => registerCoreSettingsPages());
 
         await userEvent.type(search(), "quit");
-        await screen.findByRole("button", { name: "Shortcuts Quit" });
-        await userEvent.click(within(nav()).getByRole("button", { name: "Shortcuts Quit" }));
+        await screen.findByRole("button", { name: "Quit, Shortcuts" });
+        await userEvent.click(within(nav()).getByRole("button", { name: "Quit, Shortcuts" }));
 
         expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
       });
@@ -226,18 +344,10 @@ describe("SettingsApp", () => {
 
       await userEvent.type(search(), "system");
 
-      expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Status", "Privacy & Data", "About"]);
-      expect(within(nav()).getByRole("group", { name: "System" })).toBeInTheDocument();
-      expect(within(nav()).queryByRole("group", { name: "App" })).not.toBeInTheDocument();
-    });
-
-    it("keeps a group heading only while one of its pages matches", async () => {
-      await renderSettings();
-
-      await userEvent.type(search(), "docker app");
-
-      expect(within(nav()).getByRole("group", { name: "App" })).toBeInTheDocument();
-      expect(within(nav()).queryByRole("group", { name: "System" })).not.toBeInTheDocument();
+      const names = within(nav()).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent?.trim());
+      expect(names).toEqual(expect.arrayContaining(["Status", "Privacy & Data", "About"]));
+      expect(names).not.toContain("General");
+      expect(names).not.toContain("Appearance");
     });
 
     it("finds Privacy & Data by its Network row", async () => {
@@ -245,7 +355,7 @@ describe("SettingsApp", () => {
 
       await userEvent.type(search(), "network");
 
-      expect(within(nav()).getByRole("button", { name: /Privacy & Data/ })).toBeInTheDocument();
+      expect(hit("Network, Privacy & Data")).toBeInTheDocument();
     });
 
     it("finds General by its Open at login row", async () => {
@@ -253,7 +363,7 @@ describe("SettingsApp", () => {
 
       await userEvent.type(search(), "open at");
 
-      expect(within(nav()).getByRole("button", { name: "General Open at login" })).toBeInTheDocument();
+      expect(hit("Open at login, General")).toBeInTheDocument();
     });
 
     it("finds General by its Docker app row", async () => {
@@ -261,7 +371,7 @@ describe("SettingsApp", () => {
 
       await userEvent.type(search(), "docker app");
 
-      expect(within(nav()).getByRole("button", { name: "General Docker app" })).toBeInTheDocument();
+      expect(hit("Docker app, General")).toBeInTheDocument();
     });
 
     it("shows No Results when nothing matches", async () => {
@@ -279,6 +389,66 @@ describe("SettingsApp", () => {
       await userEvent.type(search(), "about{Enter}");
 
       expect(screen.getByRole("heading", { level: 2, name: "About" })).toBeInTheDocument();
+    });
+
+    it("opens the first hit's row on Enter", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "log folder{Enter}");
+
+      expect(screen.getByRole("heading", { level: 2, name: "Status" })).toBeInTheDocument();
+      await waitFor(() => expect(row("logs")).toHaveClass("found"));
+    });
+
+    it("does nothing on Enter while the search is empty", async () => {
+      await renderSettings();
+      await userEvent.click(within(nav()).getByRole("button", { name: "About" }));
+      await userEvent.click(search());
+
+      await userEvent.keyboard("{Enter}");
+
+      expect(screen.getByRole("heading", { level: 2, name: "About" })).toBeInTheDocument();
+    });
+
+    it("does nothing on Enter when nothing matches", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "zzz{Enter}");
+
+      expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
+    });
+  });
+
+  describe("opening at a row", () => {
+    const row = (anchor: string) => document.querySelector(`[data-anchor="${anchor}"]`);
+
+    it("highlights the row named in the open_settings event", async () => {
+      await renderSettings();
+
+      emit("logs");
+
+      expect(screen.getByRole("heading", { level: 2, name: "Status" })).toBeInTheDocument();
+      await waitFor(() => expect(row("logs")).toHaveClass("found"));
+    });
+
+    it("highlights the row again when the event repeats", async () => {
+      await renderSettings();
+      emit("logs");
+      await waitFor(() => expect(row("logs")).toHaveClass("found"));
+      row("logs")?.classList.remove("found");
+
+      emit("logs");
+
+      await waitFor(() => expect(row("logs")).toHaveClass("found"));
+    });
+
+    it("highlights the Docker app row, which holds the Docker app menu", async () => {
+      await renderSettings();
+
+      emit("docker");
+
+      await waitFor(() => expect(row("docker")).toHaveClass("found"));
+      expect(within(row("docker") as HTMLElement).getByRole("button", { name: "Docker app" })).toBeInTheDocument();
     });
   });
 

@@ -1,5 +1,5 @@
 import { parsePrefix, PREFIXES, type PaletteMode, type Prefix } from "./prefixes";
-import { ranked } from "./rank";
+import { ranked } from "../lib/rank";
 import type { PaletteCommand } from "./sources";
 
 export type PaletteItem = { kind: "command"; command: PaletteCommand } | { kind: "recent"; text: string };

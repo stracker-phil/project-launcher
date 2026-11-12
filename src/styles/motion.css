@@ -5,6 +5,8 @@
   --motion-slow: 200ms;
   /* One turn of a spinner. */
   --motion-spin: 900ms;
+  /* A found row's highlight fading out. */
+  --motion-highlight: 1600ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
