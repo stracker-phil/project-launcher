@@ -107,7 +107,8 @@ stores them by command id in the page's notation (`Mod+Shift+K`): a menu item un
 (`app:palette`, `app:quit`), a page command under its id (`settings.search`). `menu/keys.rs` converts
 between that and Tauri's `CmdOrCtrl+Shift+K` (`Combo`); a menu item's key is the override, else its default
 (`effective_accelerator`; an override the menu can't take keeps the default). Every settings change, its undo
-and redo included, rebuilds the menu bar (`menu::refresh`), and `menu_commands` reports the keys in effect.
+and redo included, calls `menu::refresh`, which rebuilds the menu bar only when the keys or their pause
+changed (`MenuKeys` remembers what the shown bar was built with), and `menu_commands` reports the keys in effect.
 
 | Tauri command | Does |
 |---|---|
@@ -119,8 +120,9 @@ and redo included, rebuilds the menu bar (`menu::refresh`), and `menu_commands` 
 
 The tray menu (`tray.rs`): Open Launcher, Command Palette…, Recent Projects ▸ (the ten last opened, not archived,
 not the current one, ⌥1…⌥0; `project:show:<id>`), the current project's actions with their keys and Reveal in
-Finder (`project:launch:…`, `project:reveal:<id>`), Settings… and Quit. It is rebuilt when the projects or the
-settings change (`announce`) and when the main window reports another current project (`set_current_project`).
+Finder (`project:launch:…`, `project:reveal:<id>`), Settings… and Quit. `tray::refresh` runs when the projects or the
+settings change (`announce`) and when the main window reports another current project (`set_current_project`);
+it rebuilds the menu only when its rows differ from the shown ones.
 Tauri hands tray clicks to the same handler (`menu::clicked`).
 
 ## Undo and redo

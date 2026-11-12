@@ -189,7 +189,9 @@ App actions are Rust commands; page keys live in the page registry, reached from
 in Mac order; View holds window appearance only; Help holds Open Log Folder and Show Data Folder. Bare keys
 never fire in text fields (only ⌘/⌃ combinations and Esc); plain letters stay off menu items; one binding per
 command. The owner's keys (Settings → Shortcuts, `settings.json` `shortcuts`) override the defaults: Rust
-rebuilds the menu bar with them and the page registry uses them for page keys.
+rebuilds the menu bar with them and the page registry uses them for page keys. The menu bar and the tray are
+rebuilt only when their keys or rows change, never for another setting: a rebuild makes macOS redraw every
+menu title.
 
 ## Palette checks
 `colors.test.ts` keeps literals in palettes and token sets equal; `contrast.test.ts` enforces the contrast

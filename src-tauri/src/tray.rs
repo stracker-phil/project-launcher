@@ -1,13 +1,16 @@
 //! The menu-bar item, the app's home while every window is hidden (ADR 0034): open, the palette, recent
 //! projects (⌥1…⌥0), the current project's actions, Settings and Quit. Its items' ids are bus commands; the
 //! app's menu event handler (`menu::clicked`) runs them, as it does the menu bar's. `refresh` rebuilds it when
-//! the projects or the current project change.
+//! what it lists changed.
 
+use std::sync::Mutex;
 use tauri::image::Image;
 use tauri::menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
+
 use tauri::{AppHandle, Manager, Wry};
 
+use crate::lock::MutexExt;
 use crate::menu::keys::Combo;
 use crate::menu::{QUIT, SETTINGS};
 use crate::projects::Project;
@@ -16,6 +19,8 @@ use crate::run::bus;
 use crate::state::AppState;
 
 const TRAY_ID: &str = "main";
+/// What the shown menu lists; held during a rebuild, so one runs at a time.
+static BUILT: Mutex<Option<Contents>> = Mutex::new(None);
 /// Recent projects the tray lists, each with ⌥ and its digit (the tenth is ⌥0).
 const RECENT: usize = 10;
 
@@ -168,7 +173,9 @@ fn build(app: &AppHandle, contents: &Contents) -> tauri::Result<Menu<Wry>> {
 }
 
 pub fn install(app: &AppHandle) -> tauri::Result<()> {
-    let menu = build(app, &contents(app))?;
+    let mut built = BUILT.lock_unpoisoned();
+    let now = contents(app);
+    let menu = build(app, &now)?;
     // No `on_menu_event` here: Tauri hands tray menu clicks to the app's handler too, so they would run twice.
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(ICON)?)
@@ -176,20 +183,25 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
         .tooltip(crate::APP_NAME)
         .menu(&menu)
         .build(app)?;
+    *built = Some(now);
     Ok(())
 }
 
-/// Rebuilds the menu from the projects and the current project.
+/// Rebuilds the menu when what it lists changed.
 pub fn refresh(app: &AppHandle) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else {
         return;
     };
-    match build(app, &contents(app)) {
-        Ok(menu) => {
-            if let Err(e) = tray.set_menu(Some(menu)) {
-                log::warn!("Couldn't update the menu-bar item: {e}");
-            }
-        }
+    let mut built = BUILT.lock_unpoisoned();
+    let now = contents(app);
+    if built.as_ref() == Some(&now) {
+        return;
+    }
+    match build(app, &now) {
+        Ok(menu) => match tray.set_menu(Some(menu)) {
+            Ok(()) => *built = Some(now),
+            Err(e) => log::warn!("Couldn't update the menu-bar item: {e}"),
+        },
         Err(e) => log::warn!("Couldn't build the menu-bar item's menu: {e}"),
     }
 }

@@ -16,6 +16,8 @@ use tauri::{AppHandle, Manager};
 
 use crate::bus;
 use crate::lock::MutexExt;
+use crate::state::AppState;
+use crate::store::Shortcuts;
 
 pub use build::build;
 pub use items::*;
@@ -24,8 +26,9 @@ pub use items::*;
 #[derive(Default)]
 pub struct MenuKeys {
     paused: AtomicBool,
-    /// One rebuild at a time, so the last one reads the latest keys and is the one shown.
-    rebuilding: Mutex<()>,
+    /// The keys and pause state the shown menu bar was built with; held during a rebuild, so one runs at a
+    /// time and the last one reads the latest keys.
+    built: Mutex<Option<(Shortcuts, bool)>>,
 }
 
 impl MenuKeys {
@@ -34,14 +37,35 @@ impl MenuKeys {
     }
 }
 
-/// Builds the menu bar again, e.g. after the owner's keys changed.
+/// Builds the menu bar and puts it up; once, at startup.
+pub fn install(app: &AppHandle) -> tauri::Result<()> {
+    let keys = app.state::<MenuKeys>();
+    let mut built = keys.built.lock_unpoisoned();
+    let now = built_with(app, &keys);
+    app.set_menu(build(app)?)?;
+    *built = Some(now);
+    Ok(())
+}
+
+/// Builds the menu bar again when its keys changed. Other settings leave it alone: a rebuild makes macOS
+/// redraw every menu title.
 pub fn refresh(app: &AppHandle) {
     let keys = app.state::<MenuKeys>();
-    let _rebuilding = keys.rebuilding.lock_unpoisoned();
-    if let Err(e) = build(app).and_then(|menu| app.set_menu(menu)) {
-        log::warn!("Couldn't rebuild the menu bar: {e}");
+    let mut built = keys.built.lock_unpoisoned();
+    let now = built_with(app, &keys);
+    if built.as_ref() == Some(&now) {
+        return;
+    }
+    match build(app).and_then(|menu| app.set_menu(menu)) {
+        Ok(_) => *built = Some(now),
+        Err(e) => log::warn!("Couldn't rebuild the menu bar: {e}"),
     }
     crate::global_shortcut::apply(app);
+}
+
+fn built_with(app: &AppHandle, keys: &MenuKeys) -> (Shortcuts, bool) {
+    let shortcuts = app.state::<AppState>().data.settings().shortcuts;
+    (shortcuts, keys.paused())
 }
 
 /// Takes the menu items' keys off while a key is being recorded, and puts them back after.

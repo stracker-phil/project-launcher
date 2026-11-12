@@ -1,5 +1,5 @@
 //! Tauri commands for the data: reads, the writes the page sends, undo and redo. Each write announces what
-//! it changed as events (ADR 0014); a settings change also rebuilds the menu bar with the owner's keys.
+//! it changed as events (ADR 0014); a settings change also refreshes the menu bar and the tray, which rebuild only when their keys or rows changed.
 
 use tauri::{AppHandle, Emitter, Manager, State};
 

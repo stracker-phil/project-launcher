@@ -54,7 +54,7 @@ pub fn start(
             log::info!("Launcher {} started", env!("CARGO_PKG_VERSION"));
             // A menu-bar app: no Dock icon until a window shows.
             window::set_dock_icon(app.handle(), false);
-            app.set_menu(menu::build(app.handle())?)?;
+            menu::install(app.handle())?;
             tray::install(app.handle())?;
             window::palette::install(app.handle())?;
             crate::devenv::commands::attach(app.handle());

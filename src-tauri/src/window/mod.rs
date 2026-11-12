@@ -172,7 +172,10 @@ pub fn set_dock_icon(app: &AppHandle, shown: bool) {
 /// Lets the regular windows hide with the app again; the palette panel stays out of ⌘H.
 #[cfg(target_os = "macos")]
 fn allow_hiding(app: &AppHandle) {
-    for window in REGULAR.iter().filter_map(|label| app.get_webview_window(label)) {
+    for window in REGULAR
+        .iter()
+        .filter_map(|label| app.get_webview_window(label))
+    {
         let target = window.clone();
         let result = window.run_on_main_thread(move || match target.ns_window() {
             // SAFETY: on the main thread, with the window alive for the call.
