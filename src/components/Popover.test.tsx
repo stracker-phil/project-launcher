@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -34,6 +34,7 @@ describe("Popover", () => {
   it("closes on Escape and gives the focus back to the anchor", async () => {
     const onClose = vi.fn();
     render(<Harness open onClose={onClose} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Inside" })).toHaveFocus());
 
     await userEvent.keyboard("{Escape}");
 
@@ -49,6 +50,7 @@ describe("Popover", () => {
         <button type="button">Inside</button>
       </Popover>,
     );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Recording" })).toHaveFocus());
 
     screen.getByRole("button", { name: "Recording" }).focus();
     await userEvent.keyboard("{Escape}");
