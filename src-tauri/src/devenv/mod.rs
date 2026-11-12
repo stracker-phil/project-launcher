@@ -15,6 +15,7 @@ mod wpenv;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
@@ -40,6 +41,8 @@ pub struct DevEnv {
     prepared: Mutex<HashSet<String>>,
     /// Held while Docker starts, so everyone who needs it waits for the one start.
     docker_start: Mutex<()>,
+    /// The last status per project folder and when it was read; cleared by every step.
+    known: Mutex<HashMap<PathBuf, (Instant, DevStatus)>>,
     changed: Box<dyn Fn() + Send + Sync>,
 }
 
@@ -50,12 +53,14 @@ impl DevEnv {
             activity: Mutex::default(),
             prepared: Mutex::default(),
             docker_start: Mutex::new(()),
+            known: Mutex::default(),
             changed,
         }
     }
 
     fn set_docker(&self, activity: Option<Activity>) {
         self.activity.lock_unpoisoned().docker = activity;
+        self.known.lock_unpoisoned().clear();
         (self.changed)();
     }
 
@@ -67,10 +72,34 @@ impl DevEnv {
                 None => activities.servers.remove(dir),
             };
         }
+        self.known.lock_unpoisoned().clear();
         (self.changed)();
     }
 
+    /// The status read within `max_age`, else a fresh one: the palette asks often and must answer at once, while
+    /// the main window keeps the status fresh for the project it shows.
+    pub fn recent_status(
+        &self,
+        target: &Target,
+        settings: &Settings,
+        max_age: Duration,
+    ) -> DevStatus {
+        let known = self.known.lock_unpoisoned().get(&target.dir).cloned();
+        match known {
+            Some((read_at, status)) if read_at.elapsed() <= max_age => status,
+            _ => self.status(target, settings),
+        }
+    }
+
     pub fn status(&self, target: &Target, settings: &Settings) -> DevStatus {
+        let status = self.read_status(target, settings);
+        self.known
+            .lock_unpoisoned()
+            .insert(target.dir.clone(), (Instant::now(), status.clone()));
+        status
+    }
+
+    fn read_status(&self, target: &Target, settings: &Settings) -> DevStatus {
         let database = target.database_info();
         if !target.uses_docker() {
             return DevStatus {
@@ -967,6 +996,189 @@ mod tests {
                 "This project has no MySQL or MariaDB database."
             ))
         );
+    }
+
+    /// The stand-in, shared so a test can change it behind the dev environment's back.
+    struct Shared(Arc<StandIn>);
+
+    impl Tools for Shared {
+        fn docker_running(&self) -> bool {
+            self.0.docker_running()
+        }
+
+        fn describe(&self, server: Server, dir: &Path) -> Described {
+            self.0.describe(server, dir)
+        }
+
+        fn connection(&self, server: Server, dir: &Path) -> Result<Connection, String> {
+            self.0.connection(server, dir)
+        }
+
+        fn start_docker(&self, manager: &Manager) -> Result<(), Failure> {
+            self.0.start_docker(manager)
+        }
+
+        fn stop_docker(&self, manager: &Manager) -> Result<(), Failure> {
+            self.0.stop_docker(manager)
+        }
+
+        fn start_server(
+            &self,
+            server: Server,
+            dir: &Path,
+            env: &[(String, String)],
+        ) -> Result<(), Failure> {
+            self.0.start_server(server, dir, env)
+        }
+
+        fn stop_server(
+            &self,
+            server: Server,
+            dir: &Path,
+            env: &[(String, String)],
+        ) -> Result<(), Failure> {
+            self.0.stop_server(server, dir, env)
+        }
+
+        fn stop_ddev_projects(&self) -> Result<(), Failure> {
+            self.0.stop_ddev_projects()
+        }
+
+        fn running_servers(&self, servers: &[(Server, PathBuf)]) -> Vec<PathBuf> {
+            self.0.running_servers(servers)
+        }
+    }
+
+    const LONG: Duration = Duration::from_secs(60);
+
+    fn fx_sharing_the_stand_in() -> (Fx, Arc<StandIn>) {
+        let stand_in = Arc::new(StandIn::instant());
+        let mut fx = Fx::new();
+        fx.dev = DevEnv::new(Box::new(Shared(stand_in.clone())), Box::new(|| {}));
+        (fx, stand_in)
+    }
+
+    fn stop_docker_behind_its_back(stand_in: &StandIn, fx: &Fx) {
+        stand_in.stop_docker(&manager(&fx.settings)).unwrap();
+    }
+
+    #[test]
+    fn a_recent_status_is_the_remembered_one_while_it_is_young_enough() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+        let remembered = fx.status(&target);
+        assert_eq!(remembered.docker.as_ref().map(|d| d.running), Some(true));
+
+        stop_docker_behind_its_back(&stand_in, &fx);
+
+        assert_eq!(
+            fx.dev.recent_status(&target, &fx.settings, LONG),
+            remembered
+        );
+    }
+
+    #[test]
+    fn a_recent_status_reads_again_when_the_remembered_one_is_too_old() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+        fx.status(&target);
+        stop_docker_behind_its_back(&stand_in, &fx);
+
+        let status = fx.dev.recent_status(&target, &fx.settings, Duration::ZERO);
+
+        assert_eq!(status.docker.map(|d| d.running), Some(false));
+        assert_eq!(status.server.map(|s| s.state), Some(ServerState::Stopped));
+    }
+
+    #[test]
+    fn a_recent_status_without_a_remembered_one_reads_and_remembers() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+
+        let first = fx.dev.recent_status(&target, &fx.settings, LONG);
+        assert_eq!(first.docker.as_ref().map(|d| d.running), Some(true));
+
+        stop_docker_behind_its_back(&stand_in, &fx);
+
+        assert_eq!(fx.dev.recent_status(&target, &fx.settings, LONG), first);
+    }
+
+    #[test]
+    fn a_status_read_replaces_the_remembered_one() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+        fx.status(&target);
+        stop_docker_behind_its_back(&stand_in, &fx);
+
+        let fresh = fx.status(&target);
+
+        assert_eq!(fresh.docker.as_ref().map(|d| d.running), Some(false));
+        assert_eq!(fx.dev.recent_status(&target, &fx.settings, LONG), fresh);
+    }
+
+    #[test]
+    fn remembered_statuses_are_kept_per_project_folder() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let first = fx.ddev();
+        let second = fx.project(
+            "other-site",
+            DevMode::Ddev,
+            &[(".ddev/config.yaml", DDEV_CONFIG)],
+            None,
+        );
+        fx.status(&first);
+        stop_docker_behind_its_back(&stand_in, &fx);
+
+        let status = fx.dev.recent_status(&second, &fx.settings, LONG);
+
+        assert_eq!(status.docker.map(|d| d.running), Some(false));
+        assert_eq!(
+            fx.dev
+                .recent_status(&first, &fx.settings, LONG)
+                .docker
+                .map(|d| d.running),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn a_server_step_clears_the_remembered_statuses() {
+        let (fx, stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+        let other = fx.project(
+            "other-site",
+            DevMode::Ddev,
+            &[(".ddev/config.yaml", DDEV_CONFIG)],
+            None,
+        );
+        assert_eq!(fx.server_state(&target), ServerState::Stopped);
+        fx.status(&other);
+        stop_docker_behind_its_back(&stand_in, &fx);
+        assert_eq!(
+            fx.dev
+                .recent_status(&other, &fx.settings, LONG)
+                .docker
+                .map(|d| d.running),
+            Some(true)
+        );
+
+        fx.act(&target, DevAction::ServerStop).unwrap();
+
+        let other_status = fx.dev.recent_status(&other, &fx.settings, LONG);
+        assert_eq!(other_status.docker.map(|d| d.running), Some(false));
+    }
+
+    #[test]
+    fn a_docker_step_clears_the_remembered_statuses() {
+        let (fx, _stand_in) = fx_sharing_the_stand_in();
+        let target = fx.ddev();
+        assert!(fx.docker_running(&target));
+
+        fx.act(&target, DevAction::DockerStop).unwrap();
+
+        let status = fx.dev.recent_status(&target, &fx.settings, LONG);
+        assert_eq!(status.docker.map(|d| d.running), Some(false));
+        assert_eq!(status.server.map(|s| s.state), Some(ServerState::Stopped));
     }
 
     #[test]

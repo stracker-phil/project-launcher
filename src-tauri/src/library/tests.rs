@@ -233,6 +233,51 @@ fn the_sidebar_counts_projects_per_entry_and_leaves_archived_out_of_the_rest() {
 }
 
 #[test]
+fn a_filter_whose_sidebar_row_exists_is_kept() {
+    let projects = [tagged("A", "Client"), tagged("B", "Stray"), project("C")];
+    let listed = strings(&["Client", "Internal"]);
+
+    for filter in [
+        Filter::All,
+        Filter::Starred,
+        Filter::Archived,
+        Filter::Untagged,
+        Filter::Tag("Client".into()),
+        Filter::Tag("Internal".into()),
+        Filter::Tag("Stray".into()),
+    ] {
+        assert_eq!(
+            shown_or_all(filter.clone(), &projects, &listed),
+            filter,
+            "{filter:?}"
+        );
+    }
+}
+
+#[test]
+fn a_deleted_tag_falls_back_to_all() {
+    let projects = [tagged("A", "Client")];
+    let listed = strings(&["Client"]);
+
+    assert_eq!(
+        shown_or_all(Filter::Tag("Gone".into()), &projects, &listed),
+        Filter::All
+    );
+}
+
+#[test]
+fn untagged_falls_back_to_all_while_its_row_is_hidden() {
+    let all_tagged = [tagged("A", "Client")];
+    let no_tags = [project("A")];
+
+    assert_eq!(
+        shown_or_all(Filter::Untagged, &all_tagged, &strings(&["Client"])),
+        Filter::All
+    );
+    assert_eq!(shown_or_all(Filter::Untagged, &no_tags, &[]), Filter::All);
+}
+
+#[test]
 fn untagged_is_hidden_without_tags_and_when_every_project_has_one() {
     let untagged_only = [project("A"), project("B")];
     assert_eq!(

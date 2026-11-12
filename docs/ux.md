@@ -211,7 +211,7 @@ hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px seg
   or ⌃ is refused with a toast.
 - Status: version, build, data and log folder, the `launcher` command link.
 - Privacy & Data: what Launcher keeps in its data folder (settings, shortcuts and the tag list; the known
-  project files with their last-opened times), that everything else about a project lives in its own
+  project files with their last-opened times; the main window's frame and sidebar choice), that everything else about a project lives in its own
   `.project-launcher.json`, Show Data Folder, and that Launcher has no network code (links open in the browser).
 - About: version, Show Data Folder, Open Log Folder.
 

@@ -126,6 +126,8 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     setDockerManager: vi.fn().mockResolvedValue(undefined),
     setAppSetting: vi.fn().mockResolvedValue(undefined),
     setCurrentProject: vi.fn().mockResolvedValue(undefined),
+    viewFilter: vi.fn().mockResolvedValue({ kind: "all" }),
+    setViewFilter: vi.fn().mockResolvedValue(undefined),
     paletteShown: vi.fn().mockResolvedValue(undefined),
     closePalette: vi.fn().mockResolvedValue(undefined),
     autostartEnabled: vi.fn().mockResolvedValue(false),

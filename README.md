@@ -72,8 +72,8 @@ placeholders (`${dir}`, `${url}`, `~`), states, the database and locking.
 ## Privacy
 
 - No network code: Launcher never connects anywhere; links open in your browser.
-- Its own data (settings, the tag list and the list of known project files with their last-opened times)
-  stays in `~/Library/Application Support/com.philippstracker.launcher/`. Everything else is in each
+- Its own data (settings, the tag list, the list of known project files with their last-opened times, the
+  window's size and the sidebar choice) stays in `~/Library/Application Support/com.philippstracker.launcher/`. Everything else is in each
   project's own `.project-launcher.json`.
 - A database URL's password never reaches the window; DataBee gets it through its environment.
 - It runs only what you tell it to: your apps, your scripts, and `git`, `du`, `docker` and `ddev` to read a

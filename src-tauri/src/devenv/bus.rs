@@ -3,7 +3,7 @@
 
 use tauri::{AppHandle, Manager};
 
-use super::commands::{act_in_background, status_of};
+use super::commands::{act_in_background, recent_status_of, status_of};
 use super::{DevAction, DevStatus, ServerState, ServerStatus};
 use crate::bus::{Command, CommandBus};
 use crate::error::{AppError, AppResult};
@@ -135,7 +135,7 @@ pub fn register(bus: &mut CommandBus<AppHandle>) {
 /// The `dev:` commands that apply to the project now, for the palette.
 #[tauri::command]
 pub async fn dev_commands(app: AppHandle, id: String) -> AppResult<Vec<MenuCommand>> {
-    let status = status_of(app, id.clone()).await?;
+    let status = recent_status_of(app, id.clone()).await?;
     Ok(palette_items(&id, &status))
 }
 

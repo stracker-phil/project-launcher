@@ -194,6 +194,10 @@ export const api = {
   projectStatus: (id: string) => invoke<ProjectStatus>("project_status", { id }),
   /** The main window's page reports the project it shows. */
   setCurrentProject: (id: string | null) => invoke<void>("set_current_project", { id }),
+  /** The sidebar filter shown last, or All when its row is gone. */
+  viewFilter: () => invoke<Filter>("view_filter"),
+  /** The main window's page reports each filter change, for the next start. */
+  setViewFilter: (filter: Filter) => invoke<void>("set_view_filter", { filter }),
   /** The palette page has drawn its fresh state. */
   paletteShown: () => invoke<void>("palette_shown"),
   closePalette: () => invoke<void>("close_palette"),

@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -116,6 +117,23 @@ pub async fn status_of(app: AppHandle, id: String) -> AppResult<DevStatus> {
         Ok(state
             .devenv
             .status(&target(&state, &id)?, &state.data.settings()))
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+/// How old a status the palette takes; the main window reads the shown project's more often than that.
+const PALETTE_STATUS_AGE: Duration = Duration::from_secs(15);
+
+/// A status read within `PALETTE_STATUS_AGE`, else a fresh one.
+pub async fn recent_status_of(app: AppHandle, id: String) -> AppResult<DevStatus> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        Ok(state.devenv.recent_status(
+            &target(&state, &id)?,
+            &state.data.settings(),
+            PALETTE_STATUS_AGE,
+        ))
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?

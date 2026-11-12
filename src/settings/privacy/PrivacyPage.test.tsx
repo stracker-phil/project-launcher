@@ -32,6 +32,7 @@ describe("PrivacyPage", () => {
     const storage = screen.getByRole("region", { name: "On this Mac" });
     expect(storage).toHaveTextContent("Settings and tags");
     expect(storage).toHaveTextContent("Project list");
+    expect(storage).toHaveTextContent("Window and sidebar");
     expect(storage).toHaveTextContent("Project details");
     expect(storage).toHaveTextContent(".project-launcher.json");
   });

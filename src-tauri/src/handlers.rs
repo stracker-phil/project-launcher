@@ -2,7 +2,7 @@
 
 use tauri::ipc::Invoke;
 
-use crate::{autostart, bus, commands, data, devenv, menu, run, stats, status, window};
+use crate::{autostart, bus, commands, data, devenv, menu, run, stats, status, view_state, window};
 
 pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -10,6 +10,8 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         commands::take_launch_events,
         commands::log_frontend_error,
         commands::set_current_project,
+        view_state::commands::view_filter,
+        view_state::commands::set_view_filter,
         autostart::autostart_enabled,
         autostart::set_autostart,
         window::palette::palette_shown,

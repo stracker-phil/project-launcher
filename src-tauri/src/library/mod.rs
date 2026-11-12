@@ -168,6 +168,17 @@ fn sidebar(projects: &[Project], listed_tags: &[String]) -> Sidebar {
     }
 }
 
+/// `filter` while the sidebar still has its row (a tag the list or a project has, Untagged while shown),
+/// else All.
+pub fn shown_or_all(filter: Filter, projects: &[Project], listed_tags: &[String]) -> Filter {
+    let shown = match &filter {
+        Filter::Tag(tag) => tags(listed_tags, projects).contains(tag),
+        Filter::Untagged => sidebar(projects, listed_tags).untagged.is_some(),
+        Filter::All | Filter::Starred | Filter::Archived => true,
+    };
+    if shown { filter } else { Filter::All }
+}
+
 fn sections(recent: Vec<&Project>, rest: Vec<&Project>) -> Vec<Section> {
     let section = |title: Option<&str>, projects: Vec<&Project>| Section {
         title: title.map(str::to_string),

@@ -10,7 +10,7 @@ use crate::cli::LogLevel;
 use crate::handlers::handlers;
 use crate::ipc::IpcMessage;
 use crate::state::AppState;
-use crate::{bus, devenv, ipc, menu, remote, run, tray, window};
+use crate::{bus, devenv, ipc, menu, remote, run, tray, view_state, window};
 
 const MAX_LOG_BYTES: u128 = 5 * 1024 * 1024;
 
@@ -46,6 +46,9 @@ pub fn start(
             WindowEvent::Focused(false) if window.label() == window::palette::LABEL => {
                 window::palette::focus_lost(window.app_handle());
             }
+            WindowEvent::Moved(_) | WindowEvent::Resized(_) if window.label() == window::MAIN => {
+                view_state::frame::moved_or_resized(window);
+            }
             _ => {}
         })
         .setup(move |app| {
@@ -60,6 +63,8 @@ pub fn start(
             crate::devenv::commands::attach(app.handle());
             crate::global_shortcut::apply(app.handle());
             app.state::<AppState>().launches.push(initial);
+            view_state::frame::restore(app.handle());
+            // In debug builds scripts/dev's frame wins over the saved one.
             #[cfg(debug_assertions)]
             apply_dev_frame(app);
             start_ipc(app.handle().clone(), &socket);
@@ -79,6 +84,7 @@ pub fn start(
                 code: None, api, ..
             } => api.prevent_exit(),
             RunEvent::Reopen { .. } => window::show_main(app),
+            RunEvent::Exit => view_state::frame::save(app),
             _ => {}
         });
 }

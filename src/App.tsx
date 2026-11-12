@@ -10,6 +10,7 @@ import { useAppearance } from "./lib/theme";
 import { useLaunchEvents } from "./lib/useLaunchEvents";
 import { useDevFailures } from "./main/devEnvironment";
 import { useFocusOnOpen, useReportCurrentProject, useSelectProjectRequests } from "./main/useCurrentProject";
+import { useRememberedFilter } from "./main/useRememberedFilter";
 import { createQueryClient } from "./queries/queryClient";
 import { useEvents } from "./queries/useEvents";
 import { useSettings } from "./queries/useSettings";
@@ -25,6 +26,7 @@ function MainWindow() {
   useEvents();
   useMainCommands();
   useReportCurrentProject();
+  useRememberedFilter();
   useSelectProjectRequests();
   useFocusOnOpen();
   useDevFailures();

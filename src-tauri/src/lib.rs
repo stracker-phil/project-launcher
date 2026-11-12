@@ -33,6 +33,7 @@ pub mod store;
 #[cfg(any(test, debug_assertions, feature = "test-util"))]
 pub mod test_support;
 mod tray;
+pub mod view_state;
 pub mod window;
 
 use std::path::PathBuf;

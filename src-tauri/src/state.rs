@@ -11,6 +11,7 @@ use crate::lock::MutexExt;
 use crate::run::Runner;
 use crate::run::system::{self, System};
 use crate::stats;
+use crate::view_state::View;
 
 pub struct AppState {
     pub launches: LaunchQueue,
@@ -22,6 +23,8 @@ pub struct AppState {
     current: Mutex<Option<String>>,
     pub devenv: DevEnv,
     pub stats: stats::Cache,
+    /// The main window's frame and sidebar filter, kept for the next start (`view.json`).
+    pub view: View,
 }
 
 impl AppState {
@@ -41,6 +44,7 @@ impl AppState {
             stats: stats::Cache::default(),
             terminal_folder: config_dir.join("terminal"),
             current: Mutex::new(None),
+            view: View::open(config_dir),
         })
     }
 

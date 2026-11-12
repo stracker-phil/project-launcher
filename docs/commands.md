@@ -180,7 +180,7 @@ Everything but copying the path records the project as opened (`lastOpenedAt`) a
 | Tauri command | Does |
 |---|---|
 | `dev_running()` | The ids of the projects whose DDEV or wp-env server runs, asked in one go (`ddev list`, `docker ps`); none while Docker is stopped. The list's green dots |
-| `dev_commands(id)` | The `dev:` commands that apply to the project now, as `MenuCommand`s, for the palette |
+| `dev_commands(id)` | The `dev:` commands that apply to the project now, as `MenuCommand`s, for the palette; from a status read within 15 s (`DevEnv::recent_status`, cleared by every step), so the palette answers at once |
 | `dev_status(id)` | `DevStatus`: Docker (running, the step under way, the manager's name) for a project that uses it, the DDEV or wp-env server (state, URL, step under way; `notConfigured` with a hint when the folder lacks its config) and the database (`DatabaseInfo`) |
 | `dev_action(id, action)` | Starts, stops or restarts Docker or the server on a thread of its own (`DevAction`); Docker's stop first runs `ddev poweroff` while DDEV projects run. `dev_changed` follows each change, `dev_failed` (`{ projectId, label, output }`) a failed step |
 | `open_database(id)` | Opens the database in DataBee through its CLI (`databee`, the password in `DATABEE_PASSWORD`); `starting` when the server is started first, then DataBee opens or `dev_failed` reports why not |

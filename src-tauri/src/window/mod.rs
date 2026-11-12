@@ -69,6 +69,9 @@ pub fn main_visible(app: &AppHandle) -> bool {
 /// Hides a regular window. With the last one gone the Dock icon goes too, and the app steps back so the
 /// app behind it gets focus.
 fn hide_regular(app: &AppHandle, label: &str) {
+    if label == MAIN {
+        crate::view_state::frame::save(app);
+    }
     if let Some(window) = app.get_webview_window(label) {
         hide_or_warn(&window);
     }
