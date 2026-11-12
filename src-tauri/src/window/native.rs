@@ -62,6 +62,19 @@ fn fits_panel(from: &AnyClass) -> bool {
     from.instance_size() == panel.instance_size() && focusable_offset(panel) == Some(focusable)
 }
 
+/// Lets the window hide with the app (⌘H) again: tao's Dock hiding marks every window as unable to, and its
+/// Dock showing doesn't undo that.
+///
+/// # Safety
+/// `ns_window` is a live `NSWindow`, used on the main thread.
+pub unsafe fn allow_hiding(ns_window: *mut c_void) {
+    // SAFETY: as the caller promises; a plain NSWindow setter.
+    unsafe {
+        let window = &*ns_window.cast::<AnyObject>();
+        let _: () = msg_send![window, setCanHide: Bool::YES];
+    }
+}
+
 /// A live `NSWindow`, reached on the main thread.
 pub struct PanelWindow<'a>(&'a AnyObject);
 

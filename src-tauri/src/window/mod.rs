@@ -159,7 +159,28 @@ pub fn reload_focused(app: &AppHandle) {
 
 pub fn set_dock_icon(app: &AppHandle, shown: bool) {
     #[cfg(target_os = "macos")]
-    if let Err(e) = app.set_dock_visibility(shown) {
-        log::warn!("Couldn't change the Dock icon: {e}");
+    {
+        if let Err(e) = app.set_dock_visibility(shown) {
+            log::warn!("Couldn't change the Dock icon: {e}");
+        }
+        if shown {
+            allow_hiding(app);
+        }
+    }
+}
+
+/// Lets the regular windows hide with the app again; the palette panel stays out of ⌘H.
+#[cfg(target_os = "macos")]
+fn allow_hiding(app: &AppHandle) {
+    for window in REGULAR.iter().filter_map(|label| app.get_webview_window(label)) {
+        let target = window.clone();
+        let result = window.run_on_main_thread(move || match target.ns_window() {
+            // SAFETY: on the main thread, with the window alive for the call.
+            Ok(ns_window) => unsafe { native::allow_hiding(ns_window) },
+            Err(e) => log::warn!("The {} window has no native window: {e}", target.label()),
+        });
+        if let Err(e) = result {
+            log::warn!("Couldn't reach the main thread: {e}");
+        }
     }
 }
