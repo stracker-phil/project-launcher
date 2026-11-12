@@ -1,8 +1,9 @@
 import { Info } from "lucide-react";
 import { beforeAll, describe, expect, it } from "vitest";
-import { registerSettingsPage, resolveSettingsPage, searchSettingsPages, settingsPages, type SettingsPage } from "./settingsPages";
+import { registerSettingsPage, resolveSettingsPage, searchSettingsPages, settingsGroups, settingsPages, type SettingsPage } from "./settingsPages";
 
 const page = (patch: Partial<SettingsPage> & Pick<SettingsPage, "id" | "title">): SettingsPage => ({
+  group: "App",
   icon: Info,
   order: 0,
   component: () => null,
@@ -76,5 +77,40 @@ describe("searchSettingsPages", () => {
 
   it("returns nothing when no page matches", () => {
     expect(searchSettingsPages("zzzqqq")).toEqual([]);
+  });
+});
+
+describe("page groups", () => {
+  beforeAll(() => {
+    registerSettingsPage(page({ id: "t-system", title: "Disks", group: "System", order: -300 }));
+    registerSettingsPage(page({ id: "t-zebra", title: "Stripes", group: "Zebra Crossing", order: -300 }));
+    registerSettingsPage(page({ id: "t-aardvark", title: "Ants", group: "Aardvark Den", order: 500 }));
+  });
+
+  it("lists App, then System, then other groups by name, whatever the order values", () => {
+    const groups = settingsPages().map((p) => p.group);
+
+    expect(groups.indexOf("System")).toBeGreaterThan(groups.lastIndexOf("App"));
+    expect(groups.indexOf("Aardvark Den")).toBeGreaterThan(groups.lastIndexOf("System"));
+    expect(groups.indexOf("Zebra Crossing")).toBeGreaterThan(groups.lastIndexOf("Aardvark Den"));
+  });
+
+  it("finds a page by its group name", () => {
+    expect(searchSettingsPages("zebra crossing").map((m) => [m.page.id, m.row])).toEqual([["t-zebra", undefined]]);
+  });
+
+  it("collects the matches of each group under its heading", () => {
+    const groups = settingsGroups("");
+
+    expect(groups.map((g) => g.group)).toEqual([...new Set(settingsPages().map((p) => p.group))]);
+    expect(groups.find((g) => g.group === "App")?.matches.map((m) => m.page.id)).toContain("t-quokka");
+  });
+
+  it("keeps only the groups that have a match for the query", () => {
+    expect(settingsGroups("ants").map((g) => [g.group, g.matches.map((m) => m.page.id)])).toEqual([["Aardvark Den", ["t-aardvark"]]]);
+  });
+
+  it("returns no groups when nothing matches", () => {
+    expect(settingsGroups("zzzqqq")).toEqual([]);
   });
 });

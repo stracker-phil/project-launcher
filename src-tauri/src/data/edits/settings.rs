@@ -1,10 +1,10 @@
-//! Appearance, app and shortcut edits.
+//! Appearance, accent, app and shortcut edits.
 
 use super::{edit, invalid_field, required};
 use crate::data::ops::Op;
 use crate::data::{Changed, Data};
 use crate::error::{AppError, AppResult};
-use crate::store::{AppSetting, Appearance, DockerManager};
+use crate::store::{Accent, AppSetting, Appearance, DockerManager};
 
 impl Data {
     pub fn set_appearance(&self, appearance: Appearance) -> AppResult<Changed> {
@@ -16,9 +16,18 @@ impl Data {
         })
     }
 
-    /// Names the app a setting opens with; blank leaves it to the default.
+    pub fn set_accent(&self, accent: Accent) -> AppResult<Changed> {
+        self.change(|data| {
+            if data.settings().accent == accent {
+                return Ok(None);
+            }
+            edit("Change Accent Color", Op::SetAccent(accent))
+        })
+    }
+
+    /// Names the app a setting opens with; `checked_app` refuses what it can't use.
     pub fn set_app(&self, setting: AppSetting, value: &str) -> AppResult<Changed> {
-        let value = value.trim().to_string();
+        let value = checked_app(setting, value)?;
         self.change(|data| {
             if *setting.of(&mut data.settings()) == value {
                 return Ok(None);
@@ -106,6 +115,19 @@ impl Data {
             )
         })
     }
+}
+
+/// The trimmed value, or the field error (`settings.<key>`) Settings shows below the field.
+fn checked_app(setting: AppSetting, raw: &str) -> AppResult<String> {
+    let value = raw.trim();
+    let error = |message: &str| invalid_field(&format!("settings.{}", setting.key()), message);
+    if value.contains(['\n', '\r']) {
+        return Err(error("Use one line"));
+    }
+    if value.is_empty() && setting == AppSetting::TerminalApp {
+        return Err(error("Name a terminal app, such as Terminal"));
+    }
+    Ok(value.to_string())
 }
 
 fn command_id(raw: &str) -> AppResult<String> {

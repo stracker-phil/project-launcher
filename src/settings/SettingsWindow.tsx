@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { hasRow, resolveSettingsPage, searchSettingsPages, useSettingsPagesVersion, type SettingsMatch } from "../registry/settingsPages";
+import { hasRow, resolveSettingsPage, settingsGroups, useSettingsPagesVersion, type SettingsMatch } from "../registry/settingsPages";
 import { ScrollTarget } from "./controls";
 
 const targetOf = (match: SettingsMatch) => match.row?.id ?? match.page.id;
 
-/** The page list, narrowed by the search field; a page found by a row's title opens at that row. */
+/** The page list under its group headings, narrowed by the search field; a page found by a row's title opens at
+ *  that row. */
 function SettingsNav({ current, onPage }: { current: string; onPage: (id: string) => void }) {
   const [query, setQuery] = useState("");
-  const matches = searchSettingsPages(query);
+  const groups = settingsGroups(query);
+  const first = groups[0]?.matches[0];
   return (
     <nav className="settings-nav" aria-label="Settings pages">
       <div className="settings-titlebar" data-tauri-drag-region />
@@ -19,7 +21,7 @@ function SettingsNav({ current, onPage }: { current: string; onPage: (id: string
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && matches[0]) onPage(targetOf(matches[0]));
+          if (e.key === "Enter" && first) onPage(targetOf(first));
           // A first Escape clears the search; with nothing to clear it closes Settings.
           if (e.key === "Escape" && query) {
             e.stopPropagation();
@@ -30,23 +32,30 @@ function SettingsNav({ current, onPage }: { current: string; onPage: (id: string
         }}
       />
       <div className="settings-nav-list scroller">
-        {matches.length === 0 && <p className="settings-nav-empty">No Results</p>}
-        {matches.map((match) => {
-          const { page: { id, title, icon: Icon }, row } = match;
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-label={row ? `${title} ${row.title}` : undefined}
-              aria-current={current === id ? "page" : undefined}
-              onClick={() => onPage(targetOf(match))}
-            >
-              <Icon size={14} aria-hidden="true" />
-              <span className="settings-nav-title">{title}</span>
-              {row && <span className="settings-nav-row">{row.title}</span>}
-            </button>
-          );
-        })}
+        {groups.length === 0 && <p className="settings-nav-empty">No Results</p>}
+        {groups.map(({ group, matches }) => (
+          <div key={group} className="settings-nav-group" role="group" aria-label={group}>
+            <div className="settings-nav-heading" aria-hidden="true">
+              {group}
+            </div>
+            {matches.map((match) => {
+              const { page: { id, title, icon: Icon }, row } = match;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-label={row ? `${title} ${row.title}` : undefined}
+                  aria-current={current === id ? "page" : undefined}
+                  onClick={() => onPage(targetOf(match))}
+                >
+                  <Icon size={14} aria-hidden="true" />
+                  <span className="settings-nav-title">{title}</span>
+                  {row && <span className="settings-nav-row">{row.title}</span>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </nav>
   );
@@ -67,6 +76,7 @@ export function SettingsWindow({ target, onPage }: { target: string | undefined;
           <h2 data-tauri-drag-region>{page.title}</h2>
         </header>
         <div className="settings-body scroller" key={page.id}>
+          {page.intro && <p className="settings-intro">{page.intro}</p>}
           <ScrollTarget.Provider value={row}>
             <Body />
           </ScrollTarget.Provider>

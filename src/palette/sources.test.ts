@@ -54,13 +54,14 @@ describe("settingsCommands", () => {
   registerSettingsPage({
     id: "palette-test-shortcuts",
     title: "Shortcuts",
+    group: "App",
     icon: Settings,
     order: 1,
     keywords: ["keys", "bindings"],
     rows: [{ id: "reset", title: "Reset all shortcuts" }],
     component: () => null,
   });
-  registerSettingsPage({ id: "palette-test-plain", title: "Plain", icon: Settings, order: 2, component: () => null });
+  registerSettingsPage({ id: "palette-test-plain", title: "Plain", group: "App", icon: Settings, order: 2, component: () => null });
 
   it("lists each page as 'Settings: <title>' with its keywords and row titles as detail", () => {
     expect(find(settingsCommands(), "app:settings:palette-test-shortcuts")).toMatchObject({

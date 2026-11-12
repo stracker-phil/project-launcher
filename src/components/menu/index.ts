@@ -5,6 +5,7 @@ import type { MenuAt, MenuEntry, MenuOptions } from "../../state/menuTypes";
 
 export { isItem, type MenuAt, type MenuEntry, type MenuItem, type MenuOptions } from "../../state/menuTypes";
 export { MenuHost } from "./MenuHost";
+export { PopUpButton } from "./PopUpButton";
 
 /** Opens a menu at a point or under an element; `label` is its accessible name. `options.search` gives it a search
  *  field, focused, that narrows the rows. */

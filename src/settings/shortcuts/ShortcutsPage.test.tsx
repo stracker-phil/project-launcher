@@ -42,6 +42,10 @@ function renderPage() {
 
 const group = (name: string) => within(screen.getByRole("region", { name }));
 const recorder = (title: string) => screen.findByRole("button", { name: `Record shortcut for ${title}` });
+const searchField = () => screen.getByRole("searchbox", { name: "Search commands" });
+
+/** The elements before a row's recorder: the reset and remove buttons, or the placeholders keeping their places. */
+const slotsOf = (recorderButton: HTMLElement) => Array.from(recorderButton.parentElement?.children ?? []).filter((el) => el !== recorderButton);
 
 async function record(title: string, keys: string) {
   await userEvent.click(await recorder(title));
@@ -92,6 +96,27 @@ describe("ShortcutsPage", () => {
       expect(await recorder("Toggle Inspector")).toHaveTextContent("None");
     });
 
+    it.each([
+      ["Toggle Inspector", "In the main window"],
+      ["Close Settings", "In the Settings window"],
+    ])("says where %s works", async (title, where) => {
+      renderPage();
+
+      const row = (await recorder(title)).closest<HTMLElement>(".settings-row");
+
+      expect(row).toHaveTextContent(title);
+      expect(row).toHaveTextContent(where);
+    });
+
+    it("gives a menu row no note about where it works", async () => {
+      renderPage();
+
+      const row = within((await recorder("Quit")).closest<HTMLElement>(".settings-row")!);
+
+      expect(row.getByText("Quit")).toBeInTheDocument();
+      expect(row.queryByText(/In the main window|In the Settings window|Works in/)).not.toBeInTheDocument();
+    });
+
     it("shows an alert when the menu's keys cannot be read", async () => {
       mocked.menuShortcuts.mockRejectedValue({ kind: "io", message: "Permission denied", code: null });
       renderPage();
@@ -103,10 +128,11 @@ describe("ShortcutsPage", () => {
   describe("reset", () => {
     it("is hidden but keeps its slot for a command on its default key", async () => {
       renderPage();
-      await recorder("Quit");
+      const quit = await recorder("Quit");
 
       expect(screen.queryByRole("button", { name: "Reset Quit" })).not.toBeInTheDocument();
-      expect(screen.getByLabelText("Reset Quit")).toHaveAttribute("aria-hidden", "true");
+      expect(slotsOf(quit)).toHaveLength(2);
+      expect(slotsOf(quit)[0]).toHaveAttribute("aria-hidden", "true");
     });
 
     it("restores the default of a command with the owner's key", async () => {
@@ -155,6 +181,90 @@ describe("ShortcutsPage", () => {
       await userEvent.click(await screen.findByRole("button", { name: "Reset Quit" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not reset the shortcut: Disk full");
+    });
+  });
+
+  describe("remove", () => {
+    it("leaves the command without a key", async () => {
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Quit" }));
+
+      expect(mocked.setShortcut).toHaveBeenCalledWith("app:quit", null);
+    });
+
+    it("is hidden but keeps its slot for a command without a key", async () => {
+      mocked.menuShortcuts.mockResolvedValue([item("Edit", "Redo", "edit:redo", null, "Mod+Shift+Z")]);
+      renderPage();
+      const redo = await recorder("Redo");
+
+      expect(screen.queryByRole("button", { name: "Remove shortcut for Redo" })).not.toBeInTheDocument();
+      expect(slotsOf(redo)).toHaveLength(2);
+      expect(slotsOf(redo)[1]).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("sits beside the reset button, both shown for a command on another key", async () => {
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J" } });
+      renderPage();
+      const quit = await recorder("Quit");
+
+      expect(slotsOf(quit).map((slot) => slot.getAttribute("aria-label"))).toEqual(["Reset Quit", "Remove shortcut for Quit"]);
+    });
+
+    it("shows an error toast when it fails", async () => {
+      mocked.setShortcut.mockRejectedValue({ kind: "io", message: "Disk full", code: null });
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Quit" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Could not change the shortcut: Disk full");
+    });
+  });
+
+  describe("search", () => {
+    it("narrows the rows to the commands whose title contains the text", async () => {
+      renderPage();
+      await recorder("Quit");
+
+      await userEvent.type(searchField(), "UNDO");
+
+      expect(screen.getByRole("button", { name: "Record shortcut for Undo" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Record shortcut for Quit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "File" })).not.toBeInTheDocument();
+    });
+
+    it("keeps all the rows of a group whose name matches", async () => {
+      renderPage();
+      await recorder("Quit");
+
+      await userEvent.type(searchField(), "file");
+
+      expect(group("File").getByRole("button", { name: "Record shortcut for Quit" })).toBeInTheDocument();
+      expect(group("File").getByRole("button", { name: "Record shortcut for Settings" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Record shortcut for Undo" })).not.toBeInTheDocument();
+    });
+
+    it("says No matching commands. when nothing matches", async () => {
+      renderPage();
+      await recorder("Quit");
+
+      await userEvent.type(searchField(), "zzz");
+
+      expect(screen.getByText("No matching commands.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Record shortcut for/ })).not.toBeInTheDocument();
+    });
+
+    it("is cleared by the first Escape, which brings every row back", async () => {
+      renderPage();
+      await recorder("Quit");
+      await userEvent.type(searchField(), "zzz");
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(searchField()).toHaveValue("");
+      expect(screen.queryByText("No matching commands.")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Record shortcut for Quit" })).toBeInTheDocument();
     });
   });
 

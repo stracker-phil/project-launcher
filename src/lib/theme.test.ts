@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyInitialLook, schemeFor, useAppearance, type Appearance } from "./theme";
+import { applyInitialLook, schemeFor, useAppearance, type Accent, type Appearance } from "./theme";
 
 const originalMatchMedia = window.matchMedia;
 
@@ -25,9 +25,11 @@ function stubSystemScheme(dark: boolean) {
 }
 
 const scheme = () => document.documentElement.dataset.scheme;
+const accent = () => document.documentElement.dataset.accent;
 
 beforeEach(() => {
   delete document.documentElement.dataset.scheme;
+  delete document.documentElement.dataset.accent;
 });
 
 afterEach(() => {
@@ -58,9 +60,45 @@ describe("applyInitialLook", () => {
 
     expect(scheme()).toBe(expected);
   });
+
+  it("starts at the System accent", () => {
+    stubSystemScheme(false);
+
+    applyInitialLook();
+
+    expect(accent()).toBe("system");
+  });
 });
 
 describe("useAppearance", () => {
+  describe("accent", () => {
+    it("follows macOS when no accent is given", () => {
+      stubSystemScheme(false);
+
+      renderHook(() => useAppearance("light"));
+
+      expect(accent()).toBe("system");
+    });
+
+    it("sets the given accent on the root element", () => {
+      stubSystemScheme(false);
+
+      renderHook(() => useAppearance("light", "teal"));
+
+      expect(accent()).toBe("teal");
+    });
+
+    it("switches the accent when it changes, leaving the scheme alone", () => {
+      stubSystemScheme(false);
+      const { rerender } = renderHook(({ hue }) => useAppearance("dark", hue), { initialProps: { hue: "blue" as Accent } });
+
+      rerender({ hue: "orange" });
+
+      expect(accent()).toBe("orange");
+      expect(scheme()).toBe("dark");
+    });
+  });
+
   it("applies the scheme of a fixed appearance", () => {
     stubSystemScheme(false);
 

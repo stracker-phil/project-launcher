@@ -23,6 +23,7 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         data::commands::list_projects,
         data::commands::reload_projects,
         data::commands::set_appearance,
+        data::commands::set_accent,
         data::commands::set_app_setting,
         data::commands::set_shortcut,
         data::commands::reset_shortcut,

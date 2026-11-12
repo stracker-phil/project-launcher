@@ -11,7 +11,7 @@ use super::{Changed, Data, MetaEdit};
 use crate::error::{AppError, ErrorKind};
 use crate::projects::file::FILE_NAME;
 use crate::projects::{FileKey, KnownProject, MetaKey, Registry};
-use crate::store::{AppSetting, Appearance, DockerManager, Settings};
+use crate::store::{Accent, AppSetting, Appearance, DockerManager, Settings};
 use crate::test_support::temp_config_dir;
 
 mod config;
@@ -151,6 +151,93 @@ fn the_appearance_it_already_has_changes_nothing_and_is_not_undoable() {
         Changed::default()
     );
     assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn accent_changes_and_undo_and_redo_move_it_back_and_forth() {
+    let fx = Fixture::new(&[], &[]);
+    assert_eq!(fx.data.set_accent(Accent::Teal).unwrap(), SETTINGS_ONLY);
+    assert_eq!(fx.data.settings().accent, Accent::Teal);
+
+    let undone = fx.data.undo().unwrap().unwrap();
+    assert_eq!(undone.label, "Change Accent Color");
+    assert_eq!(undone.changed, SETTINGS_ONLY);
+    assert_eq!(fx.data.settings().accent, Accent::System);
+
+    let redone = fx.data.redo().unwrap().unwrap();
+    assert_eq!(redone.label, "Change Accent Color");
+    assert_eq!(fx.data.settings().accent, Accent::Teal);
+}
+
+#[test]
+fn the_accent_it_already_has_changes_nothing_and_is_not_undoable() {
+    let fx = Fixture::new(&[], &[]);
+    assert_eq!(
+        fx.data.set_accent(Accent::System).unwrap(),
+        Changed::default()
+    );
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn an_app_setting_with_a_line_break_is_refused_on_its_field() {
+    let fx = Fixture::new(&[], &[]);
+    for (setting, path) in [
+        (AppSetting::DefaultEditor, "settings.defaultEditor"),
+        (AppSetting::GitClient, "settings.gitClient"),
+        (AppSetting::TerminalApp, "settings.terminalApp"),
+        (AppSetting::ConfigEditor, "settings.configEditor"),
+        (
+            AppSetting::DockerStartCommand,
+            "settings.dockerStartCommand",
+        ),
+        (AppSetting::DockerStopCommand, "settings.dockerStopCommand"),
+    ] {
+        for value in ["Example\nApp", "Example\rApp"] {
+            let err = fx.data.set_app(setting, value).unwrap_err();
+            assert_eq!(err.kind(), ErrorKind::InvalidInput, "{path} {value:?}");
+            assert_eq!(
+                err.field().map(|f| (f.path, f.message)),
+                Some((path, "Use one line")),
+                "{path} {value:?}"
+            );
+        }
+    }
+    assert_eq!(undo_label(&fx.data), None);
+}
+
+#[test]
+fn an_empty_terminal_app_is_refused_and_keeps_the_current_one() {
+    let fx = Fixture::new(&[], &[]);
+    for value in ["", "   "] {
+        let err = fx.data.set_app(AppSetting::TerminalApp, value).unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::InvalidInput, "{value:?}");
+        assert_eq!(
+            err.field().map(|f| (f.path, f.message)),
+            Some((
+                "settings.terminalApp",
+                "Name a terminal app, such as Terminal"
+            )),
+            "{value:?}"
+        );
+    }
+    assert_eq!(app_value(&fx.data, AppSetting::TerminalApp), "Terminal");
+}
+
+#[test]
+fn a_blank_value_clears_every_app_setting_but_the_terminal() {
+    for setting in [
+        AppSetting::DefaultEditor,
+        AppSetting::GitClient,
+        AppSetting::ConfigEditor,
+        AppSetting::DockerStartCommand,
+        AppSetting::DockerStopCommand,
+    ] {
+        let fx = Fixture::new(&[], &[]);
+        fx.data.set_app(setting, "Example App").unwrap();
+        assert_eq!(fx.data.set_app(setting, "").unwrap(), SETTINGS_ONLY);
+        assert_eq!(app_value(&fx.data, setting), "", "{setting:?}");
+    }
 }
 
 fn app_value(data: &Data, setting: AppSetting) -> String {

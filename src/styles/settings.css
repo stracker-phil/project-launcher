@@ -1,5 +1,5 @@
-/* The Settings window (docs/ux.md → Settings, ADR 0033): the page list on the left, the page of inset groups on the
-   right. */
+/* The Settings window (docs/ux.md → Settings, ADR 0033, ADR 0042): TimeTracker's look with Launcher's 48px rows.
+   The page list under group headings on the left, the page of row groups on the right. */
 .settings-window {
   display: flex;
   height: 100%;
@@ -16,7 +16,7 @@
   flex: none;
   flex-direction: column;
   gap: 12px;
-  width: 190px;
+  width: 176px;
   min-height: 0;
   padding: 0 8px;
   background: var(--settings-chrome);
@@ -33,16 +33,18 @@
   color: var(--settings-text);
 }
 .settings-nav-search::placeholder { color: var(--settings-text-tertiary); }
-.settings-nav-search:focus { background: var(--settings-field); box-shadow: inset 0 0 0 1px var(--settings-field-line); }
+.settings-nav-search:focus { background: var(--settings-field); box-shadow: 0 0 0 3px var(--settings-focus-ring); }
 .settings-nav-list {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
+  gap: 12px;
   min-height: 0;
   margin: 0 -8px;
   padding: 0 8px 16px;
 }
+.settings-nav-group { display: flex; flex-direction: column; gap: 2px; }
+.settings-nav-heading { padding: 0 8px 2px; font-size: 11px; font-weight: 600; color: var(--settings-text-tertiary); }
 .settings-nav button {
   display: flex;
   flex: none;
@@ -52,41 +54,52 @@
   min-width: 0;
   padding: 0 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: var(--settings-text);
   text-align: left;
 }
 .settings-nav button svg { flex: none; color: var(--settings-text-secondary); }
 .settings-nav button:active:not([aria-current="page"]) { background: var(--settings-fill); }
-.settings-nav button[aria-current="page"] { background: var(--settings-fill-strong); color: var(--settings-text-strong); }
-.settings-nav-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.settings-nav-row { flex-shrink: 1; min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--settings-text-secondary); }
+.settings-nav button[aria-current="page"] { background: var(--accent); color: var(--text-on-accent); }
+.settings-nav button[aria-current="page"] :is(svg, .settings-nav-row) { color: inherit; }
+:root.window-blurred .settings-nav button[aria-current="page"] { background: var(--settings-blurred-fill); color: var(--settings-text); }
+.settings-nav-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The row a search found the page by. */
+.settings-nav-row { flex-shrink: 1; min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--settings-text-secondary); }
 .settings-nav-empty { margin: 0; padding: 0 8px; color: var(--settings-text-tertiary); }
 
 /* The title sits in the strip beside the page list; only the page below it scrolls. */
 .settings-pane { display: flex; flex: 1; flex-direction: column; min-width: 0; background: var(--settings-bg); }
-.settings-pane > header { display: flex; flex: none; align-items: center; height: 36px; padding: 4px 12px 0 20px; }
-.settings-pane h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--settings-text-strong); }
+.settings-pane > header { display: flex; flex: none; align-items: center; height: 36px; padding: 0 12px 0 20px; }
+.settings-pane h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--settings-text-strong); }
 .settings-body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   min-height: 0;
   padding: 8px 20px 24px;
+  scrollbar-gutter: stable;
 }
+/* One line under the title: what the page is for. */
+.settings-intro { margin: 0; line-height: 1.4; color: var(--settings-text-secondary); }
 
-/* An inset group: heading above, a quiet fill, no border, hairlines between rows. */
-.settings-group { display: flex; flex-direction: column; gap: 4px; scroll-margin-top: 8px; }
-.settings-group h3 { margin: 0 0 0 16px; font-size: 13px; font-weight: 600; }
-.settings-card { margin-top: 4px; padding: 0 16px; border-radius: 12px; background: var(--settings-fill-quiet); }
+/* A group: heading above, no fill, hairlines between its rows from the text's edge. */
+.settings-group { display: flex; flex-direction: column; gap: 8px; scroll-margin-top: 8px; }
+.settings-group h3 { margin: 0 0 0 12px; font-size: 13px; font-weight: 600; color: var(--settings-text); }
+.settings-group-desc { margin: 0 0 0 12px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: pretty; }
+.settings-card { padding: 0 12px; }
 .settings-row { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 14px 0; scroll-margin-top: 8px; }
 .settings-row + .settings-row { border-top: 1px solid var(--settings-hairline); }
-.settings-row-text { display: flex; flex: none; flex-direction: column; gap: 4px; max-width: 50%; }
-.settings-row-desc { max-width: 350px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: balance; }
-/* The control takes what the label leaves; a long value shrinks and truncates, a button never does. */
-.settings-row-control { display: flex; flex: 1; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
+.settings-row.stacked { flex-direction: column; align-items: stretch; gap: 12px; }
+.settings-row.stacked .settings-row-control { justify-content: flex-start; }
+.settings-row.disabled .settings-row-text { opacity: 0.5; }
+.settings-row-text { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.settings-row-label { color: var(--settings-text); }
+.settings-row-desc { max-width: 420px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: pretty; }
+/* The control keeps its size; a long value shrinks and truncates, a button never does. */
+.settings-row-control { display: flex; flex: none; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; max-width: 60%; }
 /* A read-only value, e.g. the version or a folder. */
 .settings-value {
   min-width: 0;
@@ -100,6 +113,37 @@
 .settings-empty { margin: 0; color: var(--settings-text-tertiary); }
 /* System Settings' push buttons: 28px, an 8px radius. */
 .settings-pane .btn { flex: none; height: 28px; border-radius: 8px; }
+.settings-pane .btn:active:not(:disabled) { background: var(--settings-control-pressed); }
+.settings-pane .btn:focus-visible { box-shadow: var(--control-shadow), 0 0 0 3px var(--settings-focus-ring); }
+:root.window-blurred .settings-pane .btn-primary:not(:disabled) { background: var(--settings-control); color: var(--settings-text); }
+
+/* Fields (`fields.tsx`): 28px, an 8px radius; Rust's message for a refused value in red below. */
+.settings-pane .input {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  outline: none;
+  background: var(--settings-field);
+  box-shadow: inset 0 0 0 1px var(--settings-field-line);
+  color: var(--settings-text);
+}
+.settings-pane .input::placeholder { color: var(--settings-text-tertiary); }
+.settings-pane .input:focus { box-shadow: inset 0 0 0 1px var(--settings-field-line), 0 0 0 3px var(--settings-focus-ring); }
+.settings-pane .input[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--danger-text); }
+.settings-pane .input:disabled { opacity: 0.5; }
+.settings-pane .input.mono { font-family: var(--font-mono); font-size: 12px; }
+.settings-field { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.settings-input { display: flex; align-items: center; gap: 8px; }
+.settings-input .input { width: 180px; }
+.settings-input .input.wide { width: 240px; }
+.settings-input .input.number { width: 84px; text-align: right; }
+.settings-suffix { color: var(--settings-text-secondary); }
+.settings-field-error { max-width: 240px; font-size: 11px; line-height: 1.35; color: var(--danger-text); text-align: right; user-select: text; -webkit-user-select: text; }
+
+/* Pop-up buttons in a row line up at one width. */
+.settings-pane .popup-button { min-width: 9rem; height: 28px; border-radius: 8px; }
 
 /* A segmented control: a fill track, the pressed segment a raised tile. */
 .segmented { display: inline-flex; flex: none; gap: 2px; padding: 2px; border-radius: 8px; background: var(--settings-fill); }
@@ -117,10 +161,114 @@
 }
 .segmented button:active:not([aria-pressed="true"]) { background: var(--settings-fill); }
 .segmented button[aria-pressed="true"] { background: var(--settings-control); box-shadow: var(--settings-control-shadow); color: var(--settings-text-strong); }
-.segmented button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+.segmented button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--settings-focus-ring); }
 
-/* Settings → Shortcuts: the reset button keeps its slot; the recorder keeps its width in every state. */
-.shortcut-control { display: flex; flex: none; align-items: center; gap: 6px; }
+/* An on/off switch: a checkbox drawn as a track and a knob; checked in the accent, gray in a window behind. */
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--settings-fill-strong);
+  box-shadow: inset 0 0 0 0.5px var(--settings-fill);
+  transition: background var(--motion-base) var(--ease-out);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--settings-knob);
+  box-shadow: var(--settings-knob-shadow);
+  transition: transform var(--motion-base) var(--ease-out);
+}
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(14px); }
+.switch:disabled { opacity: 0.45; }
+.switch:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--settings-focus-ring); }
+:root.window-blurred .switch:checked { background: var(--settings-blurred-fill); }
+
+/* Settings → Appearance: a miniature window per mode, Automatic split into light and dark; the chosen one ringed. */
+.scheme-picker { display: flex; gap: 16px; }
+.scheme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--settings-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+.scheme-option[aria-pressed="true"] { color: var(--settings-text); }
+.scheme-tile {
+  position: relative;
+  width: 80px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 0 0 0.5px var(--settings-field-line);
+  transition: box-shadow var(--motion-fast) var(--ease-out);
+}
+.scheme-option[aria-pressed="true"] .scheme-tile { box-shadow: 0 0 0 2px var(--settings-bg), 0 0 0 4px var(--accent); }
+.scheme-option:focus-visible { outline: none; }
+.scheme-option:focus-visible .scheme-tile { box-shadow: 0 0 0 2px var(--settings-bg), 0 0 0 5px var(--settings-focus-ring); }
+/* The tokens inside come from the palette its `data-scheme` names. */
+.scheme-tile-window { position: absolute; inset: 0; display: flex; background: var(--panel-bg); }
+.scheme-tile-half { clip-path: inset(0 50% 0 0); }
+.scheme-tile-sidebar { width: 34%; padding: 12px 4px 0; background: var(--sidebar-bg); }
+.scheme-tile-entry { display: block; height: 6px; border-radius: 2px; background: var(--sidebar-selection-bg); }
+.scheme-tile-content { flex: 1; padding: 8px 8px 0; border-top: 8px solid var(--window-bg); }
+.scheme-tile-block { display: block; height: 16px; border-radius: 3px; background: var(--fill-hover); }
+
+/* Accent swatches: 16px dots; the chosen one ringed, drawn as a shadow so nothing moves. */
+.accent-swatches { display: flex; align-items: center; gap: 8px; }
+.accent-swatches button {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px var(--settings-line);
+  transition: box-shadow var(--motion-fast) var(--ease-out);
+}
+.accent-swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--settings-bg), 0 0 0 4px var(--settings-text-tertiary); }
+.accent-swatches button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--settings-bg), 0 0 0 5px var(--settings-focus-ring); }
+/* System: the hues around a circle, as macOS shows its multicolor choice. */
+.accent-swatches .accent-system {
+  background: conic-gradient(
+    var(--accent-hue-red), var(--accent-hue-orange), var(--accent-hue-gold), var(--accent-hue-teal), var(--accent-hue-blue),
+    var(--accent-hue-indigo), var(--accent-hue-purple), var(--accent-hue-magenta), var(--accent-hue-red)
+  );
+}
+
+/* Settings → Shortcuts: the search, then each row's reset and remove buttons, which keep their slots, and the
+   recorder, which keeps its width in every state. */
+.settings-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--settings-field);
+  box-shadow: inset 0 0 0 1px var(--settings-field-line);
+  color: var(--settings-text-tertiary);
+}
+.settings-search:focus-within { box-shadow: inset 0 0 0 1px var(--settings-field-line), 0 0 0 3px var(--settings-focus-ring); }
+.settings-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--settings-text); font-size: 13px; }
+.settings-search input::placeholder { color: var(--settings-text-tertiary); }
+.shortcut-control { display: flex; flex: none; align-items: center; gap: 4px; }
 .slot-hidden { visibility: hidden; }
 .shortcut-field {
   display: inline-flex;
@@ -138,21 +286,6 @@
   transition: box-shadow var(--motion-fast) var(--ease-out);
 }
 .shortcut-field:focus-visible,
-.shortcut-field.recording { outline: none; box-shadow: inset 0 0 0 1px var(--settings-field-line), 0 0 0 3px var(--focus-ring); }
+.shortcut-field.recording { outline: none; box-shadow: inset 0 0 0 1px var(--settings-field-line), 0 0 0 3px var(--settings-focus-ring); }
 .shortcut-field.recording { color: var(--settings-text-tertiary); }
-.shortcut-field.unbound { color: var(--settings-text-tertiary); }
-
-/* An on/off switch (Settings → General). */
-.switch {
-  position: relative; flex: none; width: 32px; height: 20px; padding: 0; border: none; border-radius: 10px;
-  background: var(--settings-fill-strong); transition: background var(--motion-base) var(--ease-out);
-}
-.switch[aria-checked="true"] { background: var(--accent); }
-.switch:disabled { opacity: 0.45; }
-.switch:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
-.switch__knob {
-  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--control-bg);
-  box-shadow: var(--control-shadow); transition: transform var(--motion-base) var(--ease-out);
-}
-.switch[aria-checked="true"] .switch__knob { transform: translateX(12px); }
-.settings-app-field { width: 220px; flex: none; }
+.shortcut-field.unbound { color: var(--settings-text-tertiary); font-style: italic; }

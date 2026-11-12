@@ -3,9 +3,11 @@ import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { useSettingsCommands } from "../../commands";
 import { ConfirmHost } from "../../components/ConfirmSheet";
+import { MenuHost } from "../../components/menu";
 import { Toasts } from "../../components/Toasts";
 import { TooltipHost } from "../../components/TooltipHost";
 import { useAppearance } from "../../lib/theme";
+import { trackWindowFocus } from "../../lib/windowFocus";
 import { createQueryClient } from "../../queries/queryClient";
 import { useEvents } from "../../queries/useEvents";
 import { useSettings } from "../../queries/useSettings";
@@ -21,9 +23,10 @@ function initialPage(): string | undefined {
 function SettingsRoot() {
   const [page, setPage] = useState(initialPage);
   const { data: settings } = useSettings();
-  useAppearance(settings?.appearance);
+  useAppearance(settings?.appearance, settings?.accent);
   useEvents();
   useSettingsCommands();
+  useEffect(trackWindowFocus, []);
   useEffect(() => {
     const stopListening = api.on("open_settings", setPage);
     return () => void stopListening.then((stop) => stop());
@@ -33,6 +36,7 @@ function SettingsRoot() {
       <SettingsWindow target={page} onPage={setPage} />
       <Toasts />
       <ConfirmHost />
+      <MenuHost />
       <TooltipHost />
     </>
   );

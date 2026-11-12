@@ -1,11 +1,12 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../api", async (orig) => ({ ...(await orig<object>()), api: (await import("../test/apiMock")).createApiMock() }));
 
 import { api, type Settings } from "../api";
+import { MenuHost } from "../components/menu";
 import { Toasts } from "../components/Toasts";
 import { createQueryClient } from "../queries/queryClient";
 import { resetStore } from "../state/store";
@@ -20,6 +21,7 @@ function renderPage() {
     <QueryClientProvider client={createQueryClient()}>
       <GeneralPage />
       <Toasts />
+      <MenuHost />
     </QueryClientProvider>,
   );
 }
@@ -29,7 +31,8 @@ async function renderLoaded() {
   await screen.findByDisplayValue("Demo Editor");
 }
 
-const loginSwitch =() => screen.getByRole("switch", { name: "Open at login" });
+const loginSwitch = () => screen.getByRole("switch", { name: "Open at login" });
+const dockerApp = () => screen.getByRole("button", { name: "Docker app" });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,6 +108,48 @@ describe("GeneralPage", () => {
       await userEvent.type(field, "Demo Git{Enter}");
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t change the git client: Disk full");
+      expect(field).not.toHaveAttribute("aria-invalid");
+    });
+
+    describe("when Rust refuses the value for the field", () => {
+      const refusal = { kind: "invalid_input", message: "Invalid value", code: null, field: { path: "gitClient", message: "No app named Demo Git" } };
+
+      it("shows the field's message below it and marks the field invalid, without a toast", async () => {
+        mocked.setAppSetting.mockRejectedValue(refusal);
+        await renderLoaded();
+        const field = screen.getByRole("textbox", { name: "Git client" });
+
+        await userEvent.type(field, "Demo Git{Enter}");
+
+        expect(await screen.findByText("No app named Demo Git")).toBeInTheDocument();
+        expect(field).toHaveAttribute("aria-invalid", "true");
+        expect(field).toHaveAccessibleDescription("No app named Demo Git");
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      });
+
+      it("shows the message under the refused field only", async () => {
+        mocked.setAppSetting.mockRejectedValue(refusal);
+        await renderLoaded();
+
+        await userEvent.type(screen.getByRole("textbox", { name: "Git client" }), "Demo Git{Enter}");
+
+        await screen.findByText("No app named Demo Git");
+        expect(screen.getByRole("textbox", { name: "Terminal" })).not.toHaveAttribute("aria-invalid");
+      });
+
+      it("clears the message once a later save goes through", async () => {
+        mocked.setAppSetting.mockRejectedValueOnce(refusal);
+        await renderLoaded();
+        const field = screen.getByRole("textbox", { name: "Git client" });
+        await userEvent.type(field, "Demo Git{Enter}");
+        await screen.findByText("No app named Demo Git");
+
+        await userEvent.clear(field);
+        await userEvent.type(field, "Demo Client{Enter}");
+
+        await waitFor(() => expect(screen.queryByText("No app named Demo Git")).not.toBeInTheDocument());
+        expect(field).not.toHaveAttribute("aria-invalid");
+      });
     });
   });
 
@@ -117,14 +162,16 @@ describe("GeneralPage", () => {
       ["orbstack", "OrbStack"],
       ["colima", "Colima"],
       ["custom", "Custom"],
-    ] as const)("presses %s as the Docker app when it is stored", async (manager, label) => {
+    ] as const)("checks %s in the Docker app menu when it is stored", async (manager, label) => {
       withManager(manager);
       await renderLoaded();
 
-      const group = screen.getByRole("group", { name: "Docker app" });
-      expect(within(group).getAllByRole("button").map((b) => b.textContent)).toEqual(["Docker Desktop", "OrbStack", "Colima", "Custom"]);
-      expect(within(group).getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
-      expect(within(group).getAllByRole("button", { pressed: true })).toHaveLength(1);
+      await userEvent.click(dockerApp());
+
+      const menu = within(screen.getByRole("menu", { name: "Docker app" }));
+      expect(menu.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual(["Docker Desktop", "OrbStack", "Colima", "Custom"]);
+      expect(menu.getByRole("menuitemradio", { name: label })).toHaveAttribute("aria-checked", "true");
+      expect(menu.getAllByRole("menuitemradio", { checked: true })).toHaveLength(1);
     });
 
     it.each([
@@ -134,16 +181,28 @@ describe("GeneralPage", () => {
     ] as const)("sends %s as the Docker app when it is chosen", async (label, manager) => {
       await renderLoaded();
 
-      await userEvent.click(screen.getByRole("button", { name: label }));
+      await userEvent.click(dockerApp());
+      await userEvent.click(screen.getByRole("menuitemradio", { name: label }));
 
       expect(mocked.setDockerManager).toHaveBeenCalledWith(manager);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+
+    it("sends nothing when the current Docker app is chosen again", async () => {
+      await renderLoaded();
+
+      await userEvent.click(dockerApp());
+      await userEvent.click(screen.getByRole("menuitemradio", { name: "Docker Desktop" }));
+
+      expect(mocked.setDockerManager).not.toHaveBeenCalled();
     });
 
     it("shows an error toast when changing the Docker app fails", async () => {
       mocked.setDockerManager.mockRejectedValue(diskFull);
       await renderLoaded();
 
-      await userEvent.click(screen.getByRole("button", { name: "Colima" }));
+      await userEvent.click(dockerApp());
+      await userEvent.click(screen.getByRole("menuitemradio", { name: "Colima" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t change the Docker app: Disk full");
     });
@@ -182,7 +241,7 @@ describe("GeneralPage", () => {
     it("is off when the login item is not installed", async () => {
       renderPage();
 
-      expect(await screen.findByRole("switch", { name: "Open at login" })).toHaveAttribute("aria-checked", "false");
+      expect(await screen.findByRole("switch", { name: "Open at login" })).not.toBeChecked();
     });
 
     it("is on when the login item is installed, and a click turns it off", async () => {
@@ -193,36 +252,40 @@ describe("GeneralPage", () => {
       await userEvent.click(loginSwitch());
 
       expect(mocked.setAutostart).toHaveBeenCalledWith(false);
-      expect(loginSwitch()).toHaveAttribute("aria-checked", "false");
+      await waitFor(() => expect(loginSwitch()).not.toBeChecked());
     });
 
     it("turns on with a click and follows the state Rust reports", async () => {
       renderPage();
-      expect(loginSwitch()).toHaveAttribute("aria-checked", "false");
+      await screen.findByRole("switch", { name: "Open at login" });
+      expect(loginSwitch()).not.toBeChecked();
 
       await userEvent.click(loginSwitch());
 
       expect(mocked.setAutostart).toHaveBeenCalledWith(true);
-      expect(loginSwitch()).toHaveAttribute("aria-checked", "true");
+      await waitFor(() => expect(loginSwitch()).toBeChecked());
     });
 
     it("stays as Rust reports it when the request is refused", async () => {
       mocked.setAutostart.mockResolvedValue(false);
       renderPage();
+      await screen.findByRole("switch", { name: "Open at login" });
 
       await userEvent.click(loginSwitch());
 
-      expect(loginSwitch()).toHaveAttribute("aria-checked", "false");
+      expect(mocked.setAutostart).toHaveBeenCalledWith(true);
+      expect(loginSwitch()).not.toBeChecked();
     });
 
     it("keeps its state and shows an error toast when the change fails", async () => {
       mocked.setAutostart.mockRejectedValue(diskFull);
       renderPage();
+      await screen.findByRole("switch", { name: "Open at login" });
 
       await userEvent.click(loginSwitch());
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t change Open at Login: Disk full");
-      expect(loginSwitch()).toHaveAttribute("aria-checked", "false");
+      expect(loginSwitch()).not.toBeChecked();
     });
   });
 });

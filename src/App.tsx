@@ -21,7 +21,7 @@ const windowClient = createQueryClient();
 /** The main window: the panes and the overlays every window has. */
 function MainWindow() {
   const { data: settings } = useSettings();
-  useAppearance(settings?.appearance);
+  useAppearance(settings?.appearance, settings?.accent);
   useEvents();
   useMainCommands();
   useReportCurrentProject();

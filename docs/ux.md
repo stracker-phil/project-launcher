@@ -96,7 +96,13 @@ Launcher's palettes (`src/styles/palettes/`) also define Controls (`--control-bg
 `--control-shadow`, `--field-bg`, `--field-line`), Sidebar tokens that are the same in both schemes
 (`--sidebar-bg` #212121, `--sidebar-text`, `--sidebar-text-tertiary` for headings, `--sidebar-hover-bg`,
 `--sidebar-selection-bg`, `--sidebar-border`) and the seven project colors by name (`--project-blue`,
-`-green`, `-magenta`, `-orange`, `-purple`, `-red`, `-yellow`). One accent (`--accent`), no accent choice.
+`-green`, `-magenta`, `-orange`, `-purple`, `-red`, `-yellow`). The accent is the owner's choice
+([ADR 0042](adr/0042-settings-follow-timetracker-with-an-accent-choice.md)): each palette defines the nine
+hues (`--accent-hue-orange` … `-graphite`, each 4.5:1 under `--text-on-accent`) and the lightness range the
+accent keeps as text (`--accent-text-min-l`, `--accent-text-max-l`); `src/styles/accent.css` sets `--accent`
+from `data-accent` (System: `AccentColor`) and derives `--accent-text` and `--selection-text`. Settings also
+has `--settings-focus-ring`, `--settings-knob`, `--settings-knob-shadow`, `--settings-control-pressed` and
+`--settings-blurred-fill`.
 Body text is 13px. An app using the scheme-per-mode option
 (`appearance`) also has sidebar tokens and opacity levels (`--o2` 68%, `--o3` 52%; see Daybook `docs/ux.md`
 → Surfaces, Opacity levels).
@@ -153,35 +159,56 @@ word → letters in order, ties in menu order. Only prefixes with something to f
 so far). ⌘K or a click on the scrim closes it as well; the focus returns to where it was.
 
 ## Settings (`settings-window`)
-Own window in System Settings layout: 190px page list on `--settings-chrome` with drag strip and search;
-page title in the strip; groups (13px semibold heading, inset `--settings-fill-quiet`, 12px radius) of rows
+Own window in System Settings layout: a page list under group headings on `--settings-chrome` with drag
+strip and search; page title in the strip, a one-line intro below it; groups (13px semibold heading) of rows
 (label and description left, control right, hairlines). Controls: TextField, NumberField, DraftField with
 Rust's field error in red below, Segmented, switches; destructive buttons ask in an alertdialog sheet. With
 another window in front, switches, primary buttons and the list turn gray (`window-blurred`). Generic pages:
 Appearance, Shortcuts, Status, About (version, Show Data Folder, Open Log Folder), Privacy & Data.
 
-Launcher's values (`src/styles/settings.css`, `src-tauri/src/window/settings.rs`): window 880×720, min
-760×560, not maximizable, traffic lights at 20,22; 36px strips (drag region in the list, page title 15px
-semibold in the pane); page list rows 28px with 8px radius, `--settings-fill-strong` for the current page;
-search field 28px on `--settings-fill`; page body 8/20/24px padding, 24px between groups; rows at least 48px
-(14px vertical padding); values `--settings-text-secondary`, selectable and cut off with an ellipsis; push
-buttons 28px with 8px radius. The search matches page titles, keywords and row titles; a page found by a row
-names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F focuses the field, ⎋ and ⌘W hide the
-window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
+Launcher's values (`src/styles/settings.css`, `src-tauri/src/window/settings.rs`; TimeTracker's look,
+[ADR 0042](adr/0042-settings-follow-timetracker-with-an-accent-choice.md)): window 880×720, min 760×560, not
+maximizable, traffic lights at 20,22; 36px strips (drag region in the list, page title 15px bold in the pane);
+page list 176px, pages under 11px semibold group headings (App: General, Appearance, Shortcuts · System: Status,
+Privacy & Data, About; `GROUP_ORDER` in `src/registry/settingsPages.ts`), rows 28px with 6px radius, the current
+page filled with `--accent` and `--text-on-accent` (icon and label inherit); search field 28px on
+`--settings-fill`; page body 8/20/24px padding, 20px between groups; a one-line intro
+(`--settings-text-secondary`) under each page title; groups without fill or radius, 13px semibold heading, an
+optional description below it, hairlines (`--settings-hairline`) between rows; rows at least 48px (14px
+vertical padding), the label column flexible (a real `<label>` for its control), the control at its own size;
+a row can stack its control below the label or show dimmed (`Row stacked`, `disabled`); values
+`--settings-text-secondary`, selectable and cut off with an ellipsis; push buttons and fields 28px with 8px
+radius. Fields (`src/settings/fields.tsx`: `TextField`; number and draft fields join when a page needs one) save
+when left or on ↵; a value Rust refuses for its field (`InvalidField`) shows its message in red below it,
+any other failure as a toast. Switches are checkboxes (`role="switch"`) 32×18 with a `--settings-knob`; pop-up
+buttons (`PopUpButton`) open the window's menu (`MenuHost`). With another window in front, the current page,
+checked switches and primary buttons turn `--settings-blurred-fill` (`window-blurred` on <html>,
+`src/lib/windowFocus.ts`). The search matches page titles, group names, keywords and row titles; a page found
+by a row names it in the list and opens scrolled to it; ↵ opens the first hit, ⌘F focuses the field, ⎋ and ⌘W
+hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
 `--settings-control` tile with `--settings-control-shadow`. Pages so far:
 
-- General: the default editor, git client, terminal and project file editor (text fields, saved when left or
-  on ↵), and Open at login (a switch; gray in the debug app, which never installs a login item).
-- Appearance: Automatic / Light / Dark (Segmented); both windows switch at once.
-- Shortcuts: every menu item's key, grouped by menu, then the page keys no menu item holds (Main Window,
-  Settings Window); each row found by the search. A row shows its key in a 7rem recorder field: a click records
-  the next key (the menu's keys are off meanwhile, so ⌘W or ⌘Q reach it), ⌫ leaves the command without one,
-  ⎋ or a click elsewhere cancels; "None" when unbound. The reset button left of it shows only while the key is
-  the owner's own and keeps its slot otherwise. A key another command has asks first ("⌘K is used by “Command
-  Palette”", Reassign), then moves it as one undo step; so does a reset to a default another command has
-  now; menu keys clash with every key, page keys only within
-  their window. A menu key without ⌘ or ⌃ is refused with a toast.
+- General: the default editor, git client, terminal and project file editor (text fields; the terminal can't
+  be empty and no value may hold a line break, refused in red below the field), the Docker app (a pop-up
+  button: Docker Desktop, OrbStack, Colima, Custom; Custom adds its start and stop commands as fields), and
+  Open at login (a switch; dimmed in the debug app, which never installs a login item).
+- Appearance: Automatic / Light / Dark as three tiles, each a miniature window in its palette (Automatic split
+  light and dark), the chosen one ringed in the accent; Accent color as swatches, System (the macOS accent
+  color) then orange, gold, red, magenta, purple, indigo, blue, teal and graphite. Every window switches at once.
+- Shortcuts: a "Search commands" field narrows the rows by title or group ("No matching commands." when none
+  is left); every menu item's key, grouped by menu, then the page keys no menu item holds (Main Window,
+  Settings Window); each row says where its key works and is found by the Settings search too. A row shows its
+  key in a 7rem recorder field: a click records the next key (the menu's keys are off meanwhile, so ⌘W or ⌘Q
+  reach it), ⌫ leaves the command without one, ⎋ or a click elsewhere cancels; an unbound key reads "None" in
+  muted italics. Left of it, the reset button (only while the key is the owner's own) and the × remove button
+  (only while there is a key) keep their slots when hidden. A key another command has asks first ("⌘K is used
+  by “Command Palette”", Reassign), then moves it as one undo step; so does a reset to a default another
+  command has now; menu keys clash with every key, page keys only within their window. A menu key without ⌘
+  or ⌃ is refused with a toast.
 - Status: version, build, data and log folder, the `launcher` command link.
+- Privacy & Data: what Launcher keeps in its data folder (settings, shortcuts and the tag list; the known
+  project files with their last-opened times), that everything else about a project lives in its own
+  `.project-launcher.json`, Show Data Folder, and that Launcher has no network code (links open in the browser).
 - About: version, Show Data Folder, Open Log Folder.
 
 ## Keys

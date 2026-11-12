@@ -1,5 +1,6 @@
 /* The dark palette: the same tokens as light.css (docs/ux.md → Tokens). */
-:root[data-scheme="dark"] {
+:root[data-scheme="dark"],
+.scheme-look[data-scheme="dark"] {
   color-scheme: dark;
 
   /* Surfaces */
@@ -36,6 +37,20 @@
   --button-primary-bg: var(--accent);
   --button-primary-text: #ffffff;
   --focus-ring: color-mix(in srgb, var(--accent) 70%, transparent);
+  /* The lightness range accent.css keeps the accent as text in, so it reads on this palette's panels. */
+  --accent-text-min-l: 0.78;
+  --accent-text-max-l: 1;
+
+  /* Accent hues (ADR 0042): the owner's accent choice; each reads 4.5:1 under --text-on-accent */
+  --accent-hue-orange: #b9530f;
+  --accent-hue-gold: #9c6b00;
+  --accent-hue-red: #c8372d;
+  --accent-hue-magenta: #b0357e;
+  --accent-hue-purple: #8549c0;
+  --accent-hue-indigo: #4d55c8;
+  --accent-hue-blue: #1f6fbf;
+  --accent-hue-teal: #0f7d6c;
+  --accent-hue-graphite: #6e6e73;
 
   /* Controls (AppKit bezels) */
   --control-bg: #3a3a3c;
@@ -76,7 +91,6 @@
   /* Settings window (System Settings layout) */
   --settings-bg: #1e1e1e;
   --settings-chrome: #2a2a2a;
-  --settings-fill-quiet: rgba(255, 255, 255, 0.04);
   --settings-fill: rgba(255, 255, 255, 0.07);
   --settings-fill-strong: rgba(255, 255, 255, 0.12);
   --settings-line: rgba(255, 255, 255, 0.12);
@@ -89,6 +103,12 @@
   --settings-field-line: rgba(255, 255, 255, 0.14);
   --settings-control: #636366;
   --settings-control-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --settings-control-pressed: #75757a;
+  --settings-knob: #e5e5e5;
+  --settings-knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.3), 0 0.5px 2px rgba(0, 0, 0, 0.4);
+  --settings-focus-ring: color-mix(in srgb, var(--accent-text) 55%, transparent);
+  /* Checked switches, primary buttons and the current page while another window is in front. */
+  --settings-blurred-fill: rgba(229, 229, 229, 0.25);
 
   /* Project colors, picked by name (ADR 0025) */
   --project-blue: #56c2ff;

@@ -21,6 +21,34 @@
 /* Deletes or resets something: red text on the plain bezel. */
 .btn-danger { color: var(--danger-text); font-weight: 500; }
 
+/* A pop-up button (`PopUpButton`): the current choice and a chevron, as wide as its widest choice. */
+.popup-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 6px;
+  outline: none;
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+}
+.popup-button:active:not(:disabled),
+.popup-button[aria-expanded="true"] { background: var(--control-pressed); }
+.popup-button:disabled { opacity: 0.45; }
+.popup-button:focus-visible { box-shadow: var(--control-shadow), 0 0 0 3px var(--focus-ring); }
+.popup-button__value { display: inline-grid; min-width: 0; }
+.popup-button__value > span { grid-area: 1 / 1; overflow: hidden; text-overflow: ellipsis; }
+.popup-button__sizer { visibility: hidden; }
+.popup-button__chevron { flex: none; color: var(--text-muted); }
+
 .icon-btn {
   display: inline-grid;
   place-items: center;

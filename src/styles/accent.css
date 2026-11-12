@@ -1,0 +1,18 @@
+/* The owner's accent (ADR 0042): `data-accent` on <html> (lib/theme.ts) picks the palette's hue, or the macOS
+   accent color for System. Everything derived from `--accent` in the palettes (selection, focus rings, primary
+   buttons, switches, the current Settings page) follows; the accent as text stays in the palette's lightness
+   range so it reads on its panels. Without `data-accent` the palette's own accent applies. */
+:root[data-accent] {
+  --accent-text: oklch(from var(--accent) clamp(var(--accent-text-min-l), l, var(--accent-text-max-l)) c h);
+  --selection-text: var(--accent-text);
+}
+:root[data-accent="system"] { --accent: AccentColor; }
+:root[data-accent="orange"] { --accent: var(--accent-hue-orange); }
+:root[data-accent="gold"] { --accent: var(--accent-hue-gold); }
+:root[data-accent="red"] { --accent: var(--accent-hue-red); }
+:root[data-accent="magenta"] { --accent: var(--accent-hue-magenta); }
+:root[data-accent="purple"] { --accent: var(--accent-hue-purple); }
+:root[data-accent="indigo"] { --accent: var(--accent-hue-indigo); }
+:root[data-accent="blue"] { --accent: var(--accent-hue-blue); }
+:root[data-accent="teal"] { --accent: var(--accent-hue-teal); }
+:root[data-accent="graphite"] { --accent: var(--accent-hue-graphite); }

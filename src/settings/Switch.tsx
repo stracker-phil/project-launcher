@@ -1,8 +1,15 @@
-/** An on/off switch. */
-export function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange: (on: boolean) => void }) {
+/** An on/off switch: a checkbox drawn as a track with a knob. Named by `label`, or by a `<label htmlFor={id}>`. */
+export function Switch({ id, label, checked, disabled, onChange }: { id?: string; label?: string; checked: boolean; disabled?: boolean; onChange: (on: boolean) => void }) {
   return (
-    <button type="button" role="switch" className="switch" aria-label={label} aria-checked={checked} disabled={disabled} onClick={() => onChange(!checked)}>
-      <span className="switch__knob" aria-hidden />
-    </button>
+    <input
+      id={id}
+      className="switch"
+      type="checkbox"
+      role="switch"
+      aria-label={label}
+      checked={checked}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.checked)}
+    />
   );
 }

@@ -1,4 +1,5 @@
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Search, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { api, toAppError } from "../../api";
 import { bindingLabel, hasCommandOrControl } from "../../commands/registry";
 import { useMenuShortcuts } from "../../queries/useMenuShortcuts";
@@ -47,38 +48,48 @@ async function reset(rows: ShortcutRow[], row: ShortcutRow) {
   if (await confirmTakeover(row, other, key)) await attempt(api.resetShortcut(row.id, other.id), RESET_FAILED);
 }
 
-function ShortcutRowView({ row, rows }: { row: ShortcutRow; rows: ShortcutRow[] }) {
-  const hidden = !row.overridden;
+/** Menu keys work everywhere and sit under their menu's heading; only window keys say where they work. */
+const WHERE: Record<ShortcutRow["scope"], string | undefined> = {
+  menu: undefined,
+  main: "In the main window",
+  settings: "In the Settings window",
+};
+
+/** Keeps its slot when hidden, so its neighbours never move. */
+function SlotButton({ shown, label, title, onClick, children }: { shown: boolean; label: string; title: string; onClick: () => void; children: ReactNode }) {
+  if (!shown) return <span className="icon-btn tiny slot-hidden" aria-hidden="true" />;
   return (
-    <Row label={row.title} anchor={rowAnchor(row.id)}>
+    <button type="button" className="icon-btn tiny" aria-label={label} title={title} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function ShortcutRowView({ row, rows }: { row: ShortcutRow; rows: ShortcutRow[] }) {
+  const unbind = () => void attempt(api.setShortcut(row.id, null), SAVE_FAILED);
+  return (
+    <Row label={row.title} description={WHERE[row.scope]} anchor={rowAnchor(row.id)}>
       <div className="shortcut-control">
-        {/* Keeps its slot while hidden, so the recorder never moves. */}
-        <button
-          type="button"
-          className={hidden ? "icon-btn tiny slot-hidden" : "icon-btn tiny"}
-          aria-label={`Reset ${row.title}`}
-          aria-hidden={hidden || undefined}
-          tabIndex={hidden ? -1 : undefined}
-          title="Reset to default"
-          onClick={() => void reset(rows, row)}
-        >
+        <SlotButton shown={row.overridden} label={`Reset ${row.title}`} title="Reset to default" onClick={() => void reset(rows, row)}>
           <RotateCcw size={11} aria-hidden="true" />
-        </button>
-        <ShortcutRecorder
-          value={row.key}
-          name={row.title}
-          onRecord={(key) => void assign(rows, row, key)}
-          onUnbind={() => void attempt(api.setShortcut(row.id, null), SAVE_FAILED)}
-        />
+        </SlotButton>
+        <SlotButton shown={row.key !== null} label={`Remove shortcut for ${row.title}`} title="Remove shortcut" onClick={unbind}>
+          <X size={11} aria-hidden="true" />
+        </SlotButton>
+        <ShortcutRecorder value={row.key} name={row.title} onRecord={(key) => void assign(rows, row, key)} onUnbind={unbind} />
       </div>
     </Row>
   );
 }
 
-/** Each shortcut, grouped by menu or window, changeable or resettable (ADR 0032). */
+const matches = (row: ShortcutRow, needle: string) => !needle || row.title.toLowerCase().includes(needle) || row.group.toLowerCase().includes(needle);
+
+/** Each shortcut, grouped by menu or window, changeable, removable or resettable (ADR 0032); a search narrows
+ *  the rows. */
 export function ShortcutsPage() {
   const { data: settings } = useSettings();
   const { data: menu, error } = useMenuShortcuts();
+  const [search, setSearch] = useState("");
   if (error && !menu) {
     return (
       <p className="settings-empty" role="alert">
@@ -88,11 +99,35 @@ export function ShortcutsPage() {
   }
   if (!menu || !settings) return null;
   const rows = shortcutRows(menu, settings.shortcuts);
-  return groupRows(rows).map((group) => (
-    <Group key={group.title} title={group.title}>
-      {group.rows.map((row) => (
-        <ShortcutRowView key={row.id} row={row} rows={rows} />
+  const needle = search.trim().toLowerCase();
+  const groups = groupRows(rows.filter((row) => matches(row, needle)));
+  return (
+    <>
+      <label className="settings-search">
+        <Search size={14} aria-hidden="true" />
+        <input type="search" aria-label="Search commands" placeholder="Search commands" 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            // A first Escape clears the search; with nothing to clear it closes Settings.
+            if (e.key !== "Escape" || !search) return;
+            e.stopPropagation();
+            setSearch("");
+          }}
+        />
+      </label>
+      {groups.length === 0 && (
+        <Group>
+          <div className="settings-row settings-empty">No matching commands.</div>
+        </Group>
+      )}
+      {groups.map((group) => (
+        <Group key={group.title} title={group.title}>
+          {group.rows.map((row) => (
+            <ShortcutRowView key={row.id} row={row} rows={rows} />
+          ))}
+        </Group>
       ))}
-    </Group>
-  ));
+    </>
+  );
 }

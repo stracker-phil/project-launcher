@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  Accent,
   ActionDraft,
   ActionSource,
   AddedProjects,
@@ -35,6 +36,7 @@ import type {
 } from "./types.gen";
 
 export type {
+  Accent,
   AddedProjects,
   Commit,
   Edited,
@@ -139,9 +141,11 @@ export const api = {
   /** Takes the menu items' keys off while a shortcut is being recorded. */
   pauseMenuKeys: (paused: boolean) => invoke<void>("pause_menu_keys", { paused }),
   getSettings: () => invoke<Settings>("get_settings"),
-  /** Names the app a setting opens with; blank leaves it to the default. */
+  /** Names the app a setting opens with; blank leaves it to the default. Refused values fail with the field. */
   setAppSetting: (setting: AppSetting, value: string) => invoke<void>("set_app_setting", { setting, value }),
   setAppearance: (appearance: Appearance) => invoke<void>("set_appearance", { appearance }),
+  /** System follows the macOS accent color. */
+  setAccent: (accent: Accent) => invoke<void>("set_accent", { accent }),
   /** `key: null` leaves the command without a key. */
   setShortcut: (command: string, key: string | null) => invoke<void>("set_shortcut", { command, key }),
   /** Gives `command` the key `from` has and leaves `from` without one, as one change. */

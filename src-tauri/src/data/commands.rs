@@ -11,7 +11,7 @@ use crate::menu;
 use crate::projects::Project;
 use crate::projects::config::{ActionDraft, ActionSource, Builtin, DevMode, ProjectConfig, RunsAs};
 use crate::state::AppState;
-use crate::store::{AppSetting, Appearance, DockerManager, Settings};
+use crate::store::{Accent, AppSetting, Appearance, DockerManager, Settings};
 use tauri_plugin_dialog::DialogExt;
 
 /// Emits one event per stale read, to every window.
@@ -87,7 +87,16 @@ pub async fn set_appearance(
     announced(&app, state.data.set_appearance(appearance))
 }
 
-/// `key: null` leaves the command without a key; a menu item's key needs ⌘ or ⌃.
+#[tauri::command]
+pub async fn set_accent(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    accent: Accent,
+) -> AppResult<()> {
+    announced(&app, state.data.set_accent(accent))
+}
+
+/// Blank leaves the app to the default; a terminal app is required.
 #[tauri::command]
 pub async fn set_app_setting(
     app: AppHandle,

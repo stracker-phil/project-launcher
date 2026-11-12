@@ -36,12 +36,58 @@ afterEach(() => {
 });
 
 describe("SettingsApp", () => {
-  it("lists General, Appearance, Shortcuts, Status then About and opens on General", async () => {
+  it("lists General, Appearance, Shortcuts, Status, Privacy & Data then About and opens on General", async () => {
     await renderSettings();
 
-    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["General", "Appearance", "Shortcuts", "Status", "About"]);
+    expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual([
+      "General",
+      "Appearance",
+      "Shortcuts",
+      "Status",
+      "Privacy & Data",
+      "About",
+    ]);
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
     expect(within(nav()).getByRole("button", { name: "General" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("groups the pages under the headings App and System", async () => {
+    await renderSettings();
+
+    const pagesOf = (group: string) => within(within(nav()).getByRole("group", { name: group })).getAllByRole("button").map((b) => b.textContent?.trim());
+    expect(pagesOf("App")).toEqual(["General", "Appearance", "Shortcuts"]);
+    expect(pagesOf("System")).toEqual(["Status", "Privacy & Data", "About"]);
+    expect(within(nav()).getByText("App")).toBeInTheDocument();
+    expect(within(nav()).getByText("System")).toBeInTheDocument();
+  });
+
+  it("shows the page's intro under its title", async () => {
+    await renderSettings();
+    expect(screen.getByText("The apps projects open with, Docker, and how Launcher starts.")).toBeInTheDocument();
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Appearance" }));
+
+    expect(screen.getByText("How every Launcher window looks.")).toBeInTheDocument();
+    expect(screen.queryByText("The apps projects open with, Docker, and how Launcher starts.")).not.toBeInTheDocument();
+  });
+
+  it("shows Privacy & Data when it is chosen in the page list", async () => {
+    await renderSettings();
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Privacy & Data" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Privacy & Data" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Data Folder" })).toBeInTheDocument();
+  });
+
+  it("opens the Docker app menu in the Settings window", async () => {
+    await renderSettings();
+    const dockerApp = await screen.findByRole("button", { name: "Docker app" });
+    await waitFor(() => expect(dockerApp).toBeEnabled());
+
+    await userEvent.click(dockerApp);
+
+    expect(within(screen.getByRole("menu", { name: "Docker app" })).getByRole("menuitemradio", { name: "Docker Desktop" })).toHaveAttribute("aria-checked", "true");
   });
 
   it("shows the app fields and the login switch on General", async () => {
@@ -81,8 +127,19 @@ describe("SettingsApp", () => {
   describe("appearance", () => {
     const scheme = () => document.documentElement.dataset.scheme;
 
+    const accent = () => document.documentElement.dataset.accent;
+
     beforeEach(() => {
       delete document.documentElement.dataset.scheme;
+      delete document.documentElement.dataset.accent;
+    });
+
+    it.each(["teal", "graphite"] as const)("applies the stored %s accent", async (hue) => {
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, accent: hue });
+
+      await renderSettings();
+
+      await waitFor(() => expect(accent()).toBe(hue));
     });
 
     afterEach(() => {
@@ -162,6 +219,33 @@ describe("SettingsApp", () => {
 
         expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
       });
+    });
+
+    it("finds the pages of a group by its name", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "system");
+
+      expect(within(nav()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Status", "Privacy & Data", "About"]);
+      expect(within(nav()).getByRole("group", { name: "System" })).toBeInTheDocument();
+      expect(within(nav()).queryByRole("group", { name: "App" })).not.toBeInTheDocument();
+    });
+
+    it("keeps a group heading only while one of its pages matches", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "docker app");
+
+      expect(within(nav()).getByRole("group", { name: "App" })).toBeInTheDocument();
+      expect(within(nav()).queryByRole("group", { name: "System" })).not.toBeInTheDocument();
+    });
+
+    it("finds Privacy & Data by its Network row", async () => {
+      await renderSettings();
+
+      await userEvent.type(search(), "network");
+
+      expect(within(nav()).getByRole("button", { name: /Privacy & Data/ })).toBeInTheDocument();
     });
 
     it("finds General by its Open at login row", async () => {

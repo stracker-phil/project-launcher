@@ -4,6 +4,7 @@ import type { Api, DevStatus, EventName, EventPayloads, FileStats, Library, Proj
 /** The settings a fresh install starts with. */
 export const DEFAULT_SETTINGS: Settings = {
   appearance: "system",
+  accent: "system",
   tags: [],
   shortcuts: {},
   defaultEditor: "",
@@ -83,6 +84,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     pauseMenuKeys: vi.fn().mockResolvedValue(undefined),
     getSettings: vi.fn().mockResolvedValue(DEFAULT_SETTINGS),
     setAppearance: vi.fn().mockResolvedValue(undefined),
+    setAccent: vi.fn().mockResolvedValue(undefined),
     setShortcut: vi.fn().mockResolvedValue(undefined),
     reassignShortcut: vi.fn().mockResolvedValue(undefined),
     resetShortcut: vi.fn().mockResolvedValue(undefined),

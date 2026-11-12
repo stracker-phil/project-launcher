@@ -18,7 +18,7 @@ interface Opening {
 
 function PaletteRoot() {
   const { data: settings } = useSettings();
-  useAppearance(settings?.appearance);
+  useAppearance(settings?.appearance, settings?.accent);
   useEvents();
   const [opening, setOpening] = useState<Opening>({ count: 0, currentId: null });
   useEffect(() => {

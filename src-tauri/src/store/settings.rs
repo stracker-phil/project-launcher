@@ -17,6 +17,25 @@ pub enum Appearance {
     Dark,
 }
 
+/// The color of selection, focus, switches and primary buttons: the macOS accent color or one of nine named
+/// hues (ADR 0042). Project colors are separate.
+#[derive(Serialize, Deserialize, TS, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[ts(export, export_to = "src/api/types.gen.ts")]
+#[serde(rename_all = "lowercase")]
+pub enum Accent {
+    #[default]
+    System,
+    Orange,
+    Gold,
+    Red,
+    Magenta,
+    Purple,
+    Indigo,
+    Blue,
+    Teal,
+    Graphite,
+}
+
 /// The owner's key per command id; `None` leaves the command without one.
 pub type Shortcuts = BTreeMap<String, Option<String>>;
 
@@ -25,6 +44,7 @@ pub type Shortcuts = BTreeMap<String, Option<String>>;
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub appearance: Appearance,
+    pub accent: Accent,
     /// Every tag in the owner's order, including tags no project carries.
     pub tags: Vec<String>,
     /// The owner's key for a command id, overriding its default; `null` leaves the command without one.
@@ -93,6 +113,18 @@ impl AppSetting {
         }
     }
 
+    /// The setting's key in `settings.json`, the last part of its field path.
+    pub fn key(self) -> &'static str {
+        match self {
+            AppSetting::DefaultEditor => "defaultEditor",
+            AppSetting::GitClient => "gitClient",
+            AppSetting::TerminalApp => "terminalApp",
+            AppSetting::ConfigEditor => "configEditor",
+            AppSetting::DockerStartCommand => "dockerStartCommand",
+            AppSetting::DockerStopCommand => "dockerStopCommand",
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             AppSetting::DefaultEditor => "Change Default Editor",
@@ -109,6 +141,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             appearance: Appearance::System,
+            accent: Accent::System,
             tags: Vec::new(),
             shortcuts: BTreeMap::new(),
             default_editor: String::new(),
@@ -141,6 +174,10 @@ impl Settings {
             appearance: v
                 .get("appearance")
                 .and_then(|a| Appearance::deserialize(a).ok())
+                .unwrap_or_default(),
+            accent: v
+                .get("accent")
+                .and_then(|a| Accent::deserialize(a).ok())
                 .unwrap_or_default(),
             tags: v.get("tags").map(repaired_tags).unwrap_or_default(),
             shortcuts: v
@@ -240,6 +277,7 @@ mod tests {
     fn a_full_valid_object_is_kept() {
         let raw = json!({
             "appearance": "dark",
+            "accent": "teal",
             "tags": ["client", "internal"],
             "shortcuts": {"app:logs": "Cmd+L", "app:data": null},
             "defaultEditor": "Zed",
@@ -255,6 +293,7 @@ mod tests {
             Settings::repaired(raw),
             Settings {
                 appearance: Appearance::Dark,
+                accent: Accent::Teal,
                 tags: vec!["client".into(), "internal".into()],
                 shortcuts: BTreeMap::from([
                     ("app:logs".to_string(), Some("Cmd+L".to_string())),
@@ -312,6 +351,47 @@ mod tests {
         ] {
             let repaired = Settings::repaired(json!({ "appearance": input.clone() }));
             assert_eq!(repaired.appearance, expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn accent_accepts_its_ten_values_and_falls_back_to_system() {
+        for (input, expected) in [
+            (json!("system"), Accent::System),
+            (json!("orange"), Accent::Orange),
+            (json!("gold"), Accent::Gold),
+            (json!("red"), Accent::Red),
+            (json!("magenta"), Accent::Magenta),
+            (json!("purple"), Accent::Purple),
+            (json!("indigo"), Accent::Indigo),
+            (json!("blue"), Accent::Blue),
+            (json!("teal"), Accent::Teal),
+            (json!("graphite"), Accent::Graphite),
+            (json!("chartreuse"), Accent::System),
+            (json!("Teal"), Accent::System),
+            (json!(3), Accent::System),
+            (json!(null), Accent::System),
+        ] {
+            let repaired = Settings::repaired(json!({ "accent": input.clone() }));
+            assert_eq!(repaired.accent, expected, "{input}");
+        }
+    }
+
+    #[test]
+    fn an_app_setting_key_is_the_name_serde_uses() {
+        for setting in [
+            AppSetting::DefaultEditor,
+            AppSetting::GitClient,
+            AppSetting::TerminalApp,
+            AppSetting::ConfigEditor,
+            AppSetting::DockerStartCommand,
+            AppSetting::DockerStopCommand,
+        ] {
+            assert_eq!(
+                serde_json::to_value(setting).unwrap(),
+                json!(setting.key()),
+                "{setting:?}"
+            );
         }
     }
 
@@ -416,6 +496,7 @@ mod tests {
             serde_json::to_value(Settings::default()).unwrap(),
             json!({
                 "appearance": "system",
+                "accent": "system",
                 "tags": [],
                 "shortcuts": {},
                 "defaultEditor": "",

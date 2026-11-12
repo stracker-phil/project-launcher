@@ -9,11 +9,12 @@ use super::{Changed, Data};
 use crate::error::{AppError, AppResult};
 use crate::projects::file::{self, FileObject};
 use crate::projects::{FileKey, FileRead, KnownProject, Registry};
-use crate::store::{AppSetting, Appearance, DockerManager};
+use crate::store::{Accent, AppSetting, Appearance, DockerManager};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
     SetAppearance(Appearance),
+    SetAccent(Accent),
     SetApp(AppSetting, String),
     SetDockerManager(DockerManager),
     /// Overrides the command's key; `None` leaves it without one.
@@ -64,6 +65,12 @@ pub fn apply(data: &Data, op: &Op) -> AppResult<Applied> {
                 .settings
                 .update(|s| Ok(std::mem::replace(&mut s.appearance, *appearance)))?;
             Ok(settings_change(Op::SetAppearance(before)))
+        }
+        Op::SetAccent(accent) => {
+            let before = data
+                .settings
+                .update(|s| Ok(std::mem::replace(&mut s.accent, *accent)))?;
+            Ok(settings_change(Op::SetAccent(before)))
         }
         Op::SetApp(setting, value) => {
             let before = data

@@ -1,9 +1,10 @@
-import { Activity, AppWindow, Info, Keyboard, SunMoon } from "lucide-react";
+import { Activity, AppWindow, Info, Keyboard, ShieldCheck, SunMoon } from "lucide-react";
 import { api, toAppError, type MenuShortcut } from "../api";
 import { registerSettingsPage } from "../registry/settingsPages";
 import { AboutPage } from "./AboutPage";
 import { AppearancePage } from "./AppearancePage";
 import { GeneralPage } from "./GeneralPage";
+import { PrivacyPage } from "./privacy/PrivacyPage";
 import { rowAnchor, shortcutRows } from "./shortcuts/rows";
 import { ShortcutsPage } from "./shortcuts/ShortcutsPage";
 import { StatusPage } from "./StatusPage";
@@ -13,6 +14,8 @@ function registerShortcutsPage(menu: MenuShortcut[]) {
   registerSettingsPage({
     id: "shortcuts",
     title: "Shortcuts",
+    group: "App",
+    intro: "The key for each command. Click a key to record a new one.",
     icon: Keyboard,
     order: 6,
     keywords: ["keys", "keyboard"],
@@ -26,6 +29,8 @@ export function registerCoreSettingsPages() {
   registerSettingsPage({
     id: "general",
     title: "General",
+    group: "App",
+    intro: "The apps projects open with, Docker, and how Launcher starts.",
     icon: AppWindow,
     order: 2,
     keywords: ["editor", "git", "terminal", "login", "startup", "docker", "orbstack", "colima"],
@@ -42,9 +47,12 @@ export function registerCoreSettingsPages() {
   registerSettingsPage({
     id: "appearance",
     title: "Appearance",
+    group: "App",
+    intro: "How every Launcher window looks.",
     icon: SunMoon,
     order: 4,
-    keywords: ["dark", "light", "theme"],
+    keywords: ["dark", "light", "theme", "color"],
+    rows: [{ id: "accent", title: "Accent color" }],
     component: AppearancePage,
   });
   registerShortcutsPage([]);
@@ -57,6 +65,8 @@ export function registerCoreSettingsPages() {
   registerSettingsPage({
     id: "status",
     title: "Status",
+    group: "System",
+    intro: "What this copy of Launcher is and where it keeps its files.",
     icon: Activity,
     order: 10,
     keywords: ["diagnostics"],
@@ -69,5 +79,27 @@ export function registerCoreSettingsPages() {
     ],
     component: StatusPage,
   });
-  registerSettingsPage({ id: "about", title: "About", icon: Info, order: 20, component: AboutPage });
+  registerSettingsPage({
+    id: "privacy",
+    title: "Privacy & Data",
+    group: "System",
+    intro: "What Launcher keeps, and where.",
+    icon: ShieldCheck,
+    order: 15,
+    keywords: ["data", "storage", "network"],
+    rows: [
+      { id: "storage", title: "On this Mac" },
+      { id: "network", title: "Network" },
+    ],
+    component: PrivacyPage,
+  });
+  registerSettingsPage({
+    id: "about",
+    title: "About",
+    group: "System",
+    intro: "The version, and the folders a bug report needs.",
+    icon: Info,
+    order: 20,
+    component: AboutPage,
+  });
 }

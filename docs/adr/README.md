@@ -36,7 +36,7 @@ Context, Decision, Consequences.
 | [0023](0023-debug-builds-carry-hooks-for-driving-the-app.md) | Debug builds carry hooks for driving the app without focus | Accepted (2026-11-11) |
 | [0024](0024-native-look-with-the-main-window-following-the-prototype.md) | Native look, with the main window following the prototype | Accepted (2026-11-11) |
 | [0025](0025-every-color-is-a-palette-token.md) | Every color is a palette token, checked by tests | Accepted (2026-11-11) |
-| [0026](0026-automatic-light-or-dark-with-one-palette-each.md) | Automatic, Light or Dark, with one palette each | Accepted (2026-11-11) |
+| [0026](0026-automatic-light-or-dark-with-one-palette-each.md) | Automatic, Light or Dark, with one palette each | Accepted (2026-11-11); "no accent choice" superseded by 0042 |
 | [0027](0027-native-overlay-scrollbars.md) | Scrollbars are the native overlay bars | Accepted (2026-11-11) |
 | [0028](0028-motion-tokens-and-stable-controls.md) | Motion uses shared tokens and controls stay where they are | Accepted (2026-11-11) |
 | [0029](0029-one-tooltip-host-per-window.md) | One tooltip host per window replaces native tooltips | Accepted (2026-11-11) |
@@ -52,3 +52,4 @@ Context, Decision, Consequences.
 | [0039](0039-a-major-version-needs-the-owners-approval.md) | A major version needs the owner's approval | Accepted (2026-11-11) |
 | [0040](0040-links-open-over-https-or-http-to-a-local-name.md) | Links open over https, or over http to a local name | Accepted (2026-11-12) |
 | [0041](0041-debug-builds-record-databee-like-every-launch.md) | Debug builds record DataBee like every other launch | Accepted (2026-11-12) |
+| [0042](0042-settings-follow-timetracker-with-an-accent-choice.md) | Settings follow TimeTracker, with an accent choice | Accepted (2026-11-12) |
