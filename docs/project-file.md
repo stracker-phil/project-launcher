@@ -47,7 +47,7 @@ Code: `src-tauri/src/projects/file.rs` (read, write, the keys Launcher changes),
 | `dev` | What runs while the owner works on the project: `{ "docker": true }`, `{ "ddev": true }` or `{ "wpEnv": true }` (DDEV and wp-env imply Docker; DDEV wins over wp-env over Docker) |
 | `database` | Absent: found in the DDEV setup (`.ddev/config.yaml` and its `config.*.yaml` overrides: the `database` block's type and version, MariaDB by default, none when `omit_containers` lists `db` or the type isn't MySQL or MariaDB) or the wp-env setup (MariaDB), the configured server's first; `false`: hidden; a `mysql://` or `mariadb://` URL: this database (a `socket=` parameter may use `~` and `${dir}`). The URL's password never reaches the page; DataBee gets it in `DATABEE_PASSWORD` |
 | `env` | Variables for terminals, scripts and state providers; numbers and booleans count as text |
-| `apps` | Built-ins by name (`"editor"`) or with overrides (`{ "preset": "editor", … }`), and actions of their own: `label` plus `app` (and `args`), `url`, or `command` (a terminal; empty opens a shell in the folder) |
+| `apps` | Built-ins by name (`"editor"`) or with overrides (`{ "preset": "editor", … }`), and actions of their own: `label` plus `app` (and `args`), `url` (https, or http to a local name; ADR 0040), or `command` (a terminal; empty opens a shell in the folder) |
 | `scripts` | `label` and `command`, run in a login shell with their output captured |
 | `stateProviders`, `states` | Commands whose output shows as states on the project; `source` names a provider, or `provider:.path` a value in its JSON output. A state's `values` map outputs to labels; an action's `hiddenStates` lists the value keys that hide it |
 

@@ -21,18 +21,18 @@ Context, Decision, Consequences.
 | [0008](0008-commands-live-in-rust.md) | App actions are commands of one Rust bus | Accepted (2026-11-11) |
 | [0009](0009-the-cli-asks-the-running-app.md) | The `launcher` binary is also the CLI and asks the running app | Accepted (2026-11-11) |
 | [0010](0010-rust-formats-time-and-dates.md) | Times are stored as UTC milliseconds and formatted by the platform | Accepted (2026-11-11) |
-| [0011](0011-siblings-talk-through-their-clis.md) | Launcher talks to DataBee and Daybook only through their CLIs | Accepted (2026-11-11) |
+| [0011](0011-siblings-talk-through-their-clis.md) | Launcher talks to DataBee and Daybook only through their CLIs | Accepted (2026-11-11); debug DataBee superseded by 0041 |
 | [0012](0012-json-files-only-no-database.md) | Launcher stores its data in JSON files only, without a database | Accepted (2026-11-11) |
 | [0013](0013-json-stores-repair-themselves-on-load.md) | JSON stores repair themselves on load | Accepted (2026-11-11) |
 | [0014](0014-page-reads-go-through-tanstack-query.md) | Page reads go through TanStack Query | Accepted (2026-11-11) |
 | [0015](0015-writes-are-operations-with-inverses-for-undo.md) | Writes are operations with inverses, so every change can be undone | Accepted (2026-11-11) |
-| [0016](0016-launcher-has-no-network-code.md) | Launcher has no network code | Accepted (2026-11-11) |
+| [0016](0016-launcher-has-no-network-code.md) | Launcher has no network code | Accepted (2026-11-11); link rule superseded by 0040 |
 | [0017](0017-hardened-runtime-strict-csp-and-no-navigation.md) | Hardened runtime, strict CSP and no navigation | Accepted (2026-11-11) |
-| [0018](0018-outside-content-is-shown-as-text-and-run-only-by-id.md) | Outside content is shown as text and actions run only by id | Accepted (2026-11-11) |
+| [0018](0018-outside-content-is-shown-as-text-and-run-only-by-id.md) | Outside content is shown as text and actions run only by id | Accepted (2026-11-11); link rule superseded by 0040 |
 | [0019](0019-builds-are-signed-with-an-apple-development-certificate.md) | Builds are signed with an Apple Development certificate | Accepted (2026-11-11) |
 | [0020](0020-every-release-build-gets-a-new-version.md) | Every release build gets a new version | Accepted (2026-11-11); bump rule superseded by 0039 |
 | [0021](0021-test-doubles-compile-only-behind-test-util.md) | Test doubles compile only behind test-util | Accepted (2026-11-11) |
-| [0022](0022-the-debug-build-is-a-separate-app-on-demo-data.md) | The debug build is a separate app on demo data | Accepted (2026-11-11) |
+| [0022](0022-the-debug-build-is-a-separate-app-on-demo-data.md) | The debug build is a separate app on demo data | Accepted (2026-11-11); DataBee stand-in superseded by 0041 |
 | [0023](0023-debug-builds-carry-hooks-for-driving-the-app.md) | Debug builds carry hooks for driving the app without focus | Accepted (2026-11-11) |
 | [0024](0024-native-look-with-the-main-window-following-the-prototype.md) | Native look, with the main window following the prototype | Accepted (2026-11-11) |
 | [0025](0025-every-color-is-a-palette-token.md) | Every color is a palette token, checked by tests | Accepted (2026-11-11) |
@@ -50,3 +50,5 @@ Context, Decision, Consequences.
 | [0037](0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md) | The palette is a floating panel on a native window layer | Accepted (2026-11-11) |
 | [0038](0038-project-details-live-in-the-project-file.md) | Every project detail lives in the project's own file | Accepted (2026-11-11) |
 | [0039](0039-a-major-version-needs-the-owners-approval.md) | A major version needs the owner's approval | Accepted (2026-11-11) |
+| [0040](0040-links-open-over-https-or-http-to-a-local-name.md) | Links open over https, or over http to a local name | Accepted (2026-11-12) |
+| [0041](0041-debug-builds-record-databee-like-every-launch.md) | Debug builds record DataBee like every other launch | Accepted (2026-11-12) |

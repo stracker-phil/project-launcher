@@ -20,6 +20,7 @@ mod instance;
 pub mod ipc;
 pub mod launch;
 pub mod library;
+pub mod links;
 pub mod lock;
 pub mod menu;
 pub mod projects;
@@ -163,6 +164,45 @@ mod tests {
                     .all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit())),
             "{cargo}"
         );
+    }
+
+    #[test]
+    fn no_http_client_or_server_among_the_direct_dependencies() {
+        let manifest =
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")).unwrap();
+        let mut in_dependencies = false;
+        let mut names = Vec::new();
+        for line in manifest.lines().map(str::trim) {
+            if line.starts_with('[') {
+                in_dependencies = line == "[dependencies]";
+            } else if in_dependencies
+                && !line.starts_with('#')
+                && let Some((key, _)) = line.split_once('=')
+            {
+                names.push(key.trim().trim_matches('"').to_string());
+            }
+        }
+        assert!(names.contains(&"tauri".to_string()), "{names:?}");
+
+        let forbidden = [
+            "reqwest",
+            "hyper",
+            "ureq",
+            "isahc",
+            "surf",
+            "attohttpc",
+            "tiny_http",
+            "axum",
+            "actix-web",
+            "warp",
+            "tauri-plugin-http",
+            "tauri-plugin-updater",
+        ];
+        let found: Vec<&String> = names
+            .iter()
+            .filter(|name| forbidden.contains(&name.as_str()))
+            .collect();
+        assert!(found.is_empty(), "{found:?}");
     }
 
     #[test]

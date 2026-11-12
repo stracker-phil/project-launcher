@@ -32,7 +32,10 @@ step.
 - **Unit tests** sit next to the code in `#[cfg(test)] mod tests`, named as behavior sentences, with exact
   and table-driven assertions.
 - **Helpers** live in `src-tauri/src/test_support/`: `temp_config_dir`, builders, fakes and the demo seed,
-  compiled under `cfg(any(test, feature = "test-util", debug_assertions))` ([ADR 0021](adr/0021-test-doubles-compile-only-behind-test-util.md)).
+  compiled under `cfg(any(test, feature = "test-util", debug_assertions))` ([ADR 0021](adr/0021-test-doubles-compile-only-behind-test-util.md)). The fakes the debug build
+  runs on live beside their port: the `Recorder` in `run/` (the `System` port) and the stand-in in
+  `devenv/tools.rs` (`Tools`). `test-util` exposes the helpers to integration tests in `src-tauri/tests/`,
+  which has none yet.
 - **Contracts:** `lib.rs` tests compare `APP_NAME`, `IDENTIFIER` and `LINK_SCHEME` with both Tauri configs and
   keep the version equal in `Cargo.toml`, `tauri.conf.json` and `package.json`; each `#[ts(export)]` type has
   an `export_bindings_*` test (`bun run types`).

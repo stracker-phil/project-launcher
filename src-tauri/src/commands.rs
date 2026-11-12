@@ -5,23 +5,18 @@ use tauri_plugin_opener::OpenerExt;
 
 use crate::error::{AppError, AppResult};
 use crate::launch::LaunchEvent;
+use crate::links;
 use crate::state::AppState;
 
 /// Opens a link in the default browser; the webview itself never navigates away.
 #[tauri::command]
 pub fn open_url(app: AppHandle, url: String) -> AppResult<()> {
-    if !is_web_url(&url) {
+    if !links::is_web_url(&url) {
         return Err(AppError::InvalidInput(format!("Not a web link: {url}")));
     }
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(|e| AppError::Io(e.to_string()))
-}
-
-/// Only `http` and `https` links with a host leave the app.
-pub fn is_web_url(url: &str) -> bool {
-    url::Url::parse(url)
-        .is_ok_and(|u| matches!(u.scheme(), "http" | "https") && u.host_str().is_some())
 }
 
 /// The page listens: it takes what waited for it.
@@ -47,30 +42,6 @@ pub fn sanitize_log_text(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn only_http_and_https_links_with_a_host_are_web_urls() {
-        for url in [
-            "http://example.com",
-            "https://example.com/path?q=1#top",
-            "https://localhost:8080",
-        ] {
-            assert!(is_web_url(url), "{url}");
-        }
-        for url in [
-            "file:///etc/passwd",
-            "javascript:alert(1)",
-            "data:text/html,<p>hi</p>",
-            "launcher://open",
-            "launcher-debug://open",
-            "/relative/path",
-            "example.com",
-            "https://",
-            "",
-        ] {
-            assert!(!is_web_url(url), "{url}");
-        }
-    }
 
     #[test]
     fn log_text_escapes_line_breaks() {

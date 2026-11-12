@@ -288,6 +288,28 @@ fn a_link_is_opened() {
 }
 
 #[test]
+fn a_link_that_is_not_a_web_link_is_refused_and_nothing_opens() {
+    for url in [
+        "file:///Applications/Calculator.app",
+        "demoapp://open",
+        "javascript:alert(1)",
+    ] {
+        let fx = Fx::with(
+            Some(json!({ "apps": [{ "label": "Link", "url": url }] })),
+            Settings::default(),
+        );
+
+        let err = fx.runner().launch("p", apps(0), NOW).unwrap_err();
+
+        assert!(
+            matches!(&err, AppError::InvalidInput(message) if message.starts_with("Not a web link")),
+            "{url}: {err:?}"
+        );
+        assert!(fx.system.calls().is_empty(), "{url}");
+    }
+}
+
+#[test]
 fn a_script_returns_its_trimmed_output_and_exit_status() {
     let fx = Fx::new();
     fx.system.reply("make build", "built in 2s\n\n");

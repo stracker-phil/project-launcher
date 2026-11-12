@@ -25,8 +25,10 @@ the subagents for tests, suites and reviews. Every new name-, path- or platform-
 
 ## Network hosts
 
-None: the app has no network code and no listener besides its Unix socket (tests check the dependency tree;
-[ADR 0016](adr/0016-launcher-has-no-network-code.md)). A new host or listener needs an ADR and a row here.
+None: the app has no network code and no listener besides its Unix socket (a `lib.rs` test fails on an HTTP
+client or server among the direct dependencies; [ADR 0016](adr/0016-launcher-has-no-network-code.md)). A new
+host or listener needs an ADR and a row here. Links open in the browser: https anywhere, http only to a local
+name (`links.rs`, [ADR 0040](adr/0040-links-open-over-https-or-http-to-a-local-name.md)).
 
 ## Platform-specific code
 

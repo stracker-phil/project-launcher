@@ -19,6 +19,7 @@ use ts_rs::TS;
 
 use crate::data::Data;
 use crate::error::{AppError, AppResult};
+use crate::links;
 use crate::projects::FILE_NAME;
 use crate::projects::config::resolve::Action;
 use crate::projects::config::{ActionSource, ProjectConfig, RunsAs};
@@ -157,8 +158,11 @@ impl Runner<'_> {
                 Launched::Launched
             }
             RunsAs::Url => {
-                self.system
-                    .open(&[action.url.as_deref().unwrap_or_default()])?;
+                let url = action.url.as_deref().unwrap_or_default();
+                if !links::is_web_url(url) {
+                    return Err(AppError::InvalidInput(format!("Not a web link: {url}")));
+                }
+                self.system.open(&[url])?;
                 Launched::Launched
             }
             RunsAs::Terminal => match command_of(action) {
