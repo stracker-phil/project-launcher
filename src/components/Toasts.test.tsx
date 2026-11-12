@@ -169,6 +169,74 @@ describe("Toasts", () => {
     });
   });
 
+  describe("while the page is hidden", () => {
+    let state: DocumentVisibilityState;
+    const setVisibility = (next: DocumentVisibilityState) => {
+      state = next;
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+    };
+
+    beforeEach(() => {
+      state = "visible";
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(document, "visibilityState");
+    });
+
+    it("keeps an error toast shown while hidden and dismisses it 8 seconds after the page becomes visible", async () => {
+      state = "hidden";
+      render(<Toasts />);
+      show("error", "Could not open example.com");
+
+      await advance(20_000);
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+
+      setVisibility("visible");
+      await advance(7999);
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+
+      await advance(1);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("pauses the countdown while hidden and resumes with the remaining time", async () => {
+      render(<Toasts />);
+      show("error", "Could not open example.com");
+      await advance(5000);
+
+      setVisibility("hidden");
+      await advance(60_000);
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+
+      setVisibility("visible");
+      await advance(2500);
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+
+      await advance(1000);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("starts the full time again when a repeated toast replaces it after a pause", async () => {
+      render(<Toasts />);
+      show("error", "Disk full");
+      await advance(5000);
+      setVisibility("hidden");
+      await advance(10_000);
+      setVisibility("visible");
+
+      show("error", "Disk full");
+      await advance(7999);
+      expect(screen.getByRole("alert")).toHaveTextContent("×2");
+
+      await advance(1);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  });
+
   describe("with an action", () => {
     it("shows the action button, runs it on click and dismisses the toast", () => {
       const run = vi.fn();

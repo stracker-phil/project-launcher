@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { useStore, type Toast } from "../state/store";
 
@@ -6,13 +6,35 @@ const AUTO_DISMISS_MS = { success: 2500, info: 4000, error: 8000 };
 /** A toast with an action (Undo) stays long enough to reach it. */
 const ACTION_DISMISS_MS = 10_000;
 
+function onVisibilityChange(changed: () => void) {
+  document.addEventListener("visibilitychange", changed);
+  return () => document.removeEventListener("visibilitychange", changed);
+}
+
+/** False while the window is hidden or covered, so nothing times out unseen. */
+function usePageVisible(): boolean {
+  return useSyncExternalStore(onVisibilityChange, () => document.visibilityState === "visible");
+}
+
 function ToastItem({ toast }: { toast: Toast }) {
   const dismiss = useStore((s) => s.dismissToast);
+  const visible = usePageVisible();
+  const ttl = toast.action ? (toast.action.ttlMs ?? ACTION_DISMISS_MS) : AUTO_DISMISS_MS[toast.kind];
+  const left = useRef(ttl);
+  // A repeat (count up) starts the full time again.
   useEffect(() => {
-    const ttl = toast.action ? (toast.action.ttlMs ?? ACTION_DISMISS_MS) : AUTO_DISMISS_MS[toast.kind];
-    const timer = setTimeout(() => dismiss(toast.id), ttl);
-    return () => clearTimeout(timer);
-  }, [toast, dismiss]);
+    left.current = ttl;
+  }, [toast, ttl]);
+  // The time runs only while the window is seen; an error from the tray or the CLI waits for it.
+  useEffect(() => {
+    if (!visible) return;
+    const started = Date.now();
+    const timer = setTimeout(() => dismiss(toast.id), left.current);
+    return () => {
+      clearTimeout(timer);
+      left.current -= Date.now() - started;
+    };
+  }, [toast, visible, dismiss]);
   const [details, setDetails] = useState(false);
   const Icon = toast.kind === "error" ? AlertTriangle : toast.kind === "success" ? CheckCircle2 : Info;
   const [headline, ...rest] = toast.kind === "error" ? errorLines(toast.message) : [toast.message];
