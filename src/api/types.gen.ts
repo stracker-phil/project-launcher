@@ -186,7 +186,11 @@ export type GitStats = {
 /**
  * `None` on a detached HEAD.
  */
-branch: string | null, hasUpstream: boolean, ahead: number, behind: number, modified: number, untracked: number, lastCommit: Commit | null, commits: number, firstCommitMs: number | null, latestTag: string | null, 
+branch: string | null, hasUpstream: boolean, ahead: number, behind: number, modified: number, untracked: number, lastCommit: Commit | null, commits: number, 
+/**
+ * The first commit's month, e.g. "Mar 2024".
+ */
+started: string | null, latestTag: string | null, 
 /**
  * Commits per week, oldest week first.
  */
