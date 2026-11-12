@@ -38,8 +38,3 @@ const shortFormat = new Intl.NumberFormat("en", { notation: "compact", maximumFr
 
 /** 1834 → "1.8K", 12000 → "12K", 1200000 → "1.2M". */
 export const short = (value: number) => shortFormat.format(value);
-
-const monthYearFormat = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
-
-/** "Mar 2024". */
-export const monthYear = (ms: number) => monthYearFormat.format(ms);

@@ -35,11 +35,21 @@ pub struct GitStats {
     pub untracked: u32,
     pub last_commit: Option<Commit>,
     pub commits: u32,
-    #[ts(type = "number | null")]
-    pub first_commit_ms: Option<i64>,
+    /// The first commit's month, e.g. "Mar 2024".
+    pub started: Option<String>,
     pub latest_tag: Option<String>,
     /// Commits per week, oldest week first.
     pub weekly: Vec<u32>,
+}
+
+/// "Mar 2024" in the local time zone; month names stay English like the rest of the app (ADR 0010).
+pub fn month_year(ms: i64) -> Option<String> {
+    let time = chrono::DateTime::from_timestamp_millis(ms)?;
+    Some(
+        time.with_timezone(&chrono::Local)
+            .format("%b %Y")
+            .to_string(),
+    )
 }
 
 fn git(dir: &Path, args: &[&str]) -> String {
@@ -121,11 +131,11 @@ pub fn stats(dir: &Path, now_ms: i64) -> Option<GitStats> {
     stats.commits = git(dir, &["rev-list", "--count", "HEAD"])
         .parse()
         .unwrap_or(0);
-    stats.first_commit_ms = git(dir, &["log", "--max-parents=0", "--format=%ct", "HEAD"])
+    stats.started = git(dir, &["log", "--max-parents=0", "--format=%ct", "HEAD"])
         .lines()
         .filter_map(|t| t.trim().parse::<i64>().ok())
         .min()
-        .map(|s| s * 1000);
+        .and_then(|seconds| month_year(seconds * 1000));
     stats.latest_tag =
         Some(git(dir, &["describe", "--tags", "--abbrev=0"])).filter(|t| !t.is_empty());
     let since = format!(
@@ -252,6 +262,16 @@ mod tests {
         assert_eq!(stats(dir.path(), 1_000_000), None);
     }
 
+    #[test]
+    fn month_year_names_the_month_in_english_with_the_year() {
+        assert_eq!(month_year(1_710_504_000_000), Some("Mar 2024".to_string()));
+    }
+
+    #[test]
+    fn month_year_of_an_out_of_range_timestamp_is_none() {
+        assert_eq!(month_year(i64::MAX), None);
+    }
+
     fn git_available() -> bool {
         Command::new("git")
             .arg("--version")
@@ -331,7 +351,7 @@ mod tests {
                     at_ms: (now_seconds - DAY_SECONDS) * 1000,
                 }),
                 commits: 3,
-                first_commit_ms: Some((now_seconds - 10 * DAY_SECONDS) * 1000),
+                started: month_year((now_seconds - 10 * DAY_SECONDS) * 1000),
                 latest_tag: Some("v1.0.0".into()),
                 weekly: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2],
             }

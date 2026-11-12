@@ -210,7 +210,7 @@ describe("Inspector", () => {
     it("shows branch, commit count, start month and latest tag", async () => {
       mocked.quickStats.mockResolvedValue(
         quickStats({
-          git: gitStats({ branch: "feature/search", commits: 1200, firstCommitMs: Date.UTC(2024, 2, 15, 12), latestTag: "v1.4.0" }),
+          git: gitStats({ branch: "feature/search", commits: 1200, started: "Mar 2024", latestTag: "v1.4.0" }),
         }),
       );
       renderInspector();
@@ -234,8 +234,8 @@ describe("Inspector", () => {
       expect(within(commit).getByTitle("Sam Example")).toHaveTextContent("2 days ago · Sam Example");
     });
 
-    it("leaves out Started when there is no first commit", async () => {
-      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ firstCommitMs: null }) }));
+    it("leaves out Started when there is no start date", async () => {
+      mocked.quickStats.mockResolvedValue(quickStats({ git: gitStats({ started: null }) }));
       renderInspector();
 
       const git = await screen.findByRole("region", { name: "Git" });

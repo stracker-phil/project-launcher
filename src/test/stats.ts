@@ -17,7 +17,7 @@ export const gitStats = (patch: Partial<GitStats> = {}): GitStats => ({
   untracked: 0,
   lastCommit: null,
   commits: 0,
-  firstCommitMs: null,
+  started: null,
   latestTag: null,
   weekly: [],
   ...patch,

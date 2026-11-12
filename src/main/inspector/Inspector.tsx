@@ -6,7 +6,7 @@ import { colorVar } from "../../lib/icons";
 import { useFileStats, useQuickStats, useRefreshStats } from "../../queries/useStats";
 import { attempt } from "../../state/attempt";
 import { useLibrary } from "../../state/library";
-import { ago, bytes, count, monthYear, short } from "./format";
+import { ago, bytes, count, short } from "./format";
 import { Section } from "./Section";
 
 function Row({ label, value, title }: { label: string; value: ReactNode; title?: string }) {
@@ -110,7 +110,7 @@ function Git({ quick }: { quick: QuickStats }) {
       <Row label="Changes" value={changesText(git)} />
       <Row label="Remote" value={remoteText(git)} />
       <Row label="Commits" value={count(git.commits)} />
-      {git.firstCommitMs !== null && <Row label="Started" value={monthYear(git.firstCommitMs)} />}
+      {git.started !== null && <Row label="Started" value={git.started} />}
       {git.latestTag && <Row label="Latest tag" value={git.latestTag} />}
       {last && (
         <div className="inspector-commit">
