@@ -7,6 +7,7 @@ mod build;
 mod items;
 pub mod keys;
 pub mod palette;
+pub mod project_items;
 pub mod shortcuts;
 
 use std::sync::Mutex;

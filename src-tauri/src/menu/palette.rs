@@ -5,8 +5,11 @@ use tauri::{AppHandle, Manager};
 use ts_rs::TS;
 
 use super::keys::effective_accelerator;
+use super::project_items::{ProjectState, for_project};
 use super::{PALETTE, menu_items};
 use crate::bus::{self, CommandStatus};
+use crate::devenv;
+use crate::library::Filter;
 use crate::state::AppState;
 use crate::store::Shortcuts;
 
@@ -83,11 +86,36 @@ fn key_symbol(key: &str) -> String {
     }
 }
 
+/// The state of the project the palette lists the Project menu's items for; `None` once it is gone.
+fn project_state(state: &AppState, id: &str) -> Option<ProjectState> {
+    let project = state.data.project(id).ok()?;
+    let has_database = devenv::commands::target(state, id)
+        .ok()
+        .and_then(|target| target.database_info())
+        .is_some_and(|db| db.error.is_none());
+    let now = chrono::Utc::now().timestamp_millis();
+    let tags = state.data.library(&Filter::All, "", now).sidebar.tags;
+    Some(ProjectState {
+        available: project.available,
+        locked: project.locked,
+        starred: project.meta.starred,
+        archived: project.meta.archived,
+        has_database,
+        tag: project.meta.tag,
+        tags: tags.into_iter().map(|tag| tag.name).collect(),
+    })
+}
+
+/// The menus' items; with `current`, the Project menu's fitted to that project ([`for_project`]).
 #[tauri::command]
-pub async fn menu_commands(app: AppHandle) -> Vec<MenuCommand> {
+pub async fn menu_commands(app: AppHandle, current: Option<String>) -> Vec<MenuCommand> {
     let registry = app.state::<bus::Commands>();
-    let shortcuts = app.state::<AppState>().data.settings().shortcuts;
-    listed(&registry.available(&app), &shortcuts)
+    let state = app.state::<AppState>();
+    let items = listed(&registry.available(&app), &state.data.settings().shortcuts);
+    match current.and_then(|id| project_state(&state, &id)) {
+        Some(project) => for_project(items, &project),
+        None => items,
+    }
 }
 
 #[cfg(test)]

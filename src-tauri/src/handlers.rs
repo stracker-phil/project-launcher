@@ -59,6 +59,7 @@ pub fn handlers() -> impl Fn(Invoke) -> bool + Send + Sync + 'static {
         stats::commands::run_package_script,
         stats::commands::open_project_file,
         devenv::commands::dev_status,
+        devenv::bus::dev_commands,
         devenv::commands::dev_running,
         devenv::commands::dev_action,
         devenv::commands::open_database,

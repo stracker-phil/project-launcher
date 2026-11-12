@@ -130,7 +130,7 @@ describe("useEvents", () => {
     const { result } = renderHook(
       () => {
         useEvents();
-        return useMenuCommands().data;
+        return useMenuCommands("demo-1").data;
       },
       { wrapper },
     );

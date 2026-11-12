@@ -10,7 +10,7 @@ use crate::cli::LogLevel;
 use crate::handlers::handlers;
 use crate::ipc::IpcMessage;
 use crate::state::AppState;
-use crate::{bus, ipc, menu, remote, run, tray, window};
+use crate::{bus, devenv, ipc, menu, remote, run, tray, window};
 
 const MAX_LOG_BYTES: u128 = 5 * 1024 * 1024;
 
@@ -87,6 +87,7 @@ fn commands_bus() -> bus::Commands {
     let mut commands = bus::CommandBus::default();
     bus::register(&mut commands);
     run::bus::register(&mut commands);
+    devenv::bus::register(&mut commands);
     bus::Commands(commands)
 }
 

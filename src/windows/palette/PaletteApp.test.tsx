@@ -60,6 +60,52 @@ describe("PaletteApp", () => {
     expect(screen.getByRole("option", { name: /Alpha\s*Current/ })).toBeInTheDocument();
   });
 
+  it("lists the current project's dev environment rows under its name", async () => {
+    mocked.devCommands.mockImplementation(async (id) =>
+      id === "alpha"
+        ? [
+            { menu: "Dev", label: "Start DDEV", command: "dev:server-start:alpha", key: null },
+            { menu: "Dev", label: "Stop Docker", command: "dev:docker-stop:alpha", key: null },
+          ]
+        : [],
+    );
+    await renderPalette();
+
+    emit("alpha");
+
+    const actions = await screen.findByRole("region", { name: "Alpha" });
+    await waitFor(() => expect(actions).toHaveTextContent("Start DDEV"));
+    expect(actions).toHaveTextContent("Stop Docker");
+  });
+
+  it("runs a dev environment row by its bus id when it is chosen", async () => {
+    mocked.devCommands.mockResolvedValue([{ menu: "Dev", label: "Start DDEV", command: "dev:server-start:alpha", key: null }]);
+    await renderPalette();
+    emit("alpha");
+
+    await userEvent.click(await screen.findByRole("option", { name: /Start DDEV/ }));
+
+    expect(mocked.runCommand).toHaveBeenCalledWith("dev:server-start:alpha");
+  });
+
+  it("asks Rust for the menu commands of the current project", async () => {
+    await renderPalette();
+
+    emit("alpha");
+
+    await waitFor(() => expect(mocked.menuCommands).toHaveBeenCalledWith("alpha"));
+  });
+
+  it("offers no dev rows when no project is current", async () => {
+    mocked.devCommands.mockResolvedValue([{ menu: "Dev", label: "Start DDEV", command: "dev:server-start:alpha", key: null }]);
+    await renderPalette();
+
+    emit(null);
+    await screen.findByRole("option", { name: /Beta Shop/ });
+
+    expect(screen.queryByRole("option", { name: /Start DDEV/ })).not.toBeInTheDocument();
+  });
+
   it("offers no actions when no project is current", async () => {
     await renderPalette();
 

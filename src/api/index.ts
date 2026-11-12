@@ -134,8 +134,9 @@ export const api = {
   runCommand: (id: string) => invoke<void>("run_command", { id }),
   /** Settings → Status: version, build, folders and the command line link. */
   appStatus: () => invoke<AppStatus>("app_status"),
-  /** The menu bar's enabled items, in menu order, for the command palette. */
-  menuCommands: () => invoke<MenuCommand[]>("menu_commands"),
+  /** The menu bar's enabled items, in menu order, for the command palette; the Project menu's fitted to `current`
+   *  (only what applies, Unstar/Unarchive/Unlock, Move to Tag). */
+  menuCommands: (current: string | null) => invoke<MenuCommand[]>("menu_commands", { current }),
   /** Every menu item of a known command with its default and current key, for Settings → Shortcuts. */
   menuShortcuts: () => invoke<MenuShortcut[]>("menu_shortcuts"),
   /** Takes the menu items' keys off while a shortcut is being recorded. */
@@ -202,6 +203,8 @@ export const api = {
   /** Docker, the project's server and its database. */
   devStatus: (id: string) => invoke<DevStatus>("dev_status", { id }),
   devRunning: () => invoke<string[]>("dev_running"),
+  /** The `dev:` commands that apply to the project now (Start Docker, Stop DDEV, Open Site…), for the palette. */
+  devCommands: (id: string) => invoke<MenuCommand[]>("dev_commands", { id }),
   /** Starts the step in the background; `dev_changed` and `dev_failed` follow. */
   devAction: (id: string, action: DevAction) => invoke<void>("dev_action", { id, action }),
   openDatabase: (id: string) => invoke<OpenedDatabase>("open_database", { id }),

@@ -3,6 +3,7 @@
 //! in DataBee. The tools themselves are behind the `Tools` port (`tools.rs`): the real ones, or the debug build's
 //! stand-in unless `LAUNCHER_REAL_DOCKER=1` (ADR 0022).
 
+pub mod bus;
 pub mod commands;
 pub mod database;
 mod ddev;

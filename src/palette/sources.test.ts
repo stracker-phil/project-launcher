@@ -183,6 +183,30 @@ describe("actionCommands", () => {
     expect(mocked.runCommand).toHaveBeenCalledWith("page:action:scripts:1");
   });
 
+  it("lists the dev environment's rows between the project's actions and the Project menu's items", () => {
+    const dev = [menuRow({ menu: "Dev", label: "Start DDEV", command: "dev:server-start:alpha" })];
+
+    const commands = actionCommands(alpha, [editor], [projectItem], noIcon, dev);
+
+    expect(commands.map((c) => [c.label, c.section, c.mode])).toEqual([
+      ["Open in Editor", "Alpha", "actions"],
+      ["Start DDEV", "Alpha", "actions"],
+      ["Reveal in Finder", "Alpha", "actions"],
+    ]);
+  });
+
+  it.each(["dev:server-start:alpha", "dev:docker-stop:alpha"])("runs the dev row %s by its bus id", (command) => {
+    const dev = [menuRow({ menu: "Dev", label: "Dev row", command })];
+
+    find(actionCommands(alpha, [], [], noIcon, dev), command)?.run();
+
+    expect(mocked.runCommand).toHaveBeenCalledWith(command);
+  });
+
+  it("lists no dev rows when none are given", () => {
+    expect(actionCommands(alpha, [editor], [], noIcon).map((c) => c.label)).toEqual(["Open in Editor"]);
+  });
+
   it("runs a Project menu item by its bus id with the key Rust shows", () => {
     const found = find(actionCommands(alpha, [], [projectItem], noIcon), "app:reveal");
 

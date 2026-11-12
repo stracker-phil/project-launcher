@@ -85,6 +85,7 @@ describe("commands on the current project", () => {
     { id: "project.rename", field: "name" },
     { id: "project.icon", field: "icon" },
     { id: "project.notes", field: "notes" },
+    { id: "project.newTag", field: "tag" },
   ])("$id", ({ id, field }) => {
     it(`selects the current project and puts its ${field} into edit mode`, () => {
       resetLibrary({ current: alpha });

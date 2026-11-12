@@ -139,8 +139,8 @@ const IN_BACKGROUND: [&str; 8] = [
 /// Asks the main window's page to run one of its own commands (`page:<id>` from the menus and the palette),
 /// showing the window first unless the command works without it.
 pub fn run_page_command(app: &AppHandle, id: &str) {
-    // `action:<list>:<index>` launches one of the current project's actions.
-    if !IN_BACKGROUND.contains(&id) && !id.starts_with("action:") {
+    // `action:<list>:<index>` launches one of the current project's actions, `tag:<json>` retags it.
+    if !IN_BACKGROUND.contains(&id) && !id.starts_with("action:") && !id.starts_with("tag:") {
         show_main(app);
     }
     if let Err(e) = app.emit_to(MAIN, PAGE_COMMAND_EVENT, id) {

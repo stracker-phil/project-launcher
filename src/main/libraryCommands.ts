@@ -55,6 +55,7 @@ export const LIBRARY_COMMANDS: PageCommand[] = [
   { id: "project.rename", title: "Rename Project", when: editable, run: onCurrent((p) => editField(p, "name")) },
   { id: "project.icon", title: "Change Icon & Color…", when: editable, run: onCurrent((p) => editField(p, "icon")) },
   { id: "project.notes", title: "Edit Note", when: editable, run: onCurrent((p) => editField(p, "notes")) },
+  { id: "project.newTag", title: "New Tag for Project…", when: editable, run: onCurrent((p) => editField(p, "tag")) },
   { id: "project.star", title: "Star Project", when: available, run: onCurrent(toggleStar) },
   { id: "project.archive", title: "Archive Project", when: available, run: onCurrent(toggleArchive) },
   { id: "project.lock", title: "Lock Project Details", when: available, run: onCurrent((p) => setLocked(p, !p.locked)) },

@@ -120,6 +120,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     projectStatus: vi.fn().mockResolvedValue(EMPTY_STATUS),
     devStatus: vi.fn().mockResolvedValue(EMPTY_DEV_STATUS),
     devRunning: vi.fn().mockResolvedValue([]),
+    devCommands: vi.fn().mockResolvedValue([]),
     devAction: vi.fn().mockResolvedValue(undefined),
     openDatabase: vi.fn().mockResolvedValue("opened"),
     setDockerManager: vi.fn().mockResolvedValue(undefined),

@@ -84,6 +84,39 @@ describe("runPageRequest", () => {
     });
   });
 
+  describe("tag requests", () => {
+    it.each([
+      ['tag:"Work"', "Work"],
+      ["tag:null", null],
+    ])("sends the tag for %s to the current project", async (id, value) => {
+      await runPageRequest(id);
+
+      expect(mocked.setProjectMeta).toHaveBeenCalledWith("alpha", { field: "tag", value });
+    });
+
+    it("changes nothing while the project is locked", async () => {
+      resetLibrary({ current: project({ id: "alpha", locked: true }) });
+
+      await runPageRequest('tag:"Work"');
+
+      expect(mocked.setProjectMeta).not.toHaveBeenCalled();
+    });
+
+    it.each(["tag:{nope", "tag:42"])("changes nothing for %s", async (id) => {
+      await runPageRequest(id);
+
+      expect(mocked.setProjectMeta).not.toHaveBeenCalled();
+    });
+
+    it("changes nothing while no project is current", async () => {
+      resetLibrary({ current: null });
+
+      await runPageRequest('tag:"Work"');
+
+      expect(mocked.setProjectMeta).not.toHaveBeenCalled();
+    });
+  });
+
   describe("page commands", () => {
     it("runs the registered command with that id", async () => {
       const run = vi.fn();

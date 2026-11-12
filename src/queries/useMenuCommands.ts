@@ -3,7 +3,8 @@ import { api } from "../api";
 
 export const MENU_COMMANDS_KEY = ["menuCommands"] as const;
 
-/** The enabled menu items for the palette; read again on `settings_changed` (keys) and `projects_changed`. */
-export function useMenuCommands() {
-  return useQuery({ queryKey: MENU_COMMANDS_KEY, queryFn: api.menuCommands });
+/** The enabled menu items for the palette, the Project menu's fitted to `currentId`; read again on
+ *  `settings_changed` (keys) and `projects_changed` (star, lock, tags). */
+export function useMenuCommands(currentId: string | null) {
+  return useQuery({ queryKey: [...MENU_COMMANDS_KEY, currentId], queryFn: () => api.menuCommands(currentId) });
 }

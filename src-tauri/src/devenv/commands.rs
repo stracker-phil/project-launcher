@@ -109,8 +109,8 @@ pub fn prepare_in_background(app: &AppHandle, id: &str) {
     });
 }
 
-#[tauri::command]
-pub async fn dev_status(app: AppHandle, id: String) -> AppResult<DevStatus> {
+/// The project's dev status, asked off the async runtime.
+pub async fn status_of(app: AppHandle, id: String) -> AppResult<DevStatus> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         Ok(state
@@ -119,6 +119,11 @@ pub async fn dev_status(app: AppHandle, id: String) -> AppResult<DevStatus> {
     })
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?
+}
+
+#[tauri::command]
+pub async fn dev_status(app: AppHandle, id: String) -> AppResult<DevStatus> {
+    status_of(app, id).await
 }
 
 /// The projects whose dev server runs, for the list's dots.
@@ -132,11 +137,16 @@ pub async fn dev_running(app: AppHandle) -> AppResult<Vec<String>> {
     .map_err(|e| AppError::Internal(e.to_string()))?
 }
 
-#[tauri::command]
-pub fn dev_action(app: AppHandle, id: String, action: DevAction) {
-    in_background(&app, id, move |state, target| {
+/// Runs a start, stop or restart on a thread of its own: the detail's buttons and the `dev:` commands.
+pub fn act_in_background(app: &AppHandle, id: String, action: DevAction) {
+    in_background(app, id, move |state, target| {
         state.devenv.act(target, action, &state.data.settings())
     });
+}
+
+#[tauri::command]
+pub fn dev_action(app: AppHandle, id: String, action: DevAction) {
+    act_in_background(&app, id, action);
 }
 
 /// `starting`: the database's server starts first; DataBee opens once it runs.

@@ -41,7 +41,10 @@ the family language below.
 ### Command palette
 A floating panel, not part of the main window ([ADR 0037](adr/0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md)): centred over the main window,
 or on the screen while the main window is hidden; opens with ⌘K, from the tray and while the app is in the
-background. Prefixes: `>` commands, `:` projects, `#` library, `/` the current project's actions.
+background. Prefixes: `>` commands, `:` projects, `#` library, `/` the current project's actions, its dev
+environment's steps that apply now (Start Docker, Stop DDEV, Open Site…) and its Project menu items as they apply
+(Unstar, Unarchive, Unlock by state; Move to Tag: <tag>), as the prototype's menu listed them
+(`docs/commands.md` → The palette).
 
 ### Tray menu
 Open Launcher, Command Palette…, Recent Projects ▸ (⌥1 … ⌥0), then the current project's name (gray) with its

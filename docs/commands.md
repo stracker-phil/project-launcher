@@ -19,12 +19,13 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 | `app:show` | Open Launcher | Shows the main window; tray |
 | `app:settings` | Settings… | Opens the Settings window where it was; ⌘, |
 | `app:settings:<page>` | Settings Page | Hidden. Opens Settings at a page or row id (`status`, `about`, `cli`, …); an unknown id shows the first page |
-| `page:<command>` | Window Action | Hidden. Emits `page_command` with `<command>` to the main window, showing it first unless the command acts on the current project without it (`window::IN_BACKGROUND`: terminal, reveal, copy path, edit file, star, archive, lock; and `action:<list>:<index>`). The page also takes `filter:<json>` (shows a sidebar filter) and `action:<list>:<index>` (launches the current project's action; `main/pageRequests.ts`) |
+| `page:<command>` | Window Action | Hidden. Emits `page_command` with `<command>` to the main window, showing it first unless the command acts on the current project without it (`window::IN_BACKGROUND`: terminal, reveal, copy path, edit file, star, archive, lock; and `action:<list>:<index>`, `tag:<json>`). The page also takes `filter:<json>` (shows a sidebar filter), `action:<list>:<index>` (launches the current project's action) and `tag:<json>` (moves the current project to a tag, `null` for none, as the right-click's Move to Tag; not while it is locked; `main/pageRequests.ts`) |
 | `app:palette` | Command Palette… | ⌘K; opens or closes the palette panel; tray |
 | `app:toggle` | Show or Hide Launcher | The global shortcut ⌃⌘L (release builds only, ADR 0036); hides the main window while it is in front, else shows it; rebindable under Settings → Shortcuts → Global |
 | `project:show:<id>` | Show Project | Hidden. Shows the main window with the project selected (`select_project` with `{ id, filter }`: Archived for an archived project, else All Projects); palette and tray |
 | `project:launch:<id>:<list>:<index>` | Launch Action | Hidden. Runs a project's action in Rust; the tray's rows |
 | `project:reveal:<id>` | Reveal Project in Finder | Hidden. The tray's row |
+| `dev:<step>:<id>` | Dev Environment | Hidden. A project's dev environment (`devenv/bus.rs`): `docker-start`, `docker-stop`, `docker-restart`, `server-start`, `server-stop`, `server-restart` run the same step as the detail's buttons (`dev_action`: on a thread of its own, `dev_changed`, `dev_failed`); `open-site` opens the running server's URL in the browser (refused while it doesn't run). An unknown project is `NotFound`. The palette; `launcher command dev:server-start:<id>` |
 | `window:close` | Close Window | Hidden. Hides the window in front (⌘W) |
 | `edit:undo` | Undo | ⌘Z. With the main or Settings window focused it emits `edit_request` `"undo"` to it; the page undoes the typing of a focused text field (`document.execCommand`), else calls `undo_change`. Without a focused window it undoes the last data change directly |
 | `edit:redo` | Redo | ⇧⌘Z; as `edit:undo`, with `"redo"` and `redo_change` |
@@ -49,6 +50,7 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 | `view.search` | Search Projects | ⌘F; focuses the list's search field |
 | `library.all`, `library.starred`, `library.archived` | All Projects, Starred, Archived | ⌘1, ⌘2, ⌘0 |
 | `project.rename`, `project.icon`, `project.notes` | Rename Project, Change Icon & Color…, Edit Note | ⌘E for Rename; the selected project's field in edit mode; off while it is locked |
+| `project.newTag` | New Tag for Project… | The project's tag field in edit mode (the right-click's New Tag…); off while it is locked; palette only |
 | `project.star`, `project.archive` | Star Project, Archive Project | Toggle; starring unarchives and archiving unstars, in one undo step |
 | `project.lock` | Lock Project Details | ⇧⌘L; toggles `"locked"` in the project file |
 | `project.terminal`, `project.reveal`, `project.copyPath`, `project.editFile` | Open Terminal Here, Reveal in Finder, Copy Path, Edit Project File… | ⌥⌘C for Copy Path; a shell in the folder with the project's env, the folder in Finder, the absolute path on the clipboard, `.project-launcher.json` in the config editor (else the project's or default editor, else the text editor) |
@@ -79,8 +81,16 @@ It lists ([ADR 0031](adr/0031-the-palette-runs-the-menus.md), `src/palette/sourc
 
 - every project (archived last; `project:show:<id>`), prefix `:`;
 - the sidebar's filters and tags with their counts (`page:filter:<json>`), prefix `#`;
-- the current project's actions (`page:action:<list>:<index>`) and the Project menu's items, under the project's
-  name, prefix `/`;
+- under the project's name, prefix `/`: the current project's actions (`page:action:<list>:<index>`); its dev
+  environment's steps that apply now (`dev_commands`, `devenv/bus.rs` `palette_items`): Start Docker while it is
+  stopped, Restart Docker and Stop Docker while it runs; Start <server> ("DDEV", "wp-env") while the server is
+  stopped (Docker too, as the server's start starts Docker first), Restart, Stop and Open Site (with a URL) while
+  it runs; nothing for a part that is busy or a server that isn't set up; then the Project menu's items as they
+  apply to it (`menu_commands` with `current`, `menu/project_items.rs` `for_project`): Rename, Icon, Note and the
+  tag items only while it is unlocked, Open Database only with a database DataBee can open, Star/Unstar,
+  Archive/Unarchive, Lock/Unlock by its state, and after Lock "Move to Tag: <tag>" for every other tag
+  (`page:tag:<json>`), "Move to Tag: No Tag" while it has one and "New Tag for Project…" (`page:project.newTag`).
+  The menu bar's Project menu keeps its fixed labels;
 - every other enabled menu-bar item from `menu_commands` (`src-tauri/src/menu/palette.rs`) and each Settings page
   as "Settings: <page>" (`app:settings:<id>`), prefix `>`.
 
@@ -170,6 +180,7 @@ Everything but copying the path records the project as opened (`lastOpenedAt`) a
 | Tauri command | Does |
 |---|---|
 | `dev_running()` | The ids of the projects whose DDEV or wp-env server runs, asked in one go (`ddev list`, `docker ps`); none while Docker is stopped. The list's green dots |
+| `dev_commands(id)` | The `dev:` commands that apply to the project now, as `MenuCommand`s, for the palette |
 | `dev_status(id)` | `DevStatus`: Docker (running, the step under way, the manager's name) for a project that uses it, the DDEV or wp-env server (state, URL, step under way; `notConfigured` with a hint when the folder lacks its config) and the database (`DatabaseInfo`) |
 | `dev_action(id, action)` | Starts, stops or restarts Docker or the server on a thread of its own (`DevAction`); Docker's stop first runs `ddev poweroff` while DDEV projects run. `dev_changed` follows each change, `dev_failed` (`{ projectId, label, output }`) a failed step |
 | `open_database(id)` | Opens the database in DataBee through its CLI (`databee`, the password in `DATABEE_PASSWORD`); `starting` when the server is started first, then DataBee opens or `dev_failed` reports why not |

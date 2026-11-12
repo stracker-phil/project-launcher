@@ -25,3 +25,12 @@ export function useDevStatus(id: string | null) {
     refetchInterval: REFRESH_MS,
   });
 }
+
+/** The `dev:` commands that apply to the project now, for the palette; off while no project is given. */
+export function useDevCommands(id: string | null) {
+  return useQuery({
+    queryKey: [...DEV_STATUS_KEY, "commands", id],
+    queryFn: id === null ? skipToken : () => api.devCommands(id),
+    refetchInterval: REFRESH_MS,
+  });
+}

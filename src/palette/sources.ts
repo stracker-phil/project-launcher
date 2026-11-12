@@ -117,12 +117,15 @@ export function libraryCommands(sidebar: Sidebar, icon: (filter: Filter) => Reac
   }));
 }
 
-/** The current project's actions, then the Project menu's commands, under the project's name. */
+/** The current project's actions, its dev environment's commands (`dev_commands`), then the Project menu's
+ *  commands, under the project's name. */
 export function actionCommands(
   project: Project,
   actions: Action[],
   menu: MenuCommand[],
   icon: (action: Action) => ReactNode,
+  dev: MenuCommand[] = [],
+  devIcon?: (item: MenuCommand) => ReactNode,
 ): PaletteCommand[] {
   const own = actions.map((action): PaletteCommand => {
     const { list, index } = action.edit.source;
@@ -137,6 +140,7 @@ export function actionCommands(
       run: () => runBus(`${PAGE}action:${list}:${index}`),
     };
   });
+  const environment = dev.map((item) => ({ ...fromMenuItem(item, "actions", project.name), icon: devIcon?.(item) }));
   const commands = menu.filter((item) => item.menu === PROJECT_MENU).map((item) => fromMenuItem(item, "actions", project.name));
-  return [...own, ...commands];
+  return [...own, ...environment, ...commands];
 }
