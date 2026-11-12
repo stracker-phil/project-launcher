@@ -307,6 +307,24 @@ describe("SettingsApp", () => {
         await userEvent.click(hit("Start command, General"));
 
         await waitFor(() => expect(row("dockerStartCommand")).toHaveClass("found"));
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+        expect(row("dockerStartCommand")).toHaveClass("found");
+        expect(row("docker")).not.toHaveClass("found");
+      });
+
+      it("moves the highlight from the Docker app row to the start command once the Docker app becomes custom", async () => {
+        await renderSettings();
+        await userEvent.type(search(), "start command");
+        await userEvent.click(hit("Start command, General"));
+        await waitFor(() => expect(row("docker")).toHaveClass("found"));
+        mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, dockerManager: "custom" });
+
+        act(() => (api as ReturnType<typeof createApiMock>).emit("settings_changed", null));
+
+        await waitFor(() => expect(row("dockerStartCommand")).toHaveClass("found"));
+        expect(row("docker")).not.toHaveClass("found");
       });
 
       it("opens the page without highlighting anything when a page hit is chosen", async () => {

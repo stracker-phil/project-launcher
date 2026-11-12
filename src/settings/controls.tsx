@@ -12,8 +12,13 @@ export interface RevealTarget {
 
 export const ScrollTarget = createContext<RevealTarget | undefined>(undefined);
 
-/** Targets whose own row was revealed; a fallback revealed first gives way to the row when it mounts later. */
-const revealed = new WeakSet<RevealTarget>();
+interface RevealState {
+  revealed: boolean;
+  fallback?: HTMLElement;
+}
+
+/** Per request: whether its row was revealed, and the `under` element that waits in case it isn't shown. */
+const reveals = new WeakMap<RevealTarget, RevealState>();
 
 function scrollAndHighlight(element: HTMLElement) {
   element.scrollIntoView?.({ block: "start" });
@@ -27,10 +32,21 @@ function useScrollTarget<E extends HTMLElement>(anchor: string | undefined) {
   const ref = useRef<E>(null);
   useEffect(() => {
     const element = ref.current;
-    if (!anchor || !target || !element || revealed.has(target)) return;
-    if (anchor !== target.id && anchor !== target.under) return;
-    if (anchor === target.id) revealed.add(target);
-    scrollAndHighlight(element);
+    if (!anchor || !target || !element) return;
+    const state = reveals.get(target) ?? { revealed: false };
+    reveals.set(target, state);
+    if (state.revealed) return;
+    if (anchor === target.id) {
+      state.revealed = true;
+      state.fallback?.classList.remove("found");
+      scrollAndHighlight(element);
+    } else if (anchor === target.under && !state.fallback) {
+      state.fallback = element;
+      // After this render's effects: the row itself may be shown further down and take the highlight.
+      queueMicrotask(() => {
+        if (!state.revealed) scrollAndHighlight(element);
+      });
+    }
   }, [anchor, target]);
   return ref;
 }
