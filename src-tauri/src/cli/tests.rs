@@ -470,6 +470,81 @@ fn the_list_prints_as_a_table_with_archived_marked_and_the_home_folder_as_a_tild
 }
 
 #[test]
+fn list_json_keeps_the_fields_daybook_reads() {
+    let mut starred = listed("Acme", Some("Client"), "/srv/acme", false);
+    starred.starred = true;
+    let archived = listed("Blog", None, "/srv/blog", true);
+
+    assert_eq!(
+        serde_json::to_value(vec![starred, archived]).unwrap(),
+        serde_json::json!([
+            {
+                "id": "id-Acme",
+                "name": "Acme",
+                "path": "/srv/acme",
+                "tag": "Client",
+                "starred": true,
+                "archived": false
+            },
+            {
+                "id": "id-Blog",
+                "name": "Blog",
+                "path": "/srv/blog",
+                "tag": null,
+                "starred": false,
+                "archived": true
+            }
+        ])
+    );
+}
+
+#[test]
+fn the_json_daybook_receives_reads_back_as_listed_projects() {
+    let received = serde_json::json!([
+        {
+            "id": "p-1",
+            "name": "Acme",
+            "path": "/srv/acme",
+            "tag": "Client",
+            "starred": true,
+            "archived": false
+        },
+        {
+            "id": "p-2",
+            "name": "Blog",
+            "path": "/srv/blog",
+            "tag": null,
+            "starred": false,
+            "archived": true
+        }
+    ]);
+
+    let projects: Vec<ListedProject> = serde_json::from_value(received).unwrap();
+
+    assert_eq!(
+        projects,
+        vec![
+            ListedProject {
+                id: "p-1".into(),
+                name: "Acme".into(),
+                path: "/srv/acme".into(),
+                tag: Some("Client".into()),
+                starred: true,
+                archived: false,
+            },
+            ListedProject {
+                id: "p-2".into(),
+                name: "Blog".into(),
+                path: "/srv/blog".into(),
+                tag: None,
+                starred: false,
+                archived: true,
+            },
+        ]
+    );
+}
+
+#[test]
 fn only_paths_inside_the_home_folder_print_with_a_tilde() {
     let home = text(&home());
     let reply = serde_json::to_value(vec![

@@ -26,7 +26,9 @@ description: Finish a development step in Launcher - clean up and review the cod
 7. Choose the bump from `git log v<last>..HEAD` (`git describe --tags --abbrev=0` names the last; with no
    tag yet, from the commit "Set the version to 1.0.0") per ADR 0039: minor for new features, visible behavior
    and changes that break existing use, patch otherwise. Major only with the owner's explicit approval, asked
-   first. A changed `launcher list --json` shape goes into the report, since Daybook reads it. Run
+   first. What Daybook reads (`launcher list --json`, `launcher open <id>`; ADR 0047) stays compatible: a new
+   field is fine; renaming, removing or retyping a field or changing an argument needs the owner's approval,
+   asked first, and goes into the report with what Daybook has to change. Run
    `bun run release major|minor|patch` (in the
    background; it takes minutes): `scripts/install.sh` installs the release build as
    `~/Applications/Launcher.app` and `launcher`, and restarts the running app on it, so the user's app
