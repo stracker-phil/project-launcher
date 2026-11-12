@@ -165,20 +165,22 @@ so far). ⌘K or a click on the scrim closes it as well; the focus returns to wh
 ## Settings (`settings-window`)
 Own window in System Settings layout: a page list under group headings on `--settings-chrome` with drag
 strip and search; page title in the strip, a one-line intro below it; groups (13px semibold heading) of rows
-(label and description left, control right, hairlines). Controls: TextField, NumberField, DraftField with
+(label and description left, control right, hairlines) on an inset card. No headline repeats the one above it
+(page title, group heading, row label, row description; [ADR 0045](adr/0045-settings-groups-are-taskboards-inset-cards.md)). Controls: TextField, NumberField, DraftField with
 Rust's field error in red below, Segmented, switches; destructive buttons ask in an alertdialog sheet. With
 another window in front, switches, primary buttons and the list turn gray (`window-blurred`). Generic pages:
 Appearance, Shortcuts, Status, About (version, Show Data Folder, Open Log Folder), Privacy & Data.
 
-Launcher's values (`src/styles/settings.css`, `src-tauri/src/window/settings.rs`; TimeTracker's look,
-[ADR 0042](adr/0042-settings-follow-timetracker-with-an-accent-choice.md)): window 880×720, min 760×560, not
+Launcher's values (`src/styles/settings.css`, `src-tauri/src/window/settings.rs`; TimeTracker's page list,
+[ADR 0042](adr/0042-settings-follow-timetracker-with-an-accent-choice.md), and Taskboard's inset groups,
+[ADR 0045](adr/0045-settings-groups-are-taskboards-inset-cards.md)): window 880×720, min 760×560, not
 maximizable, traffic lights at 20,22; 36px strips (drag region in the list, page title 15px bold in the pane);
 page list 176px, pages under 11px semibold group headings (App: General, Appearance, Shortcuts · System: Status,
 Privacy & Data, About; `GROUP_ORDER` in `src/registry/settingsPages.ts`), rows 28px with 6px radius, the current
 page filled with `--accent` and `--text-on-accent` (icon and label inherit); search field 28px on
-`--settings-fill`; page body 8/20/24px padding, 20px between groups; a one-line intro
-(`--settings-text-secondary`) under each page title; groups without fill or radius, 13px semibold heading, an
-optional description below it, hairlines (`--settings-hairline`) between rows; rows at least 48px (14px
+`--settings-fill`; page body 8/20/24px padding, 24px between groups; a one-line intro
+(`--settings-text-secondary`) under each page title; groups as inset cards (`--settings-fill-quiet`, 12px radius, 16px side padding), 13px semibold heading
+16px in, an optional description below it, a page with one group may leave it without a heading, hairlines (`--settings-hairline`) between rows; rows at least 48px (14px
 vertical padding), the label column flexible (a real `<label>` for its control), the control at its own size;
 a row can stack its control below the label or show dimmed (`Row stacked`, `disabled`); values
 `--settings-text-secondary`, selectable and cut off with an ellipsis; push buttons and fields 28px with 8px
@@ -196,15 +198,16 @@ hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px seg
   be empty and no value may hold a line break, refused in red below the field), the Docker app (a pop-up
   button: Docker Desktop, OrbStack, Colima, Custom; Custom adds its start and stop commands as fields), and
   Open at login (a switch; dimmed in the debug app, which never installs a login item).
-- Appearance: Automatic / Light / Dark as three tiles, each a miniature window in its palette (Automatic split
+- Appearance: Mode, Automatic / Light / Dark as three tiles, each a miniature window in its palette (Automatic split
   light and dark), the chosen one ringed in the accent; Accent color as swatches, System (the macOS accent
   color) then orange, gold, red, magenta, purple, indigo, blue, teal and graphite. Every window switches at once.
-- Shortcuts: a "Search commands" field narrows the rows by title or group ("No matching commands." when none
-  is left); every menu item's key, grouped by menu, then the page keys no menu item holds (Main Window,
-  Settings Window); each row says where its key works and is found by the Settings search too. A row shows its
+- Shortcuts: a "Search commands" field narrows the rows by title, group or menu ("No matching commands."
+  when none is left); rows grouped by where the key works: "In every window" (every menu item, in menu order,
+  described by its menu, e.g. "File menu"), then "In the main window" and "In the Settings window" (the page
+  keys no menu item holds); each row is found by the Settings search too. A row shows its
   key in a 7rem recorder field: a click records the next key (the menu's keys are off meanwhile, so ⌘W or ⌘Q
   reach it), ⌫ leaves the command without one, ⎋ or a click elsewhere cancels; an unbound key reads "None" in
-  muted italics. Left of it, the reset button (only while the key is the owner's own) and the × remove button
+  muted italics. Left of it, the reset button (only while the key differs from the default; recording the default key resets the row) and the × remove button
   (only while there is a key) keep their slots when hidden. A key another command has asks first ("⌘K is used
   by “Command Palette”", Reassign), then moves it as one undo step; so does a reset to a default another
   command has now; menu keys clash with every key, page keys only within their window. A menu key without ⌘

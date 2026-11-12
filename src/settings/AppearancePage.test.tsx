@@ -40,10 +40,19 @@ describe("AppearancePage", () => {
     mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, appearance });
     renderPage();
 
-    const tiles = within(await screen.findByRole("group", { name: "Appearance" }));
+    const tiles = within(await screen.findByRole("group", { name: "Mode" }));
     expect(await tiles.findByRole("button", { name: label, pressed: true })).toBeInTheDocument();
     expect(tiles.getAllByRole("button")).toHaveLength(3);
     expect(tiles.getAllByRole("button", { pressed: true })).toHaveLength(1);
+  });
+
+  it("labels the mode row Mode with a description and has no Look heading", async () => {
+    renderPage();
+
+    expect(await screen.findByText("Mode")).toBeInTheDocument();
+    expect(screen.getByText("Light, dark, or Automatic, which follows macOS.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Look" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Appearance" })).not.toBeInTheDocument();
   });
 
   it("saves the clicked appearance", async () => {

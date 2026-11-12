@@ -29,6 +29,11 @@ async function assign(rows: ShortcutRow[], row: ShortcutRow, key: string) {
     return;
   }
   if (key === row.key) return;
+  // The default key resets the row, so it has nothing left to reset.
+  if (key === row.defaultKey) {
+    await reset(rows, row);
+    return;
+  }
   const other = conflictFor(rows, row, key);
   if (!other) {
     await attempt(api.setShortcut(row.id, key), SAVE_FAILED);
@@ -48,13 +53,6 @@ async function reset(rows: ShortcutRow[], row: ShortcutRow) {
   if (await confirmTakeover(row, other, key)) await attempt(api.resetShortcut(row.id, other.id), RESET_FAILED);
 }
 
-/** Menu keys work everywhere and sit under their menu's heading; only window keys say where they work. */
-const WHERE: Record<ShortcutRow["scope"], string | undefined> = {
-  menu: undefined,
-  main: "In the main window",
-  settings: "In the Settings window",
-};
-
 /** Keeps its slot when hidden, so its neighbours never move. */
 function SlotButton({ shown, label, title, onClick, children }: { shown: boolean; label: string; title: string; onClick: () => void; children: ReactNode }) {
   if (!shown) return <span className="icon-btn tiny slot-hidden" aria-hidden="true" />;
@@ -68,7 +66,7 @@ function SlotButton({ shown, label, title, onClick, children }: { shown: boolean
 function ShortcutRowView({ row, rows }: { row: ShortcutRow; rows: ShortcutRow[] }) {
   const unbind = () => void attempt(api.setShortcut(row.id, null), SAVE_FAILED);
   return (
-    <Row label={row.title} description={WHERE[row.scope]} anchor={rowAnchor(row.id)}>
+    <Row label={row.title} description={row.detail} anchor={rowAnchor(row.id)}>
       <div className="shortcut-control">
         <SlotButton shown={row.overridden} label={`Reset ${row.title}`} title="Reset to default" onClick={() => void reset(rows, row)}>
           <RotateCcw size={11} aria-hidden="true" />
@@ -82,9 +80,10 @@ function ShortcutRowView({ row, rows }: { row: ShortcutRow; rows: ShortcutRow[] 
   );
 }
 
-const matches = (row: ShortcutRow, needle: string) => !needle || row.title.toLowerCase().includes(needle) || row.group.toLowerCase().includes(needle);
+const matches = (row: ShortcutRow, needle: string) =>
+  !needle || [row.title, row.group, row.detail ?? ""].some((text) => text.toLowerCase().includes(needle));
 
-/** Each shortcut, grouped by menu or window, changeable, removable or resettable (ADR 0032); a search narrows
+/** Each shortcut, grouped by where it works, changeable, removable or resettable (ADR 0032); a search narrows
  *  the rows. */
 export function ShortcutsPage() {
   const { data: settings } = useSettings();
@@ -105,7 +104,7 @@ export function ShortcutsPage() {
     <>
       <label className="settings-search">
         <Search size={14} aria-hidden="true" />
-        <input type="search" aria-label="Search commands" placeholder="Search commands" 
+        <input type="search" aria-label="Search commands" placeholder="Search commands"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {

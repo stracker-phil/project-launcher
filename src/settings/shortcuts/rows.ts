@@ -11,31 +11,36 @@ export interface ShortcutRow {
   /** What `settings.json` stores the key under: the menu item's command, else the page command's id. */
   id: string;
   title: string;
-  /** The menu, or the window of a page command. */
+  /** Where the key works. */
   group: string;
+  /** The menu a menu item sits in. */
+  detail?: string;
   scope: ShortcutScope;
   key: string | null;
   defaultKey: string | null;
   overridden: boolean;
 }
 
+const MENU_GROUP = "In every window";
+
 const PAGE_GROUPS: { title: string; scope: ShortcutScope; commands: PageCommand[] }[] = [
-  { title: "Main Window", scope: "main", commands: MAIN_COMMANDS },
-  { title: "Settings Window", scope: "settings", commands: SETTINGS_COMMANDS },
+  { title: "In the main window", scope: "main", commands: MAIN_COMMANDS },
+  { title: "In the Settings window", scope: "settings", commands: SETTINGS_COMMANDS },
 ];
 
 /** The id a row is opened and found by in Settings. */
 export const rowAnchor = (id: string) => `shortcut:${id}`;
 
-function menuRows(menu: MenuShortcut[], overrides: Overrides): ShortcutRow[] {
+function menuRows(menu: MenuShortcut[]): ShortcutRow[] {
   return menu.map((item) => ({
     id: item.command,
     title: item.label.replace(/…$/, ""),
-    group: item.menu,
+    group: MENU_GROUP,
+    detail: `${item.menu} menu`,
     scope: "menu",
     key: item.key,
     defaultKey: item.defaultKey,
-    overridden: Object.hasOwn(overrides, item.command),
+    overridden: item.key !== item.defaultKey,
   }));
 }
 
@@ -45,20 +50,16 @@ function pageRows(menu: MenuShortcut[], overrides: Overrides): ShortcutRow[] {
   return PAGE_GROUPS.flatMap(({ title, scope, commands }) =>
     commands
       .filter((command) => !inMenu.has(`page:${command.id}`))
-      .map((command) => ({
-        id: command.id,
-        title: command.title,
-        group: title,
-        scope,
-        key: resolveBinding(command.id, command.defaultBinding, overrides),
-        defaultKey: resolveBinding(command.id, command.defaultBinding, {}),
-        overridden: Object.hasOwn(overrides, command.id),
-      })),
+      .map((command) => {
+        const key = resolveBinding(command.id, command.defaultBinding, overrides);
+        const defaultKey = resolveBinding(command.id, command.defaultBinding, {});
+        return { id: command.id, title: command.title, group: title, scope, key, defaultKey, overridden: key !== defaultKey };
+      }),
   );
 }
 
 export function shortcutRows(menu: MenuShortcut[], overrides: Overrides): ShortcutRow[] {
-  return [...menuRows(menu, overrides), ...pageRows(menu, overrides)];
+  return [...menuRows(menu), ...pageRows(menu, overrides)];
 }
 
 /** Rows by group, groups in the order they first appear. */

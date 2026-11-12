@@ -92,6 +92,7 @@
   --settings-bg: #1e1e1e;
   --settings-chrome: #2a2a2a;
   --settings-fill: rgba(255, 255, 255, 0.07);
+  --settings-fill-quiet: rgba(255, 255, 255, 0.04);
   --settings-fill-strong: rgba(255, 255, 255, 0.12);
   --settings-line: rgba(255, 255, 255, 0.12);
   --settings-hairline: rgba(255, 255, 255, 0.07);

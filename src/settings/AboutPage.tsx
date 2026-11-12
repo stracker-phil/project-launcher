@@ -8,7 +8,7 @@ import { ShowDataFolder } from "./privacy/ShowDataFolder";
 export function AboutPage() {
   const { data } = useAppStatus();
   return (
-    <Group title="About">
+    <Group>
       <Row label={data?.name ?? "Launcher"}>
         <Value>{data ? `Version ${data.version}` : ""}</Value>
       </Row>

@@ -94,6 +94,7 @@
   --settings-bg: #ffffff;
   --settings-chrome: #f5f5f5;
   --settings-fill: rgba(0, 0, 0, 0.055);
+  --settings-fill-quiet: rgba(0, 0, 0, 0.035);
   --settings-fill-strong: rgba(0, 0, 0, 0.1);
   --settings-line: rgba(0, 0, 0, 0.12);
   --settings-hairline: rgba(38, 38, 38, 0.06);

@@ -27,7 +27,7 @@ function MiniWindow({ scheme, className = "" }: { scheme: "light" | "dark"; clas
 /** One tile per mode, ringed when chosen; Automatic is split into its light and dark halves. */
 function ModePicker({ value, onChange }: { value: Appearance | null; onChange: (mode: Appearance) => void }) {
   return (
-    <div className="scheme-picker" role="group" aria-label="Appearance">
+    <div className="scheme-picker" role="group" aria-label="Mode">
       {MODES.map(({ id, label }) => (
         <button key={id} type="button" className="scheme-option" aria-pressed={value === id} onClick={() => onChange(id)}>
           <span className="scheme-tile" aria-hidden="true">
@@ -45,8 +45,8 @@ function ModePicker({ value, onChange }: { value: Appearance | null; onChange: (
 export function AppearancePage() {
   const { data: settings } = useSettings();
   return (
-    <Group title="Look">
-      <Row label="Appearance" description="Automatic follows macOS." stacked>
+    <Group>
+      <Row label="Mode" description="Light, dark, or Automatic, which follows macOS." stacked>
         <ModePicker value={settings?.appearance ?? null} onChange={(appearance) => void attempt(api.setAppearance(appearance), "Could not change the appearance")} />
       </Row>
       <Row label="Accent color" description="Selection, focus, switches and buttons. System follows macOS." anchor="accent">

@@ -52,6 +52,7 @@ Context, Decision, Consequences.
 | [0039](0039-a-major-version-needs-the-owners-approval.md) | A major version needs the owner's approval | Accepted (2026-11-11) |
 | [0040](0040-links-open-over-https-or-http-to-a-local-name.md) | Links open over https, or over http to a local name | Accepted (2026-11-12) |
 | [0041](0041-debug-builds-record-databee-like-every-launch.md) | Debug builds record DataBee like every other launch | Accepted (2026-11-12) |
-| [0042](0042-settings-follow-timetracker-with-an-accent-choice.md) | Settings follow TimeTracker, with an accent choice | Accepted (2026-11-12) |
+| [0042](0042-settings-follow-timetracker-with-an-accent-choice.md) | Settings follow TimeTracker, with an accent choice | Accepted (2026-11-12); groups superseded by 0045 |
 | [0043](0043-the-view-is-remembered-outside-undo.md) | The window frame and sidebar choice are remembered outside undo | Accepted (2026-11-12) |
 | [0044](0044-a-launch-outside-a-terminal-starts-in-the-menu-bar.md) | A launch outside a terminal starts in the menu bar | Accepted (2026-11-12) |
+| [0045](0045-settings-groups-are-taskboards-inset-cards.md) | Settings groups are Taskboard's inset cards; no headline repeats | Accepted (2026-11-12) |

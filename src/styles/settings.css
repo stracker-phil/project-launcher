@@ -1,4 +1,5 @@
-/* The Settings window (docs/ux.md → Settings, ADR 0033, ADR 0042): TimeTracker's look with Launcher's 48px rows.
+/* The Settings window (docs/ux.md → Settings, ADR 0033, 0042, 0045): TimeTracker's page list and
+   Taskboard's inset groups, with 48px rows.
    The page list under group headings on the left, the page of row groups on the right. */
 .settings-window {
   display: flex;
@@ -77,7 +78,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   min-height: 0;
   padding: 8px 20px 24px;
   scrollbar-gutter: stable;
@@ -85,11 +86,11 @@
 /* One line under the title: what the page is for. */
 .settings-intro { margin: 0; line-height: 1.4; color: var(--settings-text-secondary); }
 
-/* A group: heading above, no fill, hairlines between its rows from the text's edge. */
-.settings-group { display: flex; flex-direction: column; gap: 8px; scroll-margin-top: 8px; }
-.settings-group h3 { margin: 0 0 0 12px; font-size: 13px; font-weight: 600; color: var(--settings-text); }
-.settings-group-desc { margin: 0 0 0 12px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: pretty; }
-.settings-card { padding: 0 12px; }
+/* An inset group (ADR 0045): a quiet-fill card under its heading. */
+.settings-group { display: flex; flex-direction: column; gap: 4px; scroll-margin-top: 8px; }
+.settings-group h3 { margin: 0 0 0 16px; font-size: 13px; font-weight: 600; color: var(--settings-text); }
+.settings-group-desc { margin: 0 0 0 16px; font-size: 11px; line-height: 1.35; color: var(--settings-text-secondary); text-wrap: pretty; }
+.settings-card { margin-top: 4px; padding: 0 16px; border-radius: 12px; background: var(--settings-fill-quiet); }
 .settings-row { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 14px 0; scroll-margin-top: 8px; }
 .settings-row + .settings-row { border-top: 1px solid var(--settings-hairline); }
 .settings-row.stacked { flex-direction: column; align-items: stretch; gap: 12px; }
