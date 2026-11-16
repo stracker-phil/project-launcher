@@ -25,7 +25,7 @@ const item = (menu: string, label: string, command: string, key: string | null, 
 
 const MENU: MenuShortcut[] = [
   item("File", "Settings…", "app:settings", "Mod+,"),
-  item("File", "Quit", "app:quit", "Mod+Q"),
+  item("File", "Print", "app:print", "Mod+P"),
   item("Edit", "Undo", "edit:undo", "Mod+Z"),
   item("View", "Toggle Sidebar", "page:view.toggleSidebar", "Mod+B"),
 ];
@@ -68,7 +68,7 @@ describe("ShortcutsPage", () => {
     it("groups the rows by where the key works, under no menu name", async () => {
       renderPage();
 
-      await recorder("Quit");
+      await recorder("Print");
 
       expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
         "In every window",
@@ -81,20 +81,20 @@ describe("ShortcutsPage", () => {
     it("lists every menu item in menu order under In every window, with its key", async () => {
       renderPage();
 
-      await recorder("Quit");
+      await recorder("Print");
 
       const buttons = group("In every window").getAllByRole("button", { name: /^Record shortcut for / });
       expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
         "Record shortcut for Settings",
-        "Record shortcut for Quit",
+        "Record shortcut for Print",
         "Record shortcut for Undo",
         "Record shortcut for Toggle Sidebar",
       ]);
-      expect(buttons.map((b) => b.textContent)).toEqual(["⌘,", "⌘Q", "⌘Z", "⌘B"]);
+      expect(buttons.map((b) => b.textContent)).toEqual(["⌘,", "⌘P", "⌘Z", "⌘B"]);
     });
 
     it.each([
-      ["Quit", "File menu"],
+      ["Print", "File menu"],
       ["Undo", "Edit menu"],
       ["Toggle Sidebar", "View menu"],
     ])("names the menu of %s in its description", async (title, menu) => {
@@ -115,6 +115,19 @@ describe("ShortcutsPage", () => {
       expect(group("In every window").getByText("Toggle Sidebar")).toBeInTheDocument();
       expect(group("In the Settings window").getByRole("button", { name: "Record shortcut for Close Settings" })).toHaveTextContent("⎋");
       expect(group("In the Settings window").getByRole("button", { name: "Record shortcut for Search Settings" })).toHaveTextContent("⌘F");
+    });
+
+    it.each([
+      ["In the main window", "Close Window", "⎋"],
+      ["In the main window", "Hide Window", "⌘Q"],
+      ["In the Settings window", "Close Settings", "⎋"],
+      ["In the Settings window", "Hide Settings", "⌘Q"],
+    ])("lists %s with %s on %s", async (region, title, key) => {
+      renderPage();
+
+      await recorder(title);
+
+      expect(group(region).getByRole("button", { name: `Record shortcut for ${title}` })).toHaveTextContent(key);
     });
 
     it("says None for a command without a key", async () => {
@@ -146,20 +159,20 @@ describe("ShortcutsPage", () => {
   describe("reset", () => {
     it("is hidden but keeps its slot for a command on its default key", async () => {
       renderPage();
-      const quit = await recorder("Quit");
+      const quit = await recorder("Print");
 
-      expect(screen.queryByRole("button", { name: "Reset Quit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Reset Print" })).not.toBeInTheDocument();
       expect(slotsOf(quit)).toHaveLength(2);
       expect(slotsOf(quit)[0]).toHaveAttribute("aria-hidden", "true");
     });
 
     it("is hidden for a menu command whose stored override equals its default", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+Q", "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+Q" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+P", "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+P" } });
       renderPage();
-      const quit = await recorder("Quit");
+      const quit = await recorder("Print");
 
-      expect(screen.queryByRole("button", { name: "Reset Quit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Reset Print" })).not.toBeInTheDocument();
       expect(slotsOf(quit)[0]).toHaveAttribute("aria-hidden", "true");
     });
 
@@ -182,34 +195,34 @@ describe("ShortcutsPage", () => {
     });
 
     it("restores the default of a command with the owner's key", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J" } });
       renderPage();
 
-      await userEvent.click(await screen.findByRole("button", { name: "Reset Quit" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Reset Print" }));
 
-      expect(mocked.resetShortcut).toHaveBeenCalledWith("app:quit");
+      expect(mocked.resetShortcut).toHaveBeenCalledWith("app:print");
     });
 
     describe("when another command now holds the default key", () => {
       beforeEach(() => {
-        mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q"), item("Edit", "Undo", "edit:undo", "Mod+Q", "Mod+Z")]);
-        mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J", "edit:undo": "Mod+Q" } });
+        mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P"), item("Edit", "Undo", "edit:undo", "Mod+P", "Mod+Z")]);
+        mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J", "edit:undo": "Mod+P" } });
       });
 
       it("asks, then takes the key from that command", async () => {
         renderPage();
 
-        await userEvent.click(await screen.findByRole("button", { name: "Reset Quit" }));
+        await userEvent.click(await screen.findByRole("button", { name: "Reset Print" }));
 
-        expect(await screen.findByRole("alertdialog", { name: "⌘Q is used by “Undo”" })).toBeInTheDocument();
+        expect(await screen.findByRole("alertdialog", { name: "⌘P is used by “Undo”" })).toBeInTheDocument();
         await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
-        await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:quit", "edit:undo"));
+        await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:print", "edit:undo"));
       });
 
       it("changes nothing when the question is cancelled", async () => {
         renderPage();
-        await userEvent.click(await screen.findByRole("button", { name: "Reset Quit" }));
+        await userEvent.click(await screen.findByRole("button", { name: "Reset Print" }));
 
         await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
 
@@ -219,12 +232,12 @@ describe("ShortcutsPage", () => {
     });
 
     it("shows an error toast when the reset fails", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J" } });
       mocked.resetShortcut.mockRejectedValue({ kind: "io", message: "Disk full", code: null });
       renderPage();
 
-      await userEvent.click(await screen.findByRole("button", { name: "Reset Quit" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Reset Print" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not reset the shortcut: Disk full");
     });
@@ -234,9 +247,9 @@ describe("ShortcutsPage", () => {
     it("leaves the command without a key", async () => {
       renderPage();
 
-      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Quit" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Print" }));
 
-      expect(mocked.setShortcut).toHaveBeenCalledWith("app:quit", null);
+      expect(mocked.setShortcut).toHaveBeenCalledWith("app:print", null);
     });
 
     it("is hidden but keeps its slot for a command without a key", async () => {
@@ -250,19 +263,19 @@ describe("ShortcutsPage", () => {
     });
 
     it("sits beside the reset button, both shown for a command on another key", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J" } });
       renderPage();
-      const quit = await recorder("Quit");
+      const quit = await recorder("Print");
 
-      expect(slotsOf(quit).map((slot) => slot.getAttribute("aria-label"))).toEqual(["Reset Quit", "Remove shortcut for Quit"]);
+      expect(slotsOf(quit).map((slot) => slot.getAttribute("aria-label"))).toEqual(["Reset Print", "Remove shortcut for Print"]);
     });
 
     it("shows an error toast when it fails", async () => {
       mocked.setShortcut.mockRejectedValue({ kind: "io", message: "Disk full", code: null });
       renderPage();
 
-      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Quit" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut for Print" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not change the shortcut: Disk full");
     });
@@ -271,40 +284,40 @@ describe("ShortcutsPage", () => {
   describe("search", () => {
     it("narrows the rows to the commands whose title contains the text", async () => {
       renderPage();
-      await recorder("Quit");
+      await recorder("Print");
 
       await userEvent.type(searchField(), "UNDO");
 
       expect(screen.getByRole("button", { name: "Record shortcut for Undo" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Record shortcut for Quit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Record shortcut for Print" })).not.toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "In the main window" })).not.toBeInTheDocument();
     });
 
     it("also matches the menu named in a row's description", async () => {
       renderPage();
-      await recorder("Quit");
+      await recorder("Print");
 
       await userEvent.type(searchField(), "file menu");
 
-      expect(screen.getByRole("button", { name: "Record shortcut for Quit" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Record shortcut for Print" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Record shortcut for Settings" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Record shortcut for Undo" })).not.toBeInTheDocument();
     });
 
     it("keeps all the rows of a group whose name matches", async () => {
       renderPage();
-      await recorder("Quit");
+      await recorder("Print");
 
       await userEvent.type(searchField(), "settings window");
 
       expect(group("In the Settings window").getByRole("button", { name: "Record shortcut for Close Settings" })).toBeInTheDocument();
       expect(group("In the Settings window").getByRole("button", { name: "Record shortcut for Search Settings" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Record shortcut for Quit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Record shortcut for Print" })).not.toBeInTheDocument();
     });
 
     it("says No matching commands. when nothing matches", async () => {
       renderPage();
-      await recorder("Quit");
+      await recorder("Print");
 
       await userEvent.type(searchField(), "zzz");
 
@@ -314,14 +327,14 @@ describe("ShortcutsPage", () => {
 
     it("is cleared by the first Escape, which brings every row back", async () => {
       renderPage();
-      await recorder("Quit");
+      await recorder("Print");
       await userEvent.type(searchField(), "zzz");
 
       await userEvent.keyboard("{Escape}");
 
       expect(searchField()).toHaveValue("");
       expect(screen.queryByText("No matching commands.")).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Record shortcut for Quit" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Record shortcut for Print" })).toBeInTheDocument();
     });
   });
 
@@ -329,9 +342,9 @@ describe("ShortcutsPage", () => {
     it("pauses the menu's keys while recording and restores them afterwards", async () => {
       renderPage();
 
-      await userEvent.click(await recorder("Quit"));
+      await userEvent.click(await recorder("Print"));
 
-      expect(await screen.findByRole("button", { name: "Press the new shortcut for Quit" })).toHaveTextContent("Press keys…");
+      expect(await screen.findByRole("button", { name: "Press the new shortcut for Print" })).toHaveTextContent("Press keys…");
       expect(mocked.pauseMenuKeys).toHaveBeenLastCalledWith(true);
       await userEvent.keyboard("{Meta>}j{/Meta}");
       await waitFor(() => expect(mocked.pauseMenuKeys).toHaveBeenLastCalledWith(false));
@@ -340,17 +353,17 @@ describe("ShortcutsPage", () => {
     it("saves the recorded key", async () => {
       renderPage();
 
-      await record("Quit", "{Meta>}{Shift>}j{/Shift}{/Meta}");
+      await record("Print", "{Meta>}{Shift>}j{/Shift}{/Meta}");
 
-      expect(mocked.setShortcut).toHaveBeenCalledWith("app:quit", "Mod+Shift+J");
+      expect(mocked.setShortcut).toHaveBeenCalledWith("app:print", "Mod+Shift+J");
     });
 
     it("cancels on Escape without saving", async () => {
       renderPage();
 
-      await record("Quit", "{Escape}");
+      await record("Print", "{Escape}");
 
-      expect(await recorder("Quit")).toHaveTextContent("⌘Q");
+      expect(await recorder("Print")).toHaveTextContent("⌘P");
       expect(mocked.setShortcut).not.toHaveBeenCalled();
       expect(mocked.reassignShortcut).not.toHaveBeenCalled();
     });
@@ -358,52 +371,52 @@ describe("ShortcutsPage", () => {
     it.each(["{Backspace}", "{Delete}"])("leaves the command without a key on %s", async (keys) => {
       renderPage();
 
-      await record("Quit", keys);
+      await record("Print", keys);
 
-      expect(mocked.setShortcut).toHaveBeenCalledWith("app:quit", null);
+      expect(mocked.setShortcut).toHaveBeenCalledWith("app:print", null);
     });
 
     it("does nothing when the command already has the key", async () => {
       renderPage();
 
-      await record("Quit", "{Meta>}q{/Meta}");
+      await record("Print", "{Meta>}p{/Meta}");
 
       expect(mocked.setShortcut).not.toHaveBeenCalled();
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
     it("resets a command to its default when its default key is recorded", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J" } });
       renderPage();
 
-      await record("Quit", "{Meta>}q{/Meta}");
+      await record("Print", "{Meta>}p{/Meta}");
 
-      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:quit"));
+      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:print"));
       expect(mocked.setShortcut).not.toHaveBeenCalled();
     });
 
     it("resets an unbound command when its default key is recorded", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", null, "Mod+Q")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": null } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", null, "Mod+P")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": null } });
       renderPage();
 
-      await record("Quit", "{Meta>}q{/Meta}");
+      await record("Print", "{Meta>}p{/Meta}");
 
-      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:quit"));
+      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:print"));
       expect(mocked.setShortcut).not.toHaveBeenCalled();
     });
 
     it("asks before resetting to a default key another command holds, then takes it", async () => {
-      mocked.menuShortcuts.mockResolvedValue([item("File", "Quit", "app:quit", "Mod+J", "Mod+Q"), item("Edit", "Undo", "edit:undo", "Mod+Q", "Mod+Z")]);
-      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:quit": "Mod+J", "edit:undo": "Mod+Q" } });
+      mocked.menuShortcuts.mockResolvedValue([item("File", "Print", "app:print", "Mod+J", "Mod+P"), item("Edit", "Undo", "edit:undo", "Mod+P", "Mod+Z")]);
+      mocked.getSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, shortcuts: { "app:print": "Mod+J", "edit:undo": "Mod+P" } });
       renderPage();
 
-      await record("Quit", "{Meta>}q{/Meta}");
+      await record("Print", "{Meta>}p{/Meta}");
 
-      expect(await screen.findByRole("alertdialog", { name: "⌘Q is used by “Undo”" })).toBeInTheDocument();
+      expect(await screen.findByRole("alertdialog", { name: "⌘P is used by “Undo”" })).toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
-      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:quit", "edit:undo"));
+      await waitFor(() => expect(mocked.resetShortcut).toHaveBeenCalledWith("app:print", "edit:undo"));
       expect(mocked.setShortcut).not.toHaveBeenCalled();
     });
 
@@ -411,7 +424,7 @@ describe("ShortcutsPage", () => {
       mocked.setShortcut.mockRejectedValue({ kind: "io", message: "Disk full", code: null });
       renderPage();
 
-      await record("Quit", "{Meta>}j{/Meta}");
+      await record("Print", "{Meta>}j{/Meta}");
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Could not change the shortcut: Disk full");
     });
@@ -419,7 +432,7 @@ describe("ShortcutsPage", () => {
     it("refuses a menu key without ⌘ or ⌃ and says why", async () => {
       renderPage();
 
-      await record("Quit", "j");
+      await record("Print", "j");
 
       expect(await screen.findByRole("alert")).toHaveTextContent("J can't be a menu shortcut: it needs ⌘ or ⌃.");
       expect(mocked.setShortcut).not.toHaveBeenCalled();
@@ -438,19 +451,19 @@ describe("ShortcutsPage", () => {
     it("asks before giving a key another command has, then reassigns it", async () => {
       renderPage();
 
-      await record("Quit", "{Meta>}z{/Meta}");
+      await record("Print", "{Meta>}z{/Meta}");
 
       expect(await screen.findByRole("alertdialog", { name: "⌘Z is used by “Undo”" })).toHaveAccessibleDescription(
-        "Give it to “Quit” instead? “Undo” is left without a shortcut.",
+        "Give it to “Print” instead? “Undo” is left without a shortcut.",
       );
       await userEvent.click(screen.getByRole("button", { name: "Reassign" }));
-      await waitFor(() => expect(mocked.reassignShortcut).toHaveBeenCalledWith("app:quit", "Mod+Z", "edit:undo"));
+      await waitFor(() => expect(mocked.reassignShortcut).toHaveBeenCalledWith("app:print", "Mod+Z", "edit:undo"));
       expect(mocked.setShortcut).not.toHaveBeenCalled();
     });
 
     it("changes nothing when the question is cancelled", async () => {
       renderPage();
-      await record("Quit", "{Meta>}z{/Meta}");
+      await record("Print", "{Meta>}z{/Meta}");
 
       await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
 

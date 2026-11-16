@@ -1,17 +1,13 @@
-import { api, toAppError } from "../api";
-import { useStore } from "../state/store";
-import { isTextInput, type PageCommand } from "./registry";
+import { closeWindow } from "./closeWindow";
+import { isTextInput, layerIsOpen, type PageCommand } from "./registry";
 
-/** Escape leaves a text field or a sheet first. */
-const escapeIsFree = () => !isTextInput(document.activeElement) && !document.querySelector('[role="dialog"], [role="alertdialog"]');
+/** Escape leaves a text field or an open layer first. */
+const escapeIsFree = () => !isTextInput(document.activeElement) && !layerIsOpen();
 
-function closeWindow() {
-  api.runCommand("window:close").catch((e: unknown) => useStore.getState().toast("error", `Could not close the window: ${toAppError(e).message}`));
-}
-
-/** The Settings window's own keys; ⌘W is the File menu's Close Window. */
+/** The Settings window's own keys; ⌘W is the File menu's Close Window, ⌘Q hides rather than quits (ADR 0048). */
 export const SETTINGS_COMMANDS: PageCommand[] = [
   { id: "settings.close", title: "Close Settings", defaultBinding: "Escape", when: escapeIsFree, run: closeWindow },
+  { id: "settings.hide", title: "Hide Settings", defaultBinding: "Mod+Q", run: closeWindow },
   {
     id: "settings.search",
     title: "Search Settings",

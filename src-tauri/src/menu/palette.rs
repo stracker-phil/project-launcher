@@ -315,27 +315,51 @@ mod tests {
             ("CmdOrCtrl+Ctrl+Up", "⌃⌘↑"),
             ("Ctrl+Esc", "⌃⎋"),
         ] {
-            let listed = listed(&Enabled(ALL), &overrides("app:quit", Some(override_key)));
+            let listed = listed(
+                &Enabled(ALL),
+                &overrides("app:settings", Some(override_key)),
+            );
             assert_eq!(
-                find(&listed, "app:quit").key.as_deref(),
+                find(&listed, "app:settings").key.as_deref(),
                 Some(expected),
                 "{override_key}"
             );
-            assert_eq!(find(&listed, "app:settings").key.as_deref(), Some("⌘,"));
+            assert_eq!(find(&listed, "edit:undo").key.as_deref(), Some("⌘Z"));
         }
     }
 
     #[test]
     fn a_null_override_shows_no_key() {
-        let listed = listed(&Enabled(ALL), &overrides("app:quit", None));
-        assert_eq!(find(&listed, "app:quit").key, None);
+        let listed = listed(&Enabled(ALL), &overrides("app:settings", None));
+        assert_eq!(find(&listed, "app:settings").key, None);
         assert_eq!(find(&listed, "edit:undo").key.as_deref(), Some("⌘Z"));
     }
 
     #[test]
     fn an_override_menus_cannot_take_leaves_the_default_key() {
-        let listed = listed(&Enabled(ALL), &overrides("app:quit", Some("Q")));
-        assert_eq!(find(&listed, "app:quit").key.as_deref(), Some("⌘Q"));
+        let listed = listed(&Enabled(ALL), &overrides("app:settings", Some("Q")));
+        assert_eq!(find(&listed, "app:settings").key.as_deref(), Some("⌘,"));
+    }
+
+    #[test]
+    fn quit_is_listed_without_a_key_even_with_a_stored_override() {
+        for shortcuts in [
+            Shortcuts::new(),
+            overrides("app:quit", Some("Mod+Q")),
+            overrides("app:quit", Some("Mod+Alt+P")),
+            overrides("app:quit", None),
+        ] {
+            let listed = listed(&Enabled(ALL), &shortcuts);
+            assert_eq!(
+                find(&listed, "app:quit"),
+                &MenuCommand {
+                    menu: crate::APP_NAME.to_string(),
+                    label: "Quit Launcher".to_string(),
+                    command: "app:quit".to_string(),
+                    key: None,
+                }
+            );
+        }
     }
 
     #[test]

@@ -26,12 +26,12 @@ tray and the page (`api.runCommand` → `run_command`) run them by id. A command
 | `project:launch:<id>:<list>:<index>` | Launch Action | Hidden. Runs a project's action in Rust; the tray's rows |
 | `project:reveal:<id>` | Reveal Project in Finder | Hidden. The tray's row |
 | `dev:<step>:<id>` | Dev Environment | Hidden. A project's dev environment (`devenv/bus.rs`): `docker-start`, `docker-stop`, `docker-restart`, `server-start`, `server-stop`, `server-restart` run the same step as the detail's buttons (`dev_action`: on a thread of its own, `dev_changed`, `dev_failed`); `open-site` opens the running server's URL in the browser (refused while it doesn't run). An unknown project is `NotFound`. The palette; `launcher command dev:server-start:<id>` |
-| `window:close` | Close Window | Hidden. Hides the window in front (⌘W) |
+| `window:close` | Close Window | Hidden. Hides the window in front (⌘W; ⌘Q and ⎋ through page commands) |
 | `edit:undo` | Undo | ⌘Z. With the main or Settings window focused it emits `edit_request` `"undo"` to it; the page undoes the typing of a focused text field (`document.execCommand`), else calls `undo_change`. Without a focused window it undoes the last data change directly |
 | `edit:redo` | Redo | ⇧⌘Z; as `edit:undo`, with `"redo"` and `redo_change` |
 | `app:logs` | Open Log Folder | Help menu |
 | `app:data` | Show Data Folder | Help menu; the config folder with `settings.json` and `projects.json` (the list of known project files) |
-| `app:quit` | Quit Launcher | Quits; tray and ⌘Q |
+| `app:quit` | Quit Launcher | Quits; the Launcher menu, the tray and the palette only. No key, and none can be given ([ADR 0048](adr/0048-no-single-key-press-quits.md)) |
 | `app:reload` | Reload | Debug builds only; reloads the focused window (⌥⌘R) |
 
 ## Page commands
@@ -56,6 +56,8 @@ the window has focus. Bare keys (no ⌘ or ⌃) never fire in text fields.
 | `project.terminal`, `project.reveal`, `project.copyPath`, `project.editFile` | Open Terminal Here, Reveal in Finder, Copy Path, Edit Project File… | ⌥⌘C for Copy Path; a shell in the folder with the project's env, the folder in Finder, the absolute path on the clipboard, `.project-launcher.json` in the config editor (else the project's or default editor, else the text editor) |
 | `project.database` | Open Database | ⇧⌘D; the project's database in DataBee (`open_database`); a DDEV or wp-env database whose server doesn't run is started first |
 | `project.remove` | Remove from List | The toast offers Undo; the folder and its file stay |
+| `main.close` | Close Window | ⎋ (not while a text field other than the empty project search, a sheet, popover or menu has it); runs `window:close` |
+| `main.hide` | Hide Window | ⌘Q; runs `window:close`, so ⌘Q never quits |
 
 The library's and project's commands live in `src/main/libraryCommands.ts`; they act on the project the detail
 shows (`useLibrary` `current`). A row's right-click opens the same choices (`src/main/projectMenu.ts`).
@@ -65,6 +67,7 @@ The Settings window has its own (`settingsCommands.ts`):
 | Id | Title | Key |
 |---|---|---|
 | `settings.close` | Close Settings | ⎋ (not while a text field or sheet has focus); runs `window:close` |
+| `settings.hide` | Hide Settings | ⌘Q; runs `window:close` |
 | `settings.search` | Search Settings | ⌘F |
 
 ## The palette
@@ -103,7 +106,7 @@ group without one is dropped. Plain-letter keys never go on menu items.
 
 | Menu | Items |
 |---|---|
-| Launcher | About · Settings… ⌘, · Services · Hide, Hide Others, Show All · Quit Launcher ⌘Q |
+| Launcher | About · Settings… ⌘, · Services · Hide, Hide Others, Show All · Quit Launcher (no key) |
 | File | New Project… ⌘N, New Tag… ⇧⌘N · Close Window ⌘W |
 | Edit | Undo ⌘Z, Redo ⇧⌘Z (`edit:undo`, `edit:redo`, replacing macOS's own) · macOS's Cut, Copy, Paste, Select All |
 | View | Toggle Sidebar ⌃⌘S, Toggle Inspector ⌃⌘I · Search Projects ⌘F, Command Palette… ⌘K (`app:palette`), Reload ⌥⌘R (debug) · Enter Full Screen |
@@ -114,7 +117,8 @@ group without one is dropped. Plain-letter keys never go on menu items.
 
 The keys above are the defaults. The owner changes them in Settings → Shortcuts; `settings.json` `shortcuts`
 stores them by command id in the page's notation (`Mod+Shift+K`): a menu item under its command
-(`app:palette`, `app:quit`), a page command under its id (`settings.search`). `menu/keys.rs` converts
+(`app:palette`), a page command under its id (`settings.search`). Quit takes no key (`Item::takes_a_key`):
+Settings → Shortcuts leaves it out, `checked` refuses one and `effective_accelerator` ignores a stored one. `menu/keys.rs` converts
 between that and Tauri's `CmdOrCtrl+Shift+K` (`Combo`); a menu item's key is the override, else its default
 (`effective_accelerator`; an override the menu can't take keeps the default). Every settings change, its undo
 and redo included, calls `menu::refresh`, which rebuilds the menu bar only when the keys or their pause

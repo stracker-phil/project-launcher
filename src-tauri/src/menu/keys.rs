@@ -150,6 +150,9 @@ fn key_name(part: &str) -> Option<String> {
 /// The key a menu item has with the owner's overrides: an override that menus can't take (no ⌘ or ⌃, an
 /// unknown key) leaves the default.
 pub fn effective_accelerator(item: &Item, shortcuts: &Shortcuts) -> Option<String> {
+    if !item.takes_a_key() {
+        return None;
+    }
     let default = || item.accelerator.map(str::to_string);
     match shortcuts.get(item.command) {
         Some(None) => None,
@@ -195,6 +198,20 @@ mod tests {
         let mut shortcuts = Shortcuts::new();
         shortcuts.insert(command.to_string(), key.map(str::to_string));
         shortcuts
+    }
+
+    #[test]
+    fn quit_has_no_accelerator_whatever_the_overrides_say() {
+        for shortcuts in [
+            Shortcuts::new(),
+            overrides("app:quit", Some("Mod+Q")),
+            overrides("app:quit", None),
+        ] {
+            assert_eq!(
+                effective_accelerator(&crate::menu::items::QUIT, &shortcuts),
+                None
+            );
+        }
     }
 
     #[test]

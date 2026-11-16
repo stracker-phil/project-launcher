@@ -31,10 +31,11 @@ fn binding(accelerator: Option<&str>) -> Option<String> {
         .map(|combo| combo.binding())
 }
 
-/// Every item of a known command, enabled or not, in menu order; release builds add the global shortcut.
+/// Every item of a known command that takes a key, enabled or not, in menu order; release builds add the
+/// global shortcut.
 pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuShortcut> {
     let menu = menu_items()
-        .filter(|(_, item)| commands.knows(item.command))
+        .filter(|(_, item)| item.takes_a_key() && commands.knows(item.command))
         .map(|(menu, item)| MenuShortcut {
             menu: menu.to_string(),
             label: item.label.to_string(),
@@ -53,14 +54,22 @@ pub fn listed(commands: &dyn CommandStatus, shortcuts: &Shortcuts) -> Vec<MenuSh
 }
 
 /// The key to store for a command: a menu item's key must have ⌘ or ⌃ and is stored normalized; any other
-/// command's key (a page command's) is kept as the page recorded it.
+/// command's key (a page command's) is kept as the page recorded it. Quit refuses any key.
 pub fn checked(command: &str, key: Option<String>) -> AppResult<Option<String>> {
     let Some(key) = key else {
         return Ok(None);
     };
     let command = command.trim();
-    let needs_modifier = command == global_shortcut::COMMAND
-        || menu_items().any(|(_, item)| item.command == command);
+    let item = menu_items()
+        .map(|(_, item)| item)
+        .find(|item| item.command == command);
+    if item.is_some_and(|item| !item.takes_a_key()) {
+        return Err(AppError::InvalidField {
+            field: "shortcut".into(),
+            message: "Quit has no shortcut, so no single key press quits".into(),
+        });
+    }
+    let needs_modifier = command == global_shortcut::COMMAND || item.is_some();
     if !needs_modifier {
         return Ok(Some(key));
     }
@@ -151,7 +160,6 @@ mod tests {
             commands,
             [
                 "app:settings",
-                "app:quit",
                 "window:close",
                 "edit:undo",
                 "edit:redo",
@@ -163,6 +171,18 @@ mod tests {
                 "app:data",
             ]
         );
+    }
+
+    #[test]
+    fn quit_is_not_listed_even_with_a_stored_override() {
+        for shortcuts in [
+            Shortcuts::new(),
+            overrides("app:quit", Some("Mod+Q")),
+            overrides("app:quit", None),
+        ] {
+            let listed = listed(&KnownButDisabled(ALL), &shortcuts);
+            assert!(listed.iter().all(|item| item.command != "app:quit"));
+        }
     }
 
     #[test]
@@ -188,7 +208,6 @@ mod tests {
         let listed = listed(&KnownButDisabled(ALL), &Shortcuts::new());
         for (command, key) in [
             ("app:settings", Some("Mod+,")),
-            ("app:quit", Some("Mod+Q")),
             ("edit:undo", Some("Mod+Z")),
             ("edit:redo", Some("Mod+Shift+Z")),
             ("page:view.toggleSidebar", Some("Mod+Ctrl+S")),
@@ -235,23 +254,26 @@ mod tests {
             (Some("Mod+K"), Some("Mod+Alt+P"))
         );
         assert_eq!(
-            keys(find(&listed, "app:quit")),
-            (Some("Mod+Q"), Some("Mod+Q"))
+            keys(find(&listed, "app:settings")),
+            (Some("Mod+,"), Some("Mod+,"))
         );
     }
 
     #[test]
     fn a_null_override_leaves_no_current_key_and_keeps_the_default() {
-        let listed = listed(&KnownButDisabled(ALL), &overrides("app:quit", None));
-        assert_eq!(keys(find(&listed, "app:quit")), (Some("Mod+Q"), None));
+        let listed = listed(&KnownButDisabled(ALL), &overrides("app:settings", None));
+        assert_eq!(keys(find(&listed, "app:settings")), (Some("Mod+,"), None));
     }
 
     #[test]
     fn an_override_menus_cannot_take_shows_the_default_as_current() {
-        let listed = listed(&KnownButDisabled(ALL), &overrides("app:quit", Some("Q")));
+        let listed = listed(
+            &KnownButDisabled(ALL),
+            &overrides("app:settings", Some("Q")),
+        );
         assert_eq!(
-            keys(find(&listed, "app:quit")),
-            (Some("Mod+Q"), Some("Mod+Q"))
+            keys(find(&listed, "app:settings")),
+            (Some("Mod+,"), Some("Mod+,"))
         );
     }
 
@@ -267,9 +289,25 @@ mod tests {
     #[test]
     fn a_menu_key_without_command_or_control_is_refused_as_a_shortcut_field() {
         for key in ["K", "Shift+K", "Alt+K", "Mod+Nope", "Mod+K+L", ""] {
-            let err = checked("app:quit", Some(key.to_string())).unwrap_err();
+            let err = checked("app:settings", Some(key.to_string())).unwrap_err();
             assert_eq!(field_of(&err), Some("shortcut"), "{key:?}");
         }
+    }
+
+    #[test]
+    fn quit_refuses_every_key_as_a_shortcut_field() {
+        for command in ["app:quit", " app:quit "] {
+            for key in ["Mod+Q", "cmd+q", "Q", "Ctrl+Q", ""] {
+                let err = checked(command, Some(key.to_string())).unwrap_err();
+                assert_eq!(field_of(&err), Some("shortcut"), "{command:?} {key:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn quit_accepts_no_key_to_clear_a_stored_one() {
+        assert_eq!(checked("app:quit", None).unwrap(), None);
+        assert_eq!(checked(" app:quit ", None).unwrap(), None);
     }
 
     #[test]
@@ -283,7 +321,7 @@ mod tests {
             ("Ctrl+Esc", "Ctrl+Escape"),
         ] {
             assert_eq!(
-                checked("app:quit", Some(key.to_string())).unwrap(),
+                checked("app:settings", Some(key.to_string())).unwrap(),
                 Some(expected.to_string()),
                 "{key}"
             );
@@ -292,7 +330,7 @@ mod tests {
 
     #[test]
     fn the_command_is_matched_to_a_menu_item_after_trimming() {
-        let err = checked(" app:quit ", Some("K".to_string())).unwrap_err();
+        let err = checked(" app:settings ", Some("K".to_string())).unwrap_err();
         assert_eq!(field_of(&err), Some("shortcut"));
     }
 

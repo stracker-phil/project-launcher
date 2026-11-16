@@ -190,6 +190,9 @@ export function isTextInput(target: EventTarget | null): boolean {
   return false;
 }
 
+/** An open sheet, popover or menu takes Escape first. */
+export const layerIsOpen = () => !!document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]');
+
 /** The command for a keydown. In text fields only ⌘/⌃ combinations (and Escape) fire, so typing never runs one. */
 export function resolveKeydown(e: KeyLike & { target?: EventTarget | null }): PageCommand | null {
   const binding = bindingFromEvent(e);

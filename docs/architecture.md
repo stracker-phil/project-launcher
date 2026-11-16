@@ -38,8 +38,8 @@ These rules hold everywhere in the code. Keep them when you change things.
 - One process holds the window(s); the same binary is the CLI. The first process binds `launcher.sock` and
   holds `launcher.lock` in the config dir; a second one hands its request over and exits
   ([ADR 0009](adr/0009-the-cli-asks-the-running-app.md)).
-- Windows are declared `visible: false` and shown by Rust, so `--hidden` never flashes them. Closing hides;
-  only Quit ends the app.
+- Windows are declared `visible: false` and shown by Rust, so `--hidden` never flashes them. Closing (⌘W, ⌘Q, ⎋) hides;
+  only Quit ends the app, from the Launcher menu, the tray or the palette; no key quits.
 - Launch requests are queued in Rust and pulled by the page (`take_launch_events`).
 - `launcher://` links arrive through `tauri-plugin-deep-link` and run an allowlist of commands.
 - Background work is supervised and restarted on panic ([ADR 0005](adr/0005-panics-unwind.md)): the dev-environment status

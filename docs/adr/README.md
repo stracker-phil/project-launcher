@@ -44,7 +44,7 @@ Context, Decision, Consequences.
 | [0031](0031-the-palette-runs-the-menus.md) | The command palette runs the menus | Accepted (2026-11-11) |
 | [0032](0032-keyboard-first.md) | Every action has a menu item, a palette entry and a rebindable shortcut | Accepted (2026-11-11) |
 | [0033](0033-settings-is-its-own-window.md) | Settings is a window of its own in System Settings layout | Accepted (2026-11-11) |
-| [0034](0034-a-menu-bar-app-that-keeps-running.md) | Launcher is a menu-bar app; closing a window keeps it running | Accepted (2026-11-11) |
+| [0034](0034-a-menu-bar-app-that-keeps-running.md) | Launcher is a menu-bar app; closing a window keeps it running | Accepted (2026-11-11); keys extended by 0048 |
 | [0035](0035-no-status-bar.md) | Launcher has no status bar | Accepted (2026-11-11) |
 | [0036](0036-global-shortcuts-only-in-release-builds.md) | Global shortcuts are registered only by release builds | Accepted (2026-11-11) |
 | [0037](0037-the-palette-is-a-floating-panel-on-a-native-window-layer.md) | The palette is a floating panel on a native window layer | Accepted (2026-11-11) |
@@ -58,3 +58,4 @@ Context, Decision, Consequences.
 | [0045](0045-settings-groups-are-taskboards-inset-cards.md) | Settings groups are Taskboard's inset cards; no headline repeats | Accepted (2026-11-12) |
 | [0046](0046-settings-search-finds-every-row.md) | The Settings search finds every row | Accepted (2026-11-12) |
 | [0047](0047-the-cli-output-siblings-read-is-a-contract.md) | The CLI output siblings read is a contract | Accepted (2026-11-12) |
+| [0048](0048-no-single-key-press-quits.md) | No single key press quits; ⌘Q and Esc hide the window | Accepted (2026-11-16) |

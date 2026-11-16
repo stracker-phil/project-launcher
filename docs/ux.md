@@ -195,7 +195,7 @@ list into one list of every matching page and row, ranked as in the palette, a r
 exports its rows (`*_ROWS`, `SettingsRow` in `src/registry/settingsPages.ts`): every `Row` has an `anchor`, its
 entry's `id`, and its label is the entry's `title`; a test holds them together. A hit opens its page scrolled to
 the row, which an accent wash highlights once (`--motion-highlight`); picking it again does so again. ↵ opens the
-first hit, ⌘F focuses the field, ⎋ clears it, then ⎋ and ⌘W hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
+first hit, ⌘F focuses the field, ⎋ clears it, then ⎋, ⌘W and ⌘Q hide the window. Segmented: a `--settings-fill` track with 2px padding, 24px segments, the pressed one a
 `--settings-control` tile with `--settings-control-shadow`. Pages so far:
 
 - General: the default editor, git client, terminal and project file editor (text fields; the terminal can't

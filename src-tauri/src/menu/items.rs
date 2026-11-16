@@ -10,6 +10,13 @@ pub struct Item {
     pub accelerator: Option<&'static str>,
 }
 
+impl Item {
+    /// Whether the owner may give the item a key.
+    pub fn takes_a_key(&self) -> bool {
+        self.command != QUIT.command
+    }
+}
+
 const fn item(label: &'static str, command: &'static str, accelerator: &'static str) -> Item {
     Item {
         label,
@@ -27,7 +34,8 @@ const fn plain(label: &'static str, command: &'static str) -> Item {
 }
 
 pub const SETTINGS: Item = item("Settings…", "app:settings", "CmdOrCtrl+,");
-pub const QUIT: Item = item("Quit Launcher", "app:quit", "CmdOrCtrl+Q");
+/// No single key press quits (ADR 0048); ⌘Q hides the window instead.
+pub const QUIT: Item = plain("Quit Launcher", "app:quit");
 pub const CLOSE: Item = item("Close Window", "window:close", "CmdOrCtrl+W");
 /// Replace macOS's Undo and Redo; the focused page decides between text and data (`data/edit_menu.rs`).
 pub const UNDO_REDO: &[Item] = &[
@@ -240,6 +248,25 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn the_quit_item_has_no_accelerator() {
+        let quit = menu_items()
+            .map(|(_, item)| item)
+            .find(|item| item.command == "app:quit")
+            .unwrap();
+        assert_eq!(quit.accelerator, None);
+    }
+
+    #[test]
+    fn only_quit_takes_no_key() {
+        let keyless: Vec<&str> = all_items()
+            .into_iter()
+            .filter(|item| !item.takes_a_key())
+            .map(|item| item.command)
+            .collect();
+        assert_eq!(keyless, ["app:quit"]);
     }
 
     #[test]
