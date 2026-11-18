@@ -66,7 +66,7 @@ mod tests {
     }
 }
 
-/// The main window's page reports the project it shows; the palette and the tray act on it.
+/// The main window's page reports the project it shows; the palette, the tray and the Project menu act on it.
 #[tauri::command]
 pub fn set_current_project(
     app: tauri::AppHandle,
@@ -75,5 +75,6 @@ pub fn set_current_project(
 ) {
     if state.set_current_project(id) {
         crate::tray::refresh(&app);
+        crate::menu::follow_current_project(&app);
     }
 }

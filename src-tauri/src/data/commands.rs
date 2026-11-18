@@ -22,6 +22,9 @@ pub fn announce(app: &AppHandle, changed: Changed) {
     if changed.settings || changed.projects {
         crate::tray::refresh(app);
     }
+    if changed.projects {
+        menu::follow_current_project(app);
+    }
     for (stale, event) in [
         (changed.settings, SETTINGS_CHANGED_EVENT),
         (changed.projects, PROJECTS_CHANGED_EVENT),

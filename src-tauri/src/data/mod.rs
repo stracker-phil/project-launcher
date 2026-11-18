@@ -63,6 +63,8 @@ pub struct Data {
     /// Changes apply one at a time.
     writer: Mutex<()>,
     home: Option<PathBuf>,
+    /// Where sibling CLIs (`claude-manager`) are looked for.
+    program_folders: Vec<PathBuf>,
 }
 
 impl Data {
@@ -78,8 +80,14 @@ impl Data {
             files: Mutex::default(),
             undo: Mutex::default(),
             writer: Mutex::new(()),
+            program_folders: crate::claude_manager::search_folders(home.as_deref()),
             home,
         }
+    }
+
+    /// The installed `claude-manager`.
+    pub fn claude_manager(&self) -> Option<PathBuf> {
+        crate::claude_manager::find(&self.program_folders)
     }
 
     pub fn settings(&self) -> Settings {
@@ -89,7 +97,8 @@ impl Data {
     /// Every known project in registry order, each with its file read (or taken from the cache).
     pub fn projects(&self) -> Vec<Project> {
         let known = self.registry.read(|r| r.projects.clone());
-        known.iter().map(|k| self.view(k)).collect()
+        let claude_manager = self.claude_manager().is_some();
+        known.iter().map(|k| self.view(k, claude_manager)).collect()
     }
 
     /// What the main window shows for a sidebar filter and a search.
@@ -108,7 +117,7 @@ impl Data {
             .registry
             .read(|r| r.get(id).cloned())
             .ok_or_else(|| ops::project_not_found(id))?;
-        Ok(self.view(&known))
+        Ok(self.view(&known, self.claude_manager().is_some()))
     }
 
     /// The launch config as the page shows it ([`ProjectConfig::with_home_shown`]).
@@ -136,7 +145,7 @@ impl Data {
                 home: self.home.as_deref(),
                 settings: &settings,
                 is_git_repo: folder.join(".git").exists(),
-                uses_claude: folder.join(".claude").is_dir(),
+                uses_claude: uses_claude(folder),
             },
         ))
     }
@@ -146,8 +155,14 @@ impl Data {
         self.files.lock_unpoisoned().clear();
     }
 
-    fn view(&self, known: &KnownProject) -> Project {
-        projects::view::build(known, &self.file_in(&known.path), self.home.as_deref())
+    fn view(&self, known: &KnownProject, claude_manager: bool) -> Project {
+        let can_manage_claude = claude_manager && uses_claude(Path::new(&known.path));
+        projects::view::build(
+            known,
+            &self.file_in(&known.path),
+            self.home.as_deref(),
+            can_manage_claude,
+        )
     }
 
     /// The project file in `dir`, read on first use.
@@ -247,6 +262,10 @@ impl Data {
             projects: true,
         })
     }
+}
+
+fn uses_claude(folder: &Path) -> bool {
+    folder.join(".claude").is_dir()
 }
 
 #[cfg(test)]

@@ -21,6 +21,7 @@ the subagents for tests, suites and reviews. Every new name-, path- or platform-
 | Dev store | — | `window.launcher` (`VITE_DEV_HOOKS=1`) | `src/main.tsx` |
 | Data | the owner's | the demo seed, its folders in `<config dir>/demo-projects/` | `src-tauri/src/test_support/demo.rs`, `dev.rs` |
 | Project file | `.project-launcher.json` in each project folder | same | `projects/file.rs` `FILE_NAME` |
+| Claude Manager CLI | `claude-manager` in `~/.local/bin` or Homebrew's folders | recorded, not run | `claude_manager.rs` `PROGRAM`, `search_folders` |
 | Author, license | Philipp Stracker <info@philippstracker.com>, MIT | | `Cargo.toml`, `LICENSE` |
 
 ## Network hosts

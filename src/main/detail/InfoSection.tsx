@@ -5,6 +5,7 @@ import { InlineText } from "../../components/InlineText";
 import { openMenu } from "../../components/menu";
 import { attempt } from "../../state/attempt";
 import { setMeta } from "../actions";
+import { openClaudeManager } from "../launch";
 
 const DEV_MODES: { mode: DevMode; label: string }[] = [
   { mode: "none", label: "None" },
@@ -104,6 +105,24 @@ export function InfoSection({ project, config, readOnly }: { project: Project; c
                 <ChevronDown size={12} aria-hidden />
               </button>
             )}
+          </InfoRow>
+        )}
+        {config?.claude && (
+          <InfoRow
+            label="Claude"
+            trailing={
+              <button
+                type="button"
+                className="btn"
+                title={project.canManageClaude ? "Open in Claude Manager" : "Claude Manager isn’t installed"}
+                disabled={!project.canManageClaude}
+                onClick={() => void openClaudeManager(project)}
+              >
+                Manage
+              </button>
+            }
+          >
+            <span className="info__path mono" title={config.claude.profile}>{config.claude.profile}</span>
           </InfoRow>
         )}
         <InfoRow label="Location">

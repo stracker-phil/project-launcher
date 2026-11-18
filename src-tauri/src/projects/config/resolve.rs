@@ -9,6 +9,7 @@ use serde_json::{Map, Value};
 use ts_rs::TS;
 
 use super::builtins::{Links, builtin_apps, runs_as, target};
+use super::claude::{self, ClaudeSetup};
 use super::model::{
     ActionDraft, ActionList, ActionSource, Builtin, DatabaseSetting, DevMode, RunsAs, page_key,
 };
@@ -53,7 +54,7 @@ pub struct ProjectConfig {
 
 impl ProjectConfig {
     /// For the page, which only shows the commands (launching resolves them again): paths in the home folder
-    /// start with `~`.
+    /// start with `~`; so does the Claude profile.
     pub fn with_home_shown(mut self, home: Option<&Path>) -> Self {
         for action in self.apps.iter_mut().chain(self.scripts.iter_mut()) {
             for text in [&mut action.command, &mut action.args]
@@ -62,6 +63,9 @@ impl ProjectConfig {
             {
                 *text = crate::status::tilde_in(text, home);
             }
+        }
+        if let Some(claude) = &mut self.claude {
+            claude.profile = crate::status::tilde_in(&claude.profile, home);
         }
         self
     }
@@ -148,14 +152,6 @@ pub struct StateValue {
     pub color: Option<String>,
 }
 
-#[derive(Serialize, TS, Debug, Clone, PartialEq)]
-#[ts(export, export_to = "src/api/types.gen.ts")]
-#[serde(rename_all = "camelCase")]
-pub struct ClaudeSetup {
-    /// `CLAUDE_CONFIG_DIR` from the env; none uses the default profile.
-    pub config_dir: Option<String>,
-}
-
 pub fn resolve(file: &FileObject, cx: &Context) -> ProjectConfig {
     let meta = file.get("meta");
     let meta_text = |key: &str| text(meta.and_then(|m| m.get(key)));
@@ -184,7 +180,7 @@ pub fn resolve(file: &FileObject, cx: &Context) -> ProjectConfig {
             .filter_map(|(index, entry)| script(entry, index, &vars))
             .collect(),
         builtins: builtin_apps(apps_entries, cx, &links),
-        claude: claude_setup(&env, cx),
+        claude: claude::setup(cx.uses_claude, &env, cx.home),
         env,
         state_providers: object(file.get("stateProviders"))
             .filter_map(|(name, command)| {
@@ -325,15 +321,6 @@ fn hidden_states(entry: &Value) -> Vec<String> {
         .iter()
         .filter_map(|key| key.as_str().map(str::to_string))
         .collect()
-}
-
-fn claude_setup(env: &[EnvVar], cx: &Context) -> Option<ClaudeSetup> {
-    cx.uses_claude.then(|| ClaudeSetup {
-        config_dir: env
-            .iter()
-            .find(|v| v.name == "CLAUDE_CONFIG_DIR")
-            .map(|v| v.value.clone()),
-    })
 }
 
 /// Strings as written, numbers and booleans as text; other values are skipped.
@@ -902,16 +889,37 @@ mod tests {
         assert_eq!(
             with.claude,
             Some(ClaudeSetup {
-                config_dir: Some("/Users/demo/.claude-demo".into())
+                profile: "/Users/demo/.claude-demo".into(),
             })
         );
         let without = resolve_in(file, &Settings::default(), false, false);
         assert_eq!(without.claude, None);
-        let default_profile = resolve_in(json!({}), &Settings::default(), false, true);
+    }
+
+    #[test]
+    fn showing_the_home_folder_also_shortens_the_claude_profile() {
+        let config = resolve_in(json!({}), &Settings::default(), false, true);
+        let shown = config.with_home_shown(Some(Path::new("/Users/demo")));
         assert_eq!(
-            default_profile.claude,
-            Some(ClaudeSetup { config_dir: None })
+            shown.claude,
+            Some(ClaudeSetup {
+                profile: "~/.claude".into(),
+            })
         );
+    }
+
+    #[test]
+    fn a_claude_profile_outside_the_home_folder_is_shown_as_it_is() {
+        let config = resolve_in(
+            json!({ "env": { "CLAUDE_CONFIG_DIR": "/srv/profiles/demo" } }),
+            &Settings::default(),
+            false,
+            true,
+        );
+        let shown = config
+            .clone()
+            .with_home_shown(Some(Path::new("/Users/demo")));
+        assert_eq!(shown, config);
     }
 
     #[test]

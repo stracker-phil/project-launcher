@@ -90,6 +90,7 @@ pub const PROJECT: &[&[Item]] = &[
             "page:project.database",
             "CmdOrCtrl+Shift+D",
         ),
+        item("Manage Claude", "page:project.claude", "CmdOrCtrl+Shift+M"),
         plain("Edit Project File…", "page:project.editFile"),
     ],
     &[plain("Remove from List", "page:project.remove")],
@@ -284,6 +285,7 @@ mod tests {
                 "page:library.archived",
                 "page:library.starred",
                 "page:project.archive",
+                "page:project.claude",
                 "page:project.copyPath",
                 "page:project.database",
                 "page:project.editFile",
@@ -339,6 +341,31 @@ mod tests {
                 "Library",
                 "Project",
                 "Help"
+            ]
+        );
+    }
+
+    #[test]
+    fn manage_claude_follows_open_database_in_the_project_menu() {
+        let found: Vec<_> = menu_items()
+            .filter(|(menu, _)| *menu == "Project")
+            .map(|(_, item)| (item.label, item.command, item.accelerator))
+            .skip_while(|(_, command, _)| *command != "page:project.database")
+            .take(2)
+            .collect();
+        assert_eq!(
+            found,
+            [
+                (
+                    "Open Database",
+                    "page:project.database",
+                    Some("CmdOrCtrl+Shift+D")
+                ),
+                (
+                    "Manage Claude",
+                    "page:project.claude",
+                    Some("CmdOrCtrl+Shift+M")
+                ),
             ]
         );
     }

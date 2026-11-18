@@ -2,7 +2,7 @@ import type { Project } from "../api";
 import type { MenuEntry } from "../components/menu";
 import { useLibrary } from "../state/library";
 import { removeProject, setLocked, setTag, toggleArchive, toggleStar } from "./actions";
-import { copyPath, editProjectFile, openTerminal, revealProject } from "./launch";
+import { copyPath, editProjectFile, openClaudeManager, openTerminal, revealProject } from "./launch";
 
 const separator: MenuEntry = "separator";
 
@@ -50,6 +50,12 @@ export function projectMenu(project: Project, tags: string[]): MenuEntry[] {
     { text: "Open Terminal Here", enabled: project.available, run: () => void openTerminal(project) },
     { text: "Reveal in Finder", run: () => void revealProject(project) },
     { text: "Copy Path", shortcut: "⌥⌘C", run: () => void copyPath(project) },
+    {
+      text: "Manage Claude",
+      shortcut: "⇧⌘M",
+      enabled: project.available && project.canManageClaude,
+      run: () => void openClaudeManager(project),
+    },
     { text: "Edit Project File…", enabled: project.available, run: () => void editProjectFile(project) },
     "separator",
     { text: "Remove from List", danger: true, run: () => void removeProject(project) },

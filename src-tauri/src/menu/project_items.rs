@@ -13,6 +13,8 @@ pub struct ProjectState {
     pub archived: bool,
     /// A database DataBee can open.
     pub has_database: bool,
+    /// Claude Manager can open it.
+    pub can_manage_claude: bool,
     pub tag: Option<String>,
     /// Every tag, in the sidebar's order.
     pub tags: Vec<String>,
@@ -25,10 +27,10 @@ const NEW_TAG: &str = "page:project.newTag";
 /// `page:tag:<json>` moves the current project to the tag (`null`: none).
 const MOVE_TO_TAG: &str = "page:tag:";
 
-/// Its label for the project, or `None` when it doesn't apply; the page refuses the same.
-fn label_for(command: &str, label: &str, project: &ProjectState) -> Option<String> {
+/// Whether a Project menu item can run for the project; the page refuses the same.
+pub fn applies(command: &str, project: &ProjectState) -> bool {
     let editable = project.available && !project.locked;
-    let applies = match command {
+    match command {
         "page:project.rename" | "page:project.icon" | "page:project.notes" => editable,
         "page:project.star"
         | "page:project.archive"
@@ -36,15 +38,20 @@ fn label_for(command: &str, label: &str, project: &ProjectState) -> Option<Strin
         | "page:project.terminal"
         | "page:project.editFile" => project.available,
         "page:project.database" => project.available && project.has_database,
+        "page:project.claude" => project.available && project.can_manage_claude,
         _ => true,
-    };
+    }
+}
+
+/// Its label for the project, or `None` when it doesn't apply.
+fn label_for(command: &str, label: &str, project: &ProjectState) -> Option<String> {
     let label = match command {
         "page:project.star" if project.starred => "Unstar Project",
         "page:project.archive" if project.archived => "Unarchive Project",
         LOCK if project.locked => "Unlock Project Details",
         _ => label,
     };
-    applies.then(|| label.to_string())
+    applies(command, project).then(|| label.to_string())
 }
 
 fn project_item(label: String, command: String) -> MenuCommand {
@@ -103,13 +110,14 @@ pub fn for_project(listed: Vec<MenuCommand>, project: &ProjectState) -> Vec<Menu
 mod tests {
     use super::*;
 
-    const PROJECT_COMMANDS: [(&str, &str); 9] = [
+    const PROJECT_COMMANDS: [(&str, &str); 10] = [
         ("page:project.rename", "Rename Project"),
         ("page:project.icon", "Choose Icon"),
         ("page:project.notes", "Edit Note"),
         ("page:project.star", "Star Project"),
         ("page:project.archive", "Archive Project"),
         ("page:project.database", "Open Database"),
+        ("page:project.claude", "Manage Claude"),
         ("page:project.terminal", "Open Terminal"),
         ("page:project.editFile", "Edit Project File"),
         (LOCK, "Lock Project Details"),
@@ -138,6 +146,7 @@ mod tests {
             starred: false,
             archived: false,
             has_database: true,
+            can_manage_claude: true,
             tag: None,
             tags: Vec::new(),
         }
@@ -179,6 +188,7 @@ mod tests {
                 "Star Project",
                 "Archive Project",
                 "Open Database",
+                "Manage Claude",
                 "Open Terminal",
                 "Edit Project File",
                 "Lock Project Details",
@@ -226,6 +236,7 @@ mod tests {
                 "Star Project",
                 "Archive Project",
                 "Open Database",
+                "Manage Claude",
                 "Open Terminal",
                 "Edit Project File",
                 "Unlock Project Details",
@@ -258,6 +269,68 @@ mod tests {
                 shown,
                 "has_database: {has_database}"
             );
+        }
+    }
+
+    #[test]
+    fn manage_claude_needs_a_readable_project_that_claude_manager_can_open() {
+        for (available, can_manage_claude, shown) in [
+            (true, true, true),
+            (true, false, false),
+            (false, true, false),
+            (false, false, false),
+        ] {
+            let project = ProjectState {
+                available,
+                can_manage_claude,
+                ..state()
+            };
+
+            assert_eq!(
+                applies("page:project.claude", &project),
+                shown,
+                "available: {available}, can_manage_claude: {can_manage_claude}"
+            );
+            assert_eq!(
+                commands(&project)
+                    .iter()
+                    .any(|c| c == "page:project.claude"),
+                shown,
+                "palette, available: {available}, can_manage_claude: {can_manage_claude}"
+            );
+        }
+    }
+
+    #[test]
+    fn manage_claude_stays_available_while_the_details_are_locked() {
+        let project = ProjectState {
+            locked: true,
+            ..state()
+        };
+
+        assert!(applies("page:project.claude", &project));
+    }
+
+    #[test]
+    fn applies_follows_each_commands_requirement() {
+        let locked = ProjectState {
+            locked: true,
+            ..state()
+        };
+        let no_database = ProjectState {
+            has_database: false,
+            ..state()
+        };
+        for (command, project, expected) in [
+            ("page:project.rename", &locked, false),
+            ("page:project.icon", &locked, false),
+            ("page:project.notes", &locked, false),
+            ("page:project.star", &locked, true),
+            ("page:project.database", &no_database, false),
+            ("page:project.database", &locked, true),
+            ("page:project.newTag", &locked, true),
+        ] {
+            assert_eq!(applies(command, project), expected, "{command}");
         }
     }
 

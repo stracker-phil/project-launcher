@@ -34,6 +34,8 @@ pub struct Project {
     pub locked: bool,
     /// Why the file can't be used.
     pub file_error: Option<String>,
+    /// Claude Manager can open it: the folder has a `.claude` directory and `claude-manager` is installed.
+    pub can_manage_claude: bool,
 }
 
 /// The file's `meta`, cleaned up: blank strings count as unset, notes are lines.
@@ -61,7 +63,12 @@ pub fn folder_name(path: &str) -> String {
         .unwrap_or_else(|| path.to_string())
 }
 
-pub fn build(known: &KnownProject, file: &FileRead, home: Option<&Path>) -> Project {
+pub fn build(
+    known: &KnownProject,
+    file: &FileRead,
+    home: Option<&Path>,
+    can_manage_claude: bool,
+) -> Project {
     let (object, file_error) = match file {
         FileRead::Found(object) => (Some(object), None),
         FileRead::Missing => (None, Some(format!("{} is missing", super::FILE_NAME))),
@@ -80,6 +87,7 @@ pub fn build(known: &KnownProject, file: &FileRead, home: Option<&Path>) -> Proj
         available: object.is_some(),
         locked: object.is_some_and(|o| o.get("locked") == Some(&Value::Bool(true))),
         file_error,
+        can_manage_claude,
     }
 }
 
@@ -159,6 +167,7 @@ mod tests {
             &known("/work/northwind"),
             &found(json!({ "meta": meta })),
             None,
+            false,
         )
         .meta
     }
@@ -181,7 +190,7 @@ mod tests {
         }));
 
         assert_eq!(
-            build(&known("/work/northwind"), &file, None),
+            build(&known("/work/northwind"), &file, None, false),
             Project {
                 id: "northwind".into(),
                 path: "/work/northwind".into(),
@@ -202,6 +211,7 @@ mod tests {
                 available: true,
                 locked: false,
                 file_error: None,
+                can_manage_claude: false,
             }
         );
     }
@@ -217,7 +227,7 @@ mod tests {
             (FileRead::Missing, false),
             (FileRead::Broken("broken".into()), false),
         ] {
-            let project = build(&known("/work/northwind"), &file, None);
+            let project = build(&known("/work/northwind"), &file, None, false);
             assert_eq!(project.locked, expected, "{file:?}");
         }
     }
@@ -230,7 +240,7 @@ mod tests {
             found(json!({"name": "   "})),
             found(json!({"name": 5})),
         ] {
-            let project = build(&known("/work/northwind"), &file, None);
+            let project = build(&known("/work/northwind"), &file, None, false);
             assert_eq!(project.name, "northwind", "{file:?}");
         }
     }
@@ -241,6 +251,7 @@ mod tests {
             &known("/work/northwind"),
             &found(json!({"name": "A"})),
             None,
+            false,
         )
         .meta;
 
@@ -335,7 +346,7 @@ mod tests {
 
     #[test]
     fn a_missing_file_makes_the_project_unavailable_with_the_folder_name() {
-        let project = build(&known("/work/northwind"), &FileRead::Missing, None);
+        let project = build(&known("/work/northwind"), &FileRead::Missing, None, false);
 
         assert!(!project.available);
         assert_eq!(
@@ -351,7 +362,7 @@ mod tests {
     fn a_broken_file_makes_the_project_unavailable_with_its_problem() {
         let file = FileRead::Broken(".project-launcher.json must hold a JSON object".into());
 
-        let project = build(&known("/work/northwind"), &file, None);
+        let project = build(&known("/work/northwind"), &file, None, false);
 
         assert!(!project.available);
         assert_eq!(
@@ -361,13 +372,13 @@ mod tests {
         assert_eq!(project.name, "northwind");
         assert_eq!(
             project.meta,
-            build(&known("/work/northwind"), &FileRead::Missing, None).meta
+            build(&known("/work/northwind"), &FileRead::Missing, None, false).meta
         );
     }
 
     #[test]
     fn a_found_file_is_available_without_an_error() {
-        let project = build(&known("/work/northwind"), &found(json!({})), None);
+        let project = build(&known("/work/northwind"), &found(json!({})), None, false);
 
         assert!(project.available);
         assert_eq!(project.file_error, None);
@@ -383,7 +394,7 @@ mod tests {
             ("/work/northwind", "/work/northwind"),
             ("/Users/demonstration/x", "/Users/demonstration/x"),
         ] {
-            let project = build(&known(path), &found(json!({})), Some(home));
+            let project = build(&known(path), &found(json!({})), Some(home), false);
             assert_eq!(project.path, expected, "{path}");
         }
     }
@@ -394,8 +405,23 @@ mod tests {
             &known("/Users/demo/code/northwind"),
             &found(json!({})),
             None,
+            false,
         );
         assert_eq!(project.path, "/Users/demo/code/northwind");
+    }
+
+    #[test]
+    fn can_manage_claude_follows_what_the_caller_passes_for_every_file_state() {
+        for can_manage_claude in [true, false] {
+            for file in [
+                found(json!({})),
+                FileRead::Missing,
+                FileRead::Broken("broken".into()),
+            ] {
+                let project = build(&known("/work/northwind"), &file, None, can_manage_claude);
+                assert_eq!(project.can_manage_claude, can_manage_claude, "{file:?}");
+            }
+        }
     }
 
     #[test]
@@ -404,6 +430,7 @@ mod tests {
             &known("/work/northwind"),
             &found(json!({"name": "A", "meta": {"repoUrl": "https://example.com/r"}})),
             None,
+            false,
         );
 
         assert_eq!(
@@ -428,6 +455,7 @@ mod tests {
                 "available": true,
                 "locked": false,
                 "fileError": null,
+                "canManageClaude": false,
             })
         );
     }

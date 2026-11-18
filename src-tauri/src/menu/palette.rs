@@ -87,7 +87,7 @@ fn key_symbol(key: &str) -> String {
 }
 
 /// The state of the project the palette lists the Project menu's items for; `None` once it is gone.
-fn project_state(state: &AppState, id: &str) -> Option<ProjectState> {
+pub(super) fn project_state(state: &AppState, id: &str) -> Option<ProjectState> {
     let project = state.data.project(id).ok()?;
     let has_database = devenv::commands::target(state, id)
         .ok()
@@ -101,6 +101,7 @@ fn project_state(state: &AppState, id: &str) -> Option<ProjectState> {
         starred: project.meta.starred,
         archived: project.meta.archived,
         has_database,
+        can_manage_claude: project.can_manage_claude,
         tag: project.meta.tag,
         tags: tags.into_iter().map(|tag| tag.name).collect(),
     })

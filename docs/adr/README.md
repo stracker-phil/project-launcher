@@ -59,3 +59,4 @@ Context, Decision, Consequences.
 | [0046](0046-settings-search-finds-every-row.md) | The Settings search finds every row | Accepted (2026-11-12) |
 | [0047](0047-the-cli-output-siblings-read-is-a-contract.md) | The CLI output siblings read is a contract | Accepted (2026-11-12) |
 | [0048](0048-no-single-key-press-quits.md) | No single key press quits; ⌘Q and Esc hide the window | Accepted (2026-11-16) |
+| [0049](0049-claude-manager-opens-through-its-cli.md) | Claude Manager opens a project through its CLI; the Project menu follows the shown project | Accepted (2026-11-18) |

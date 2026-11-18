@@ -8,6 +8,7 @@ mod items;
 pub mod keys;
 pub mod palette;
 pub mod project_items;
+mod project_menu;
 pub mod shortcuts;
 
 use std::sync::Mutex;
@@ -22,6 +23,7 @@ use crate::store::Shortcuts;
 
 pub use build::build;
 pub use items::*;
+pub use project_menu::apply as follow_current_project;
 
 /// Whether the menu items' keys are off while Settings → Shortcuts records one.
 #[derive(Default)]
@@ -45,6 +47,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     let now = built_with(app, &keys);
     app.set_menu(build(app)?)?;
     *built = Some(now);
+    follow_current_project(app);
     Ok(())
 }
 
@@ -58,7 +61,10 @@ pub fn refresh(app: &AppHandle) {
         return;
     }
     match build(app).and_then(|menu| app.set_menu(menu)) {
-        Ok(_) => *built = Some(now),
+        Ok(_) => {
+            *built = Some(now);
+            follow_current_project(app);
+        }
         Err(e) => log::warn!("Couldn't rebuild the menu bar: {e}"),
     }
     crate::global_shortcut::apply(app);

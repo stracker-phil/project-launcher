@@ -4,6 +4,7 @@
 //! action editor's changes (`edit`).
 
 mod builtins;
+pub mod claude;
 pub mod edit;
 pub mod model;
 pub mod resolve;

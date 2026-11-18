@@ -29,6 +29,7 @@ const project = (name: string): Project => ({
   available: true,
   locked: false,
   fileError: null,
+  canManageClaude: false,
 });
 
 const menuItem = (key: string): MenuShortcut => ({ menu: "File", label: "Quit", command: "app:quit", defaultKey: "Mod+Q", key });

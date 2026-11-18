@@ -113,6 +113,7 @@ export function createApiMock(): Api & { emit: <E extends EventName>(event: E, p
     revealProject: vi.fn().mockResolvedValue(undefined),
     copyProjectPath: vi.fn().mockResolvedValue(undefined),
     editProjectFile: vi.fn().mockResolvedValue(undefined),
+    openClaudeManager: vi.fn().mockResolvedValue(undefined),
     quickStats: vi.fn().mockResolvedValue(EMPTY_QUICK_STATS),
     fileStats: vi.fn().mockResolvedValue(EMPTY_FILE_STATS),
     runPackageScript: vi.fn().mockResolvedValue("launched"),

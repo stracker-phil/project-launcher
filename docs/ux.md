@@ -23,7 +23,9 @@ the family language below.
   "Running · Docker Desktop" / "Running · <host>", a globe button for the site, Restart then Start/Stop, and the
   database that opens in DataBee); an Open grid (each action's icon on a tile in its colour, what it opens, its
   key as keycaps); Scripts (icon, label, the command in mono, a Run button) with the last run's output; Info
-  (website and repository with open buttons and a pencil that edits them, dev mode, location, editor). Section
+  (website and repository with open buttons and a pencil that edits them, dev mode, the Claude profile with a
+  Manage button for Claude Manager while the folder has `.claude`, disabled while Claude Manager isn't installed,
+  location, editor). Section
   titles are small and muted; content sits in outlined cards (hairline border, 12px radius). The toolbar's
   lock, star and inspector buttons are round and filled. Locked projects show everything read-only. Paths in
   the home folder show from `~`.

@@ -212,6 +212,28 @@ describe("commands on the current project", () => {
     });
   });
 
+  describe("project.claude", () => {
+    it("opens Claude Manager for the current project", () => {
+      resetLibrary({ current: project({ canManageClaude: true }) });
+
+      expect(runPageCommand("project.claude")).toBe(true);
+
+      expect(mocked.openClaudeManager).toHaveBeenCalledWith("alpha");
+    });
+
+    it.each([
+      { why: "there is no current project", current: null },
+      { why: "the project cannot be managed", current: project({ canManageClaude: false }) },
+      { why: "the project is unavailable", current: project({ canManageClaude: true, available: false }) },
+    ])("is disabled when $why", ({ current }) => {
+      resetLibrary({ current });
+
+      expect(runPageCommand("project.claude")).toBe(false);
+
+      expect(mocked.openClaudeManager).not.toHaveBeenCalled();
+    });
+  });
+
   describe("project.database", () => {
     it.each([
       { why: "an active project", current: alpha },

@@ -43,6 +43,10 @@ export function openTerminal(project: Project) {
   return attempt(api.openTerminal(project.id), "Couldn’t open a terminal");
 }
 
+export function openClaudeManager(project: Project) {
+  return attempt(api.openClaudeManager(project.id), "Couldn’t open Claude Manager");
+}
+
 export function revealProject(project: Project) {
   return attempt(api.revealProject(project.id), "Couldn’t show the folder in Finder");
 }

@@ -21,6 +21,7 @@ const project: Project = {
   available: true,
   locked: false,
   fileError: null,
+  canManageClaude: false,
 };
 
 function wrapper({ children }: { children: ReactNode }) {

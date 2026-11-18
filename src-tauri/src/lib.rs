@@ -5,6 +5,7 @@ mod app;
 pub mod automation;
 mod autostart;
 pub mod bus;
+pub mod claude_manager;
 pub mod cli;
 mod commands;
 pub mod data;

@@ -106,9 +106,9 @@ unavailableReason: string | null, };
 
 export type ClaudeSetup = { 
 /**
- * `CLAUDE_CONFIG_DIR` from the env; none uses the default profile.
+ * The profile's config folder: `CLAUDE_CONFIG_DIR` from the env, else `~/.claude`.
  */
-configDir: string | null, };
+profile: string, };
 
 export type CliLink = "installed" | "notInstalled" | "notApplicable";
 
@@ -299,7 +299,11 @@ locked: boolean,
 /**
  * Why the file can't be used.
  */
-fileError: string | null, };
+fileError: string | null, 
+/**
+ * Claude Manager can open it: the folder has a `.claude` directory and `claude-manager` is installed.
+ */
+canManageClaude: boolean, };
 
 export type ProjectConfig = { 
 /**

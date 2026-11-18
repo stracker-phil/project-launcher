@@ -187,6 +187,8 @@ export const api = {
   /** Opens an app, link or terminal command, or runs a script to its end. */
   launchAction: (id: string, source: ActionSource) => invoke<Outcome>("launch_action", { id, source }),
   openTerminal: (id: string) => invoke<void>("open_terminal", { id }),
+  /** Opens the project's Claude Code environment in Claude Manager. */
+  openClaudeManager: (id: string) => invoke<void>("open_claude_manager", { id }),
   revealProject: (id: string) => invoke<void>("reveal_project", { id }),
   copyProjectPath: (id: string) => invoke<void>("copy_project_path", { id }),
   editProjectFile: (id: string) => invoke<void>("edit_project_file", { id }),

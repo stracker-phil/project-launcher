@@ -231,6 +231,7 @@ mod tests {
             available: true,
             locked: false,
             file_error: None,
+            can_manage_claude: false,
         }
     }
 

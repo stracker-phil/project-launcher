@@ -13,6 +13,7 @@ export function project(patch: Partial<Omit<Project, "meta">> & { meta?: Partial
     available: true,
     locked: false,
     fileError: null,
+    canManageClaude: false,
     meta: { icon: "Folder", color: "Blue", tag: null, notes: [], starred: false, archived: false, url: null, repoUrl: null, editor: null, ...meta },
     ...rest,
   };

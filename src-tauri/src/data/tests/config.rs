@@ -2,6 +2,7 @@
 //! their undo and redo, and the demo seed's configs.
 
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
 use serde_json::{Value, json};
@@ -9,7 +10,7 @@ use tempfile::TempDir;
 
 use crate::data::{Changed, Data, MetaEdit};
 use crate::error::ErrorKind;
-use crate::projects::config::resolve::ClaudeSetup;
+use crate::projects::config::claude::ClaudeSetup;
 use crate::projects::config::{ActionDraft, ActionList, ActionSource, Builtin, DevMode, RunsAs};
 use crate::projects::file::FILE_NAME;
 use crate::projects::{KnownProject, Registry};
@@ -37,7 +38,8 @@ impl Fx {
     fn with_settings(file: Option<Value>, settings: Settings) -> Self {
         let config = temp_config_dir();
         let root = tempfile::tempdir().unwrap();
-        let data = Data::open_with_home(config.path(), Some(root.path().to_path_buf()));
+        let mut data = Data::open_with_home(config.path(), Some(root.path().to_path_buf()));
+        data.program_folders = vec![root.path().join(".local/bin")];
         let dir = root.path().join("p");
         fs::create_dir(&dir).unwrap();
         if let Some(file) = file {
@@ -262,9 +264,65 @@ fn the_claude_setup_follows_a_claude_folder() {
     assert_eq!(
         fx.data.project_config("p").unwrap().claude,
         Some(ClaudeSetup {
-            config_dir: Some(format!("{home}/.claude-demo"))
+            profile: format!("{home}/.claude-demo"),
         })
     );
+}
+
+impl Fx {
+    fn install_claude_manager(&self) {
+        let folder = self.root.path().join(".local/bin");
+        fs::create_dir_all(&folder).unwrap();
+        let program = folder.join("claude-manager");
+        fs::write(&program, "#!/bin/sh\n").unwrap();
+        fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    fn can_manage_claude(&self) -> (bool, bool) {
+        (
+            self.data.project("p").unwrap().can_manage_claude,
+            self.data.projects()[0].can_manage_claude,
+        )
+    }
+}
+
+#[test]
+fn installing_claude_manager_does_not_change_the_claude_setup() {
+    let fx = Fx::new(Some(json!({})));
+    fs::create_dir(fx.dir().join(".claude")).unwrap();
+    let expected = Some(ClaudeSetup {
+        profile: format!("{}/.claude", fx.root.path().to_string_lossy()),
+    });
+    assert_eq!(fx.data.project_config("p").unwrap().claude, expected);
+
+    fx.install_claude_manager();
+
+    assert_eq!(fx.data.project_config("p").unwrap().claude, expected);
+}
+
+#[test]
+fn a_project_can_be_managed_in_claude_only_with_a_claude_folder_and_the_installed_cli() {
+    let fx = Fx::new(Some(json!({})));
+    assert_eq!(fx.can_manage_claude(), (false, false));
+
+    fx.install_claude_manager();
+    assert_eq!(fx.can_manage_claude(), (false, false));
+
+    fs::create_dir(fx.dir().join(".claude")).unwrap();
+    assert_eq!(fx.can_manage_claude(), (true, true));
+
+    fs::remove_file(fx.root.path().join(".local/bin/claude-manager")).unwrap();
+    assert_eq!(fx.can_manage_claude(), (false, false));
+}
+
+#[test]
+fn a_claude_file_instead_of_a_claude_folder_does_not_allow_managing() {
+    let fx = Fx::new(Some(json!({})));
+    fx.install_claude_manager();
+    fs::write(fx.dir().join(".claude"), "").unwrap();
+
+    assert_eq!(fx.can_manage_claude(), (false, false));
+    assert_eq!(fx.data.project_config("p").unwrap().claude, None);
 }
 
 #[test]
@@ -865,7 +923,8 @@ const NOW: i64 = 1_800_000_000_000;
 
 fn demo_data(config: &TempDir) -> Data {
     let seed = demo::write(config.path(), NOW).unwrap();
-    let data = Data::open_with_home(config.path(), Some(PathBuf::from("/home/demo")));
+    let mut data = Data::open_with_home(config.path(), Some(PathBuf::from("/home/demo")));
+    data.program_folders = Vec::new();
     data.reset(seed.settings, seed.registry).unwrap();
     data
 }
@@ -952,22 +1011,19 @@ fn the_demo_orbit_api_resolves_env_states_and_the_claude_app() {
         .collect();
     assert_eq!(values, ["running", "paused"]);
     assert_eq!(orbit.state_providers.len(), 1);
-    assert_eq!(orbit.claude, None);
 }
 
 #[test]
-fn the_demo_orbit_api_gets_its_claude_setup_once_it_has_a_claude_folder() {
+fn the_demo_orbit_api_has_a_claude_setup_with_its_own_profile() {
     let config = temp_config_dir();
     let data = demo_data(&config);
-    let dir = config.path().join(demo::DEMO_FOLDER).join("orbit-api");
-    fs::create_dir(dir.join(".claude")).unwrap();
 
     let orbit = data.project_config("demo00000002").unwrap();
 
     assert_eq!(
         orbit.claude,
         Some(ClaudeSetup {
-            config_dir: Some("/home/demo/.claude-demo".into())
+            profile: "/home/demo/.claude-demo".into(),
         })
     );
 }

@@ -8,7 +8,7 @@ import { Toasts } from "../components/Toasts";
 import { resetRuns, useRuns } from "../state/runs";
 import { resetStore } from "../state/store";
 import { action, project } from "../test/library";
-import { copyPath, editProjectFile, launchAction, openTerminal, revealProject } from "./launch";
+import { copyPath, editProjectFile, launchAction, openClaudeManager, openTerminal, revealProject } from "./launch";
 
 const mocked = vi.mocked(api, true);
 const diskFull = { kind: "io", message: "Disk full", code: null };
@@ -128,6 +128,13 @@ describe("project commands", () => {
     expect(mocked.editProjectFile).toHaveBeenCalledWith("alpha");
   });
 
+  it("openClaudeManager opens the project in Claude Manager", async () => {
+    await openClaudeManager(alpha);
+
+    expect(mocked.openClaudeManager).toHaveBeenCalledWith("alpha");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("copyPath toasts once the path is copied", async () => {
     await copyPath(alpha);
 
@@ -139,6 +146,7 @@ describe("project commands", () => {
     { name: "openTerminal", run: openTerminal, message: "Couldn’t open a terminal: Disk full", rejects: () => mocked.openTerminal },
     { name: "revealProject", run: revealProject, message: "Couldn’t show the folder in Finder: Disk full", rejects: () => mocked.revealProject },
     { name: "editProjectFile", run: editProjectFile, message: "Couldn’t open the project file: Disk full", rejects: () => mocked.editProjectFile },
+    { name: "openClaudeManager", run: openClaudeManager, message: "Couldn’t open Claude Manager: Disk full", rejects: () => mocked.openClaudeManager },
     { name: "copyPath", run: copyPath, message: "Couldn’t copy the path: Disk full", rejects: () => mocked.copyProjectPath },
   ])("$name toasts the error when it fails", async ({ run, message, rejects }) => {
     rejects().mockRejectedValueOnce(diskFull);

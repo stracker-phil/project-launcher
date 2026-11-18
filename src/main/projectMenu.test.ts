@@ -29,6 +29,7 @@ describe("projectMenu", () => {
       "Open Terminal Here",
       "Reveal in Finder",
       "Copy Path",
+      "Manage Claude",
       "Edit Project File…",
     ]);
   });
@@ -47,6 +48,26 @@ describe("projectMenu", () => {
   it.each(["Open Terminal Here", "Edit Project File…"])("disables %s for an unavailable project", (text) => {
     expect(item(text, project({ available: false })).enabled).toBe(false);
     expect(item(text).enabled).toBe(true);
+  });
+
+  it("places Manage Claude after Copy Path", () => {
+    const texts = projectMenu(project(), []).flatMap((entry) => (isItem(entry) ? [entry.text] : []));
+
+    expect(texts.indexOf("Manage Claude")).toBe(texts.indexOf("Copy Path") + 1);
+  });
+
+  it("opens Claude Manager for the project", () => {
+    item("Manage Claude", project({ canManageClaude: true })).run?.();
+
+    expect(mocked.openClaudeManager).toHaveBeenCalledWith("alpha");
+  });
+
+  it.each([
+    { why: "the manager can manage it and it is available", patch: { canManageClaude: true }, enabled: true },
+    { why: "the manager cannot manage it", patch: { canManageClaude: false }, enabled: false },
+    { why: "the project is unavailable", patch: { canManageClaude: true, available: false }, enabled: false },
+  ])("enables Manage Claude only when it applies: $why", ({ patch, enabled }) => {
+    expect(item("Manage Claude", project(patch)).enabled).toBe(enabled);
   });
 
   it.each(["Reveal in Finder", "Copy Path"])("keeps %s enabled for an unavailable project", (text) => {

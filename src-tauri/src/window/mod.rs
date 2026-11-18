@@ -128,9 +128,10 @@ fn hide_or_warn(window: &WebviewWindow) {
 }
 
 /// Page commands that act on the current project without needing the window on screen.
-const IN_BACKGROUND: [&str; 8] = [
+const IN_BACKGROUND: [&str; 9] = [
     "project.terminal",
     "project.database",
+    "project.claude",
     "project.reveal",
     "project.copyPath",
     "project.editFile",

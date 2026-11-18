@@ -188,6 +188,10 @@ fn projects() -> Vec<DemoProject> {
                     "tests/RouterTest.php",
                     "<?php\n\nuse PHPUnit\\Framework\\TestCase;\n\nfinal class RouterTest extends TestCase\n{\n    public function testUnknownPathsAreNotFound(): void\n    {\n        $this->assertTrue(true);\n    }\n}\n",
                 ),
+                (
+                    ".claude/settings.json",
+                    "{\n  \"permissions\": { \"allow\": [\"Bash(npm run test)\"] }\n}\n",
+                ),
             ],
             history: &[
                 ("Set up the API", 40),
@@ -438,6 +442,16 @@ mod tests {
             fs::read_to_string(ddev_config).unwrap(),
             "name: acme-website\ntype: php\ndatabase:\n  type: mariadb\n  version: \"10.11\"\n"
         );
+    }
+
+    #[test]
+    fn the_orbit_api_has_a_claude_folder() {
+        let config = temp_config_dir();
+        write(config.path(), NOW).unwrap();
+        let orbit = config.path().join(DEMO_FOLDER).join("orbit-api");
+
+        assert!(orbit.join(".claude").is_dir());
+        assert!(orbit.join(".claude/settings.json").is_file());
     }
 
     #[test]

@@ -4,7 +4,7 @@ import { useLibrary } from "../state/library";
 import { useStore } from "../state/store";
 import { addProjects, removeProject, setLocked, toggleArchive, toggleStar } from "./actions";
 import { openDatabase } from "./devEnvironment";
-import { copyPath, editProjectFile, openTerminal, revealProject } from "./launch";
+import { copyPath, editProjectFile, openClaudeManager, openTerminal, revealProject } from "./launch";
 import { editField } from "./projectMenu";
 
 const current = () => useLibrary.getState().current;
@@ -13,6 +13,7 @@ const editable = () => {
   return !!project && project.available && !project.locked;
 };
 const available = () => !!current()?.available;
+const canManageClaude = () => available() && !!current()?.canManageClaude;
 
 /** Runs `run` on the project the detail shows. */
 const onCurrent = (run: (project: Project) => unknown) => () => {
@@ -63,6 +64,7 @@ export const LIBRARY_COMMANDS: PageCommand[] = [
   { id: "project.reveal", title: "Reveal in Finder", when: () => !!current(), run: onCurrent(revealProject) },
   { id: "project.copyPath", title: "Copy Path", when: () => !!current(), run: onCurrent(copyPath) },
   { id: "project.database", title: "Open Database", when: available, run: onCurrent(openDatabase) },
+  { id: "project.claude", title: "Manage Claude", when: canManageClaude, run: onCurrent(openClaudeManager) },
   { id: "project.editFile", title: "Edit Project File…", when: available, run: onCurrent(editProjectFile) },
   { id: "project.remove", title: "Remove from List", when: () => !!current(), run: onCurrent(removeProject) },
 ];
